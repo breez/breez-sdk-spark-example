@@ -57,7 +57,6 @@ const InputForm: React.FC<InputFormProps> = ({
 
       <FormGroup className="pt-2">
         <div>
-          <FormLabel htmlFor="amount">{`Enter at least ${formatSats(minAmount)} sats`}</FormLabel>
           <FormInput
             id="amount"
             type="number"
