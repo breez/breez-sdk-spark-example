@@ -1,8 +1,8 @@
 # WASM Demo App
 
-A demonstration web app showing how to implement Bitcoin payments via Lightning using the [Breez SDK - Nodeless](https://sdk-doc-liquid.breez.technology/) with WebAssembly. 
+A demonstration web app showing how to implement Bitcoin payments via Lightning using the [Breez SDK - Nodeless](https://sdk-doc-spark.breez.technology/) with WebAssembly. 
 
-See it in action [here](https://wasm-example-app.vercel.app/). 
+See it in action [here](https://breez-sdk-spark-example.vercel.app/). 
 
 Note: this is just a demo, for production usage, check out the security notes below.
 
@@ -20,34 +20,22 @@ Built with React, this demo app showcases best practices for integrating Lightni
 
 - React with TypeScript
 - Tailwind CSS for styling
-- [Breez SDK - Nodeless](https://sdk-doc-liquid.breez.technology/) for Lightning payments
+- [Breez SDK - Nodeless](https://sdk-doc-spark.breez.technology/) for Lightning payments
 
-## Prerequisites
-
-You'll need a **Nodeless** Breez API key for the SDK to work — you can request one for free [here](https://breez.technology/request-api-key/#contact-us-form-sdk).
 
 ## Getting Started
 
 ### Clone the repository
 
 ```bash
-git clone https://github.com:breez/wasm-example-app.git
-cd wasm-example-app
+git clone https://github.com:breez/breez-sdk-spark-example.git
+cd breez-sdk-spark-example
 ```
 
 ### Install dependencies
 
 ```bash
 npm install
-```
-
-### Set up environment variables
-
-1. Create a `.env.local` file in the project root
-2. Add your Breez API key:
-
-```
-VITE_BREEZ_API_KEY="your_breez_api_key_here"
 ```
 
 ### Start the development server
