@@ -47,9 +47,6 @@ const InputForm: React.FC<InputFormProps> = ({
   isLoading,
   onSubmit
 }) => {
-  const formatSats = (sats: number): string => {
-    return sats?.toLocaleString();
-  };
 
   return (
     <FormGroup>
