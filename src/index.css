@@ -1,0 +1,312 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-rgb: 10, 15, 30;
+  /* Darker outside frame background */
+  --primary-blue: #0051a3;
+  /* Primary blue for buttons and accents */
+  --secondary-blue: #007aff;
+  /* Secondary blue for hover states */
+  --text-white: #ffffff;
+  /* White font */
+  --card-bg: #0f1a3a;
+  /* Darker balance background */
+  --list-item-bg: #1a2e5a;
+  /* Lighter list item background */
+  --card-border: #2a3e6a;
+  /* Border color for cards */
+  --accent-green: #00ff00;
+  /* Accent green for positive values */
+  --accent-red: #ff0000;
+  /* Accent red for negative values */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-rgb: 24, 24, 27;
+  }
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: rgb(var(--background-rgb));
+  color: var(--text-white);
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Dark mode scrollbar */
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* Ensure footer stays at the bottom */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+  background-color: var(--card-bg);
+}
+
+/* Transition effects */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  transition-duration: 0.3s;
+  transition-timing-function: ease-out;
+}
+
+/* Add card styles */
+.card {
+  background-color: var(--card-bg);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+}
+
+.card-no-border {
+  background-color: var(--card-bg);
+  border: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.bottom-bar {
+  padding: 20px 0px;
+}
+
+/* List item styles */
+.list-item {
+  background-color: var(--list-item-bg);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+/* Button styles */
+.button {
+  background-color: var(--primary-blue);
+  color: var(--text-white);
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: bold;
+  text-transform: uppercase;
+  transition: background-color 0.3s ease;
+}
+
+.button:hover {
+  background-color: var(--secondary-blue);
+}
+
+/* Input styles */
+textarea,
+input,
+select {
+  background-color: var(--card-bg);
+  color: var(--text-white);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+textarea:focus,
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.5);
+}
+
+/* Footer adjustments */
+footer {
+  display: none;
+}
+
+/* Add smooth scrolling for the transaction list */
+.overflow-y-auto {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Make wallet header transitions smooth */
+.sticky {
+  transition: transform 0.2s ease-out;
+}
+
+/* Action button styles for Send/Receive */
+.action-button {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border-radius: 24px;
+  color: var(--text-white);
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease-in-out;
+  min-width: 120px;
+}
+
+.action-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.action-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.action-icon {
+  font-size: 1.2rem;
+  margin-right: 8px;
+  font-weight: bold;
+}
+
+/* Add padding to the transaction list to accommodate the floating buttons */
+.transaction-list-container {
+  padding-top: 1.5rem;
+}
+
+/* Toast notification container */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 350px;
+}
+
+/* Keep single toasts from being too wide */
+.toast-notification {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.main-wrapper {
+  min-height: 100vh;
+}
+
+/* Bottom Navigation Bar */
+.bottom-nav {
+  background-color: var(--primary-blue);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+  padding-bottom: env(safe-area-inset-bottom);
+  /* For iOS devices with home indicator */
+}
+
+/* Ensure bottom padding on main content to make room for the nav bar */
+.pb-nav {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+
+p {
+  padding: 2px;
+}
+
+/* Bottom Sheet Styles */
+.bottom-sheet-handle {
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background-color: rgba(255, 255, 255, 0.3);
+  margin: 8px auto;
+}
+
+.slide-up-enter {
+  transform: translateY(100%);
+}
+
+.slide-up-enter-active {
+  transform: translateY(0);
+  transition: transform 300ms ease-out;
+}
+
+.slide-up-exit {
+  transform: translateY(0);
+}
+
+.slide-up-exit-active {
+  transform: translateY(100%);
+  transition: transform 300ms ease-in;
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease-out forwards;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+.slide-down {
+  animation: slideDown 0.3s ease-in forwards;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(100%);
+  }
+}
+
+/* Create styles for the dialog card that specifically appears in a bottom sheet */
+.bottom-sheet-card {
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+  width: 100%;
+  height: 100%
+}
