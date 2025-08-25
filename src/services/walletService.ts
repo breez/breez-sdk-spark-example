@@ -2,7 +2,6 @@ import * as breezSdk from '../wasm/breez_sdk_spark_wasm.js';
 import {
   BreezSdk,
   Config,
-  Network,
   GetInfoRequest,
   GetInfoResponse,
   ListPaymentsRequest,
