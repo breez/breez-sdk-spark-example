@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import * as walletService from '../services/walletService';
 import LoadingSpinner from './LoadingSpinner';
 import {
-  DialogHeader, FormGroup, FormLabel,
+  DialogHeader, FormGroup,
   FormInput, FormError, PrimaryButton,
   QRCodeContainer, CopyableText, Alert, StepContainer, BottomSheetCard, BottomSheetContainer
 } from './ui';
