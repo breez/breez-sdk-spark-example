@@ -1,4 +1,4 @@
-import * as breezSdk from '../wasm/breez_sdk_spark_wasm.js';
+import * as breezSdk from '@breeztech/breez-sdk-spark/web';
 import {
   BreezSdk,
   Config,
@@ -6,20 +6,20 @@ import {
   GetInfoResponse,
   ListPaymentsRequest,
   ListPaymentsResponse,
-  PrepareSendPaymentRequest,
-  PrepareSendPaymentResponse,
+  Payment,
   SendPaymentRequest,
   SendPaymentResponse,
-  PrepareReceivePaymentRequest,
-  PrepareReceivePaymentResponse,
   ReceivePaymentRequest,
   ReceivePaymentResponse,
-  Payment,
+  PrepareSendPaymentRequest,
+  PrepareSendPaymentResponse,
+  PrepareReceivePaymentRequest,
+  PrepareReceivePaymentResponse,
   SdkEvent,
   EventListener,
   LogEntry,
   initLogging
-} from '../wasm/breez_sdk_spark_wasm.js';
+} from '@breeztech/breez-sdk-spark/web';
 
 class WebLogger {
   log = (logEntry: LogEntry) => {

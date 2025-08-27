@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Payment } from '../wasm/breez_sdk_spark_wasm.js';
+import type { Payment } from '@breeztech/breez-sdk-spark/web';
 import {
   DialogHeader, PaymentInfoCard, PaymentInfoRow,
   CollapsibleCodeField, BottomSheetContainer, BottomSheetCard

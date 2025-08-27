@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { PrepareSendPaymentResponse, Bolt11InvoiceDetails } from '../wasm/breez_sdk_spark_wasm.js';
+import type { PrepareSendPaymentResponse, Bolt11InvoiceDetails } from '@breeztech/breez-sdk-spark/web';
 import * as walletService from '../services/walletService';
 import LoadingSpinner from './LoadingSpinner';
 import {

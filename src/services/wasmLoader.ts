@@ -1,4 +1,4 @@
-import init from '../wasm/breez_sdk_spark_wasm.js';
+import init from '@breeztech/breez-sdk-spark/web';
 
 // Flag to ensure we only initialize once
 let initialized = false;

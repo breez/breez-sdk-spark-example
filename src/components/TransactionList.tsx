@@ -1,5 +1,5 @@
 import React from 'react';
-import { Payment } from '../wasm/breez_sdk_spark_wasm.js';
+import { Payment } from '@breeztech/breez-sdk-spark/web';
 
 interface TransactionListProps {
   transactions: Payment[];

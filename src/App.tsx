@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Config, GetInfoResponse, Network, Payment, SdkEvent, defaultConfig } from './wasm/breez_sdk_spark_wasm.js';
+import { Config, GetInfoResponse, Network, Payment, SdkEvent, defaultConfig } from '@breeztech/breez-sdk-spark/web';
 import * as walletService from './services/walletService';
 import LoadingSpinner from './components/LoadingSpinner';
 import { ToastProvider, useToast } from './contexts/ToastContext';
