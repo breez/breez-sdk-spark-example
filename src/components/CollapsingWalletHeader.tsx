@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Config, GetInfoResponse } from '@breeztech/breez-sdk-spark/web';
+import type { Config, GetInfoResponse } from '@breeztech/breez-sdk-spark';
 
 interface CollapsingWalletHeaderProps {
   walletInfo: GetInfoResponse | null;

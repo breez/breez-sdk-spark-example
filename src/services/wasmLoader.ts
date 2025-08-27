@@ -1,4 +1,4 @@
-import init from '@breeztech/breez-sdk-spark/web';
+import initBreezSDK from '@breeztech/breez-sdk-spark';
 
 // Flag to ensure we only initialize once
 let initialized = false;
@@ -12,7 +12,7 @@ export const initWasm = async (): Promise<void> => {
   try {
     // Initialize the WASM module
     console.log('Initializing WASM module...');
-    await init();
+    await initBreezSDK();
     console.log('WASM module initialized successfully');
     initialized = true;
   } catch (error) {

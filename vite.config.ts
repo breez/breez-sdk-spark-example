@@ -30,6 +30,6 @@ export default defineConfig({
     sourcemap: true,
   },
   optimizeDeps: {
-    exclude: ['@breeztech/breez-sdk-spark/web'],
+    exclude: ['@breeztech/breez-sdk-spark'],
   }
 });

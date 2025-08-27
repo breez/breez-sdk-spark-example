@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Config, GetInfoResponse, Network, Payment, SdkEvent, defaultConfig } from '@breeztech/breez-sdk-spark/web';
+import { Config, GetInfoResponse, Network, Payment, SdkEvent, defaultConfig } from '@breeztech/breez-sdk-spark';
 import * as walletService from './services/walletService';
 import LoadingSpinner from './components/LoadingSpinner';
 import { ToastProvider, useToast } from './contexts/ToastContext';
@@ -196,9 +196,16 @@ const AppContent: React.FC = () => {
 
       // Initialize wallet with mnemonic
 
+      const breezApiKey = import.meta.env.VITE_BREEZ_API_KEY;
+
+      if (!breezApiKey) {
+        throw new Error('Breez API key not found in environment variables');
+      }
+
       const urlParams = new URLSearchParams(window.location.search);
       const network = urlParams.get('network') ?? 'mainnet';
       const config: Config = defaultConfig(network as Network);
+      config.apiKey = breezApiKey;
       setConfig(config);
       await walletService.initWallet(mnemonic, config);
 

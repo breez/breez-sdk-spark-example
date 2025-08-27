@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { PrepareSendPaymentResponse, Bolt11InvoiceDetails } from '@breeztech/breez-sdk-spark/web';
+import type { PrepareSendPaymentResponse, Bolt11InvoiceDetails } from '@breeztech/breez-sdk-spark';
 import * as walletService from '../services/walletService';
 import LoadingSpinner from './LoadingSpinner';
 import {
@@ -269,7 +269,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
     setIsLoading(true);
 
     try {
-      const result = await walletService.sendPayment({ prepareResponse });
+      const result = await walletService.sendPayment({ prepareResponse, options: { type: 'bolt11Invoice', useSpark: preferSpark } });
       console.log('Payment result:', result);
       setPaymentResult('success');
     } catch (err) {

@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@breeztech/breez-sdk-spark": "^0.0.1-dev2",
     "@headlessui/react": "^1.7.17",
     "bip39": "^3.1.0",
     "buffer": "^6.0.3",
@@ -20,6 +19,7 @@
     "react-qr-code": "^2.0.12"
   },
   "devDependencies": {
+    "@breeztech/breez-sdk-spark": "^0.1.0-rc2",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@typescript-eslint/eslint-plugin": "^6.0.0",

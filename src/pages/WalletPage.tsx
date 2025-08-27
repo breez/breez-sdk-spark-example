@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback } from 'react';
-import { Config, GetInfoResponse, Payment } from '@breeztech/breez-sdk-spark/web';
+import { Config, GetInfoResponse, Payment } from '@breeztech/breez-sdk-spark';
 import * as walletService from '../services/walletService';
 import CollapsingWalletHeader from '../components/CollapsingWalletHeader';
 import TransactionList from '../components/TransactionList';

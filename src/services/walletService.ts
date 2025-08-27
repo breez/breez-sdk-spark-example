@@ -1,4 +1,4 @@
-import * as breezSdk from '@breeztech/breez-sdk-spark/web';
+import * as breezSdk from '@breeztech/breez-sdk-spark';
 import {
   BreezSdk,
   Config,
@@ -18,8 +18,9 @@ import {
   SdkEvent,
   EventListener,
   LogEntry,
-  initLogging
-} from '@breeztech/breez-sdk-spark/web';
+  initLogging,
+  defaultStorage,
+} from '@breeztech/breez-sdk-spark';
 
 class WebLogger {
   log = (logEntry: LogEntry) => {
@@ -36,7 +37,8 @@ export const initWallet = async (mnemonic: string, config: Config): Promise<void
     // Create config using the new API
     const urlParams = new URLSearchParams(window.location.search);
     // Create SDK builder with config, mnemonic, and data directory
-    let builder = breezSdk.SdkBuilder.new(config, mnemonic, './breez_data');
+    let storage = await defaultStorage("breez_sdk_spark_example");
+    let builder = breezSdk.SdkBuilder.new(config, mnemonic, storage);
     if (config.network === 'regtest') {
       builder = builder.withRestChainService('https://regtest-mempool.loadtest.dev.sparkinfra.net/api', {
         username: urlParams.get('username') ?? '',
