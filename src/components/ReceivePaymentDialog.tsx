@@ -179,19 +179,16 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
 
     try {
       // Generate lightning invoice using walletService
-      const prepareResponse = await walletService.prepareReceivePayment({
+      const receiveResponse = await walletService.receivePayment({
         paymentMethod: {
           type: 'bolt11Invoice',
           description: description,
           amountSats: amountSats
         }
       });
-      const receiveResponse = await walletService.receivePayment({
-        prepareResponse: prepareResponse
-      });
       // Set invoice and fees
       setInvoice(receiveResponse.paymentRequest);
-      setFeeSats(prepareResponse.feeSats || 0);
+      setFeeSats(receiveResponse.feeSats || 0);
       setCurrentStep('qr');
     } catch (err) {
       console.error('Failed to generate invoice:', err);

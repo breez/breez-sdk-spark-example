@@ -13,8 +13,6 @@ import {
   ReceivePaymentResponse,
   PrepareSendPaymentRequest,
   PrepareSendPaymentResponse,
-  PrepareReceivePaymentRequest,
-  PrepareReceivePaymentResponse,
   SdkEvent,
   EventListener,
   LogEntry,
@@ -79,14 +77,6 @@ export const sendPayment = async (
 ): Promise<SendPaymentResponse> => {
   if (!sdk) throw new Error('SDK not initialized');
   return await sdk.sendPayment(params);
-};
-
-// Invoice and Receiving Operations
-export const prepareReceivePayment = async (
-  params: PrepareReceivePaymentRequest
-): Promise<PrepareReceivePaymentResponse> => {
-  if (!sdk) throw new Error('SDK not initialized');
-  return await sdk.prepareReceivePayment(params);
 };
 
 export const receivePayment = async (
