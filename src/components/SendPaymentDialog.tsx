@@ -25,8 +25,6 @@ interface SendPaymentDialogProps {
 interface InputStepProps {
   paymentInput: string;
   setPaymentInput: (value: string) => void;
-  preferSpark: boolean;
-  setPreferSpark: (value: boolean) => void;
   isLoading: boolean;
   error: string | null;
   onNext: () => void;
@@ -51,8 +49,6 @@ interface ResultStepProps {
 const InputStep: React.FC<InputStepProps> = ({
   paymentInput,
   setPaymentInput,
-  preferSpark,
-  setPreferSpark,
   isLoading,
   error,
   onNext,
@@ -69,21 +65,6 @@ const InputStep: React.FC<InputStepProps> = ({
         disabled={isLoading}
         className="h-24"
       />
-
-      {/* Prefer Spark Transfers checkbox */}
-      <div className="mt-4 flex items-center">
-        <input
-          type="checkbox"
-          id="prefer-spark"
-          checked={preferSpark}
-          onChange={(e) => setPreferSpark(e.target.checked)}
-          disabled={isLoading}
-          className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-        />
-        <label htmlFor="prefer-spark" className="text-sm text-[rgb(var(--text-white))]">
-          Prefer Spark Transfers
-        </label>
-      </div>
 
       <FormError error={error} />
 
@@ -178,7 +159,6 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
   const [paymentResult, setPaymentResult] = useState<PaymentResult>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [prepareResponse, setPrepareResponse] = useState<PrepareSendPaymentResponse | null>(null);
-  const [preferSpark, setPreferSpark] = useState<boolean>(true);
 
 
   // Reset state when dialog opens
@@ -269,7 +249,11 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
     setIsLoading(true);
 
     try {
-      const result = await walletService.sendPayment({ prepareResponse, options: { type: 'bolt11Invoice', useSpark: preferSpark } });
+      let useSpark = false;
+      if (prepareResponse.paymentMethod.type === 'bolt11Invoice') {
+        useSpark = prepareResponse.paymentMethod.sparkTransferFeeSats != null;
+      }
+      const result = await walletService.sendPayment({ prepareResponse, options: { type: 'bolt11Invoice', useSpark } });
       console.log('Payment result:', result);
       setPaymentResult('success');
     } catch (err) {
@@ -302,7 +286,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
     const paymentMethod = prepareResponse.paymentMethod;
     if (paymentMethod.type === 'bolt11Invoice') {
       // Use preferSpark checkbox to determine which fee to display
-      if (preferSpark && paymentMethod.sparkTransferFeeSats != null) {
+      if (paymentMethod.sparkTransferFeeSats != null) {
         feesSat = paymentMethod.sparkTransferFeeSats;
       } else {
         feesSat = paymentMethod.lightningFeeSats;
@@ -324,8 +308,6 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
             <InputStep
               paymentInput={paymentInput}
               setPaymentInput={setPaymentInput}
-              preferSpark={preferSpark}
-              setPreferSpark={setPreferSpark}
               isLoading={isLoading}
               error={error}
               onNext={parsePaymentInput}
