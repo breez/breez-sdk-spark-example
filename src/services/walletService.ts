@@ -17,7 +17,6 @@ import {
   EventListener,
   LogEntry,
   initLogging,
-  defaultStorage,
 } from '@breeztech/breez-sdk-spark';
 
 class WebLogger {
@@ -32,21 +31,7 @@ export const initWallet = async (mnemonic: string, config: Config): Promise<void
   try {
     const logger = new WebLogger();
     initLogging(logger);
-    // Create config using the new API
-    const urlParams = new URLSearchParams(window.location.search);
-    // Create SDK builder with config, mnemonic, and data directory
-    let storage = await defaultStorage("breez_sdk_spark_example");
-    let builder = breezSdk.SdkBuilder.new(config, mnemonic, storage);
-    if (config.network === 'regtest') {
-      builder = builder.withRestChainService('https://regtest-mempool.loadtest.dev.sparkinfra.net/api', {
-        username: urlParams.get('username') ?? '',
-        password: urlParams.get('password') ?? ''
-      });
-    }
-    // Build the SDK instance
-    sdk = await builder.build();
-
-    // Start the SDK    
+    sdk = await BreezSdk.connect({ config, mnemonic, storageDir: "spark-wallet-example" });
     console.log('Wallet initialized successfully');
 
     // Return void instead of the SDK instance
