@@ -108,8 +108,6 @@ const WalletPage: React.FC<WalletPageProps> = ({
       <SendPaymentDialog
         isOpen={isSendDialogOpen}
         onClose={handleSendDialogClose}
-        walletService={walletService}
-        transactionsListRef={transactionsContainerRef}
       />
 
       {/* Receive Payment Dialog */}

@@ -458,3 +458,25 @@ export const TabPanel: React.FC<{
     {children}
   </div>
 );
+
+// Loading Spinner Component
+export const LoadingSpinner: React.FC<{
+  text?: string;
+  size?: 'small' | 'medium' | 'large';
+  className?: string;
+}> = ({ text, size = 'medium', className = "" }) => {
+  const sizeClasses = {
+    small: 'w-4 h-4',
+    medium: 'w-8 h-8',
+    large: 'w-12 h-12'
+  };
+
+  return (
+    <div className={`flex flex-col items-center justify-center ${className}`}>
+      <div className={`${sizeClasses[size]} border-2 border-[rgb(var(--primary-blue))] border-t-transparent rounded-full animate-spin`}></div>
+      {text && (
+        <p className="mt-2 text-sm text-[rgb(var(--text-white))] opacity-70">{text}</p>
+      )}
+    </div>
+  );
+};

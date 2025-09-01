@@ -1,33 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import type { PrepareSendPaymentResponse, Bolt11InvoiceDetails } from '@breeztech/breez-sdk-spark';
-import * as walletService from '../services/walletService';
-import LoadingSpinner from './LoadingSpinner';
 import {
-  DialogHeader, FormGroup, FormLabel,
-  FormTextarea, FormError, PrimaryButton, PaymentInfoCard,
-  PaymentInfoRow, PaymentInfoDivider, ResultIcon, ResultMessage, StepContainer, StepContent,
-  BottomSheetContainer, BottomSheetCard,
-  FormDescription
+  DialogHeader,
+  StepContainer,
+  StepContent,
+  BottomSheetContainer,
+  BottomSheetCard,
+  FormGroup,
+  FormError,
+  PrimaryButton,
+  PaymentInfoCard,
+  PaymentInfoRow,
+  PaymentInfoDivider,
+  ResultIcon,
+  ResultMessage,
+  FormDescription,
+  LoadingSpinner
 } from './ui';
+import * as walletService from '../services/walletService';
+import { Bolt11InvoiceDetails, PrepareSendPaymentResponse, InputType } from '@breeztech/breez-sdk-spark';
 
 // Types
 type PaymentStep = 'input' | 'confirm' | 'processing' | 'result';
 type PaymentResult = 'success' | 'failure' | null;
 
+// Fee options interface
+interface FeeOptions {
+  fast: number;
+  medium: number;
+  slow: number;
+}
+
 // Props interfaces
 interface SendPaymentDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  walletService: typeof walletService;
-  transactionsListRef: React.RefObject<HTMLDivElement>;
-}
-
-interface InputStepProps {
-  paymentInput: string;
-  setPaymentInput: (value: string) => void;
-  isLoading: boolean;
-  error: string | null;
-  onNext: () => void;
 }
 
 interface ConfirmStepProps {
@@ -45,42 +51,7 @@ interface ResultStepProps {
   onClose: () => void;
 }
 
-// Step components
-const InputStep: React.FC<InputStepProps> = ({
-  paymentInput,
-  setPaymentInput,
-  isLoading,
-  error,
-  onNext,
-}) => {
-  return (
-    <FormGroup>
-      <FormLabel htmlFor="payment-input">
-        Payee information
-      </FormLabel>
-      <FormTextarea
-        value={paymentInput}
-        onChange={(e) => setPaymentInput(e.target.value)}
-        placeholder="Invoice"
-        disabled={isLoading}
-        className="h-24"
-      />
-
-      <FormError error={error} />
-
-      <div className="mt-6 flex justify-center">
-        <PrimaryButton
-          onClick={onNext}
-          disabled={isLoading || !paymentInput.trim()}
-        >
-          {isLoading ? (
-            <LoadingSpinner text="Processing..." size="small" />
-          ) : 'Next'}
-        </PrimaryButton>
-      </div>
-    </FormGroup>
-  );
-};
+// Removed unused component definitions - using unified input approach
 
 const ConfirmStep: React.FC<ConfirmStepProps> = ({
   amountSats,
@@ -93,7 +64,7 @@ const ConfirmStep: React.FC<ConfirmStepProps> = ({
     <FormGroup>
       <center className="m-6">
         <FormDescription>
-          You are requeted to pay
+          You are requested to pay
         </FormDescription>
         <div className="mt-2 text-2xl font-bold text-[rgb(var(--text-white))]">
           {((amountSats || 0) + (feesSat || 0)).toLocaleString()} sats
@@ -150,16 +121,19 @@ const ResultStep: React.FC<ResultStepProps> = ({ result, error, onClose }) => {
 };
 
 // Main component
-const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, walletService }) => {
+const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose }) => {
   // State
   const [currentStep, setCurrentStep] = useState<PaymentStep>('input');
   const [paymentInput, setPaymentInput] = useState<string>('');
+  const [amount, setAmount] = useState<string>('');
+  const [selectedFeeRate, setSelectedFeeRate] = useState<'fast' | 'medium' | 'slow' | null>(null);
+  const [feeOptions, setFeeOptions] = useState<FeeOptions | null>(null);
   const [paymentInfo, setPaymentInfo] = useState<Bolt11InvoiceDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paymentResult, setPaymentResult] = useState<PaymentResult>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [prepareResponse, setPrepareResponse] = useState<PrepareSendPaymentResponse | null>(null);
-
+  const [parsedInput, setParsedInput] = useState<InputType | null>(null);
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -171,15 +145,19 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
   const resetState = () => {
     setCurrentStep('input');
     setPaymentInput('');
+    setAmount('');
+    setSelectedFeeRate(null);
+    setFeeOptions(null);
     setPaymentInfo(null);
     setPrepareResponse(null);
+    setParsedInput(null);
     setError(null);
     setPaymentResult(null);
     setIsLoading(false);
   };
 
-  // Payment flow functions
-  const parsePaymentInput = async () => {
+  // Unified payment processing function
+  const processPaymentInput = async () => {
     if (!paymentInput.trim()) {
       setError('Please enter a payment destination');
       return;
@@ -189,38 +167,100 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
     setError(null);
 
     try {
+      // First, use sdk.parse to determine the input type
       const parseResult = await walletService.parseInput(paymentInput.trim());
+      setParsedInput(parseResult);
 
       if (parseResult.type === 'bolt11Invoice') {
-        // For bolt11Invoice type, the parseResult itself contains the invoice data
+        // Handle bolt11 invoice
         const invoice = parseResult;
         setPaymentInfo(invoice);
 
-        if (!invoice.amountMsat) {
-          setError('Invoice does not specify an amount');
+        if (!invoice.amountMsat || invoice.amountMsat === 0) {
+          // Zero invoice - need amount input
           setIsLoading(false);
-          return;
+          return; // Stay on input step to show amount field
+        } else {
+          // Invoice with amount - proceed directly to prepare payment
+          await prepareSendPayment(invoice);
         }
-
-        await prepareSendPayment(invoice);
+      } else if (parseResult.type === 'bitcoinAddress') {
+        // For Spark/Bitcoin addresses, we need amount input
+        setIsLoading(false);
+        return; // Stay on input step to show amount field
+      } else if (parseResult.type === 'sparkAddress') {
+        // Spark address - need amount input
+        setIsLoading(false);
+        return; // Stay on input step to show amount field
       } else {
-        setError('Unsupported payment format');
+        setError('Invalid payment destination');
       }
     } catch (err) {
       console.error('Failed to parse input:', err);
-      setError('Invalid payment information');
+      setError('Invalid payment destination');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const prepareSendPayment = async (invoice: Bolt11InvoiceDetails) => {
-    if (!invoice.amountMsat) {
-      setError('Invoice does not specify an amount');
+  // Process payment with amount (for zero invoices, Spark, and Bitcoin addresses)
+  const processPaymentWithAmount = async () => {
+    if (!parsedInput || !amount || parseInt(amount) <= 0) {
+      setError('Please enter a valid amount');
       return;
     }
 
-    const amountSat = invoice.amountMsat / 1000;
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      if (parsedInput.type === 'bolt11Invoice') {
+        // Zero invoice with user-provided amount
+        const invoice = parsedInput;
+        setPaymentInfo(invoice);
+        await prepareSendPayment(invoice, parseInt(amount));
+      } else {
+        // Spark or Bitcoin address
+        const response = await walletService.prepareSendPayment({
+          paymentRequest: paymentInput.trim(),
+          amountSats: parseInt(amount),
+        });
+
+        setPrepareResponse(response);
+
+        if (response.paymentMethod.type === 'bitcoinAddress') {
+          // Set fee options for Bitcoin payments
+          setFeeOptions({
+            fast: 20,
+            medium: 10,
+            slow: 5
+          });
+
+          // If no fee rate selected yet, don't proceed to confirm
+          if (!selectedFeeRate) {
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        setCurrentStep('confirm');
+      }
+    } catch (err) {
+      console.error('Failed to prepare payment:', err);
+      setError('Failed to prepare payment');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const prepareSendPayment = async (invoice: Bolt11InvoiceDetails, userAmount?: number) => {
+    const amountSat = userAmount || (invoice.amountMsat ? invoice.amountMsat / 1000 : 0);
+
+    if (amountSat <= 0) {
+      setError('Invalid amount');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -240,7 +280,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
   };
 
   const sendPayment = async () => {
-    if (!paymentInfo || !prepareResponse) {
+    if (!prepareResponse) {
       setError('Cannot send payment: missing required information');
       return;
     }
@@ -251,7 +291,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
     try {
       let useSpark = false;
       if (prepareResponse.paymentMethod.type === 'bolt11Invoice') {
-        useSpark = prepareResponse.paymentMethod.sparkTransferFeeSats != null;
+        useSpark = (prepareResponse.paymentMethod as any).sparkTransferFeeSats != null;
       }
       const result = await walletService.sendPayment({ prepareResponse, options: { type: 'bolt11Invoice', useSpark } });
       console.log('Payment result:', result);
@@ -264,6 +304,110 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
       setIsLoading(false);
       setCurrentStep('result');
     }
+  };
+
+  const renderInputStep = () => {
+    const needsAmount = parsedInput && (
+      (parsedInput.type === 'bolt11Invoice' && (!parsedInput.amountMsat || parsedInput.amountMsat === 0)) ||
+      parsedInput.type === 'bitcoinAddress' ||
+      parsedInput.type === 'sparkAddress'
+    );
+
+    const needsFeeSelection = parsedInput && parsedInput.type === 'bitcoinAddress' && feeOptions && !selectedFeeRate;
+
+    return (
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <label className="block text-sm font-medium text-[rgb(var(--text-white))]">
+            Payment Destination
+          </label>
+          <textarea
+            value={paymentInput}
+            onChange={(e) => setPaymentInput(e.target.value)}
+            placeholder="Enter Lightning invoice, Spark address, or Bitcoin address..."
+            className="w-full p-3 border border-[rgb(var(--card-border))] rounded-lg bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] placeholder-[rgb(var(--text-white))] placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary-blue))] resize-none"
+            rows={3}
+            disabled={isLoading}
+          />
+
+          {/* Show amount input when needed */}
+          {needsAmount && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-[rgb(var(--text-white))]">
+                Amount (sats)
+              </label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Enter amount in satoshis"
+                className="w-full p-3 border border-[rgb(var(--card-border))] rounded-lg bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] placeholder-[rgb(var(--text-white))] placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary-blue))]"
+                disabled={isLoading}
+                min={1}
+              />
+            </div>
+          )}
+
+          {/* Show fee selection for Bitcoin addresses */}
+          {needsFeeSelection && (
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-[rgb(var(--text-white))]">
+                Fee Rate
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setSelectedFeeRate('slow')}
+                  disabled={isLoading}
+                  className={`p-3 rounded-lg border text-sm font-medium transition-colors ${selectedFeeRate === 'slow'
+                    ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))]'
+                    : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
+                    } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <div>Slow</div>
+                  <div className="text-xs opacity-70">{feeOptions.slow} sat/vB</div>
+                </button>
+                <button
+                  onClick={() => setSelectedFeeRate('medium')}
+                  disabled={isLoading}
+                  className={`p-3 rounded-lg border text-sm font-medium transition-colors ${selectedFeeRate === 'medium'
+                    ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))]'
+                    : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
+                    } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <div>Medium</div>
+                  <div className="text-xs opacity-70">{feeOptions.medium} sat/vB</div>
+                </button>
+                <button
+                  onClick={() => setSelectedFeeRate('fast')}
+                  disabled={isLoading}
+                  className={`p-3 rounded-lg border text-sm font-medium transition-colors ${selectedFeeRate === 'fast'
+                    ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))]'
+                    : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
+                    } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <div>Fast</div>
+                  <div className="text-xs opacity-70">{feeOptions.fast} sat/vB</div>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
+          <PrimaryButton
+            onClick={needsAmount ? processPaymentWithAmount : processPaymentInput}
+            disabled={isLoading || !paymentInput.trim() || (needsAmount && (!amount || parseInt(amount) <= 0)) || Boolean(needsFeeSelection)}
+            className="w-full"
+          >
+            {isLoading ? 'Processing...' : 'Continue'}
+          </PrimaryButton>
+        </div>
+      </div>
+    );
   };
 
   const getStepIndex = (step: PaymentStep): number => {
@@ -280,17 +424,22 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
 
   if (paymentInfo && paymentInfo.amountMsat) {
     amountSats = paymentInfo.amountMsat / 1000;
+  } else if (amount && parseInt(amount) > 0) {
+    amountSats = parseInt(amount);
   }
 
   if (prepareResponse) {
     const paymentMethod = prepareResponse.paymentMethod;
     if (paymentMethod.type === 'bolt11Invoice') {
       // Use preferSpark checkbox to determine which fee to display
-      if (paymentMethod.sparkTransferFeeSats != null) {
-        feesSat = paymentMethod.sparkTransferFeeSats;
-      } else {
-        feesSat = paymentMethod.lightningFeeSats;
+      const method = paymentMethod as any;
+      if (method.sparkTransferFeeSats != null) {
+        feesSat = method.sparkTransferFeeSats;
+      } else if (method.lightningFeeSats != null) {
+        feesSat = method.lightningFeeSats;
       }
+    } else if (paymentMethod.type === 'bitcoinAddress') {
+      feesSat = (paymentMethod as any).feeQuote?.totalFees || 0;
     }
   }
 
@@ -305,13 +454,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
             isActive={currentStep === 'input'}
             isLeft={getStepIndex('input') < getStepIndex(currentStep)}
           >
-            <InputStep
-              paymentInput={paymentInput}
-              setPaymentInput={setPaymentInput}
-              isLoading={isLoading}
-              error={error}
-              onNext={parsePaymentInput}
-            />
+            {renderInputStep()}
           </StepContent>
 
           {/* Confirm Step */}
