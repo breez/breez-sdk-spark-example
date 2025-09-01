@@ -84,9 +84,6 @@ const AmountStep: React.FC<AmountStepProps> = ({
   return (
     <FormGroup>
       <div className="text-center mb-6">
-        <h3 className="text-xl font-semibold text-[rgb(var(--text-white))] mb-2">
-          {paymentMethod}
-        </h3>
         <FormDescription>
           Enter the amount you want to send
         </FormDescription>
@@ -490,6 +487,14 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose }
     }
   };
 
+  // Get dialog title based on current step
+  const getDialogTitle = (): string => {
+    if (currentStep === 'amount') {
+      return getPaymentMethodName();
+    }
+    return 'Send Payment';
+  };
+
   // Don't render if not open
   //if (!isOpen) return null;
 
@@ -521,7 +526,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose }
   return (
     <BottomSheetContainer isOpen={isOpen} onClose={onClose}>
       <BottomSheetCard className="bottom-sheet-card">
-        <DialogHeader title="Send Payment" onClose={onClose} />
+        <DialogHeader title={getDialogTitle()} onClose={onClose} />
 
         <StepContainer>
           {/* Input Step */}
