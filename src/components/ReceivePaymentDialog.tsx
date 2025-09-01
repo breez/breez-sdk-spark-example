@@ -189,7 +189,7 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
   const [paymentData, setPaymentData] = useState<string>('');
   const [feeSats, setFeeSats] = useState<number>(0);
   const [limits, setLimits] = useState<{ min: number, max: number }>({ min: 1, max: 1000000 });
-  
+
   // State for on-demand address generation
   const [sparkAddress, setSparkAddress] = useState<string | null>(null);
   const [bitcoinAddress, setBitcoinAddress] = useState<string | null>(null);
@@ -201,6 +201,7 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
     if (isOpen) {
       resetState();
       setDefaultLimits();
+      setActiveTab('bolt11');
     }
   }, [isOpen]);
 
@@ -267,7 +268,7 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
   // Generate Spark address on-demand
   const generateSparkAddress = async () => {
     if (sparkAddress || sparkLoading) return; // Don't generate if already exists or loading
-    
+
     setSparkLoading(true);
     try {
       const receiveResponse = await walletService.receivePayment({
@@ -285,7 +286,7 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
   // Generate Bitcoin address on-demand
   const generateBitcoinAddress = async () => {
     if (bitcoinAddress || bitcoinLoading) return; // Don't generate if already exists or loading
-    
+
     setBitcoinLoading(true);
     try {
       const receiveResponse = await walletService.receivePayment({
@@ -306,7 +307,7 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
     setActiveTab(tab);
     resetState();
     setDefaultLimits();
-    
+
     // Generate addresses on-demand when switching to those tabs
     if (tab === 'spark') {
       generateSparkAddress();
