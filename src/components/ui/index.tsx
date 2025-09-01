@@ -305,7 +305,7 @@ export const CopyableText: React.FC<{
         type="text"
         value={text}
         readOnly
-        className="w-full px-3 py-2 pr-20 bg-[rgb(var(--card-border))] text-[rgb(var(--text-white))] rounded"
+        className="w-full px-3 py-2 pr-20 bg-[rgb(var(--card-border))] text-[rgb(var(--text-white))] rounded text-center"
       />
       <button
         onClick={handleCopy}
