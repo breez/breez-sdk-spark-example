@@ -53,6 +53,7 @@ const AppContent: React.FC = () => {
     }
   }, [isConnected]);
 
+
   // SDK event handler with toast notifications and auto-close of receive dialog
   const handleSdkEvent = useCallback((event: SdkEvent) => {
     console.log('SDK event received:', event);
@@ -223,6 +224,7 @@ const AppContent: React.FC = () => {
       setCurrentScreen('wallet'); // Navigate to wallet screen
       // We'll keep isLoading true until first sync for new wallets
       setIsLoading(false);
+
     } catch (error) {
       console.error('Error connecting wallet:', error);
       setError('Failed to connect wallet. Please check your mnemonic and try again.');

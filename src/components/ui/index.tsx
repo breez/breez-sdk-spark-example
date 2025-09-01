@@ -411,3 +411,50 @@ export const BottomSheetCard = forwardRef<HTMLDivElement, DialogCardProps>(
 );
 
 BottomSheetCard.displayName = 'BottomSheetCard';
+
+// Tab Components
+export const TabContainer: React.FC<{
+  children: ReactNode;
+  className?: string;
+}> = ({ children, className = "" }) => (
+  <div className={`w-full ${className}`}>
+    {children}
+  </div>
+);
+
+export const TabList: React.FC<{
+  children: ReactNode;
+  className?: string;
+}> = ({ children, className = "" }) => (
+  <div className={`flex border-b border-[rgb(var(--card-border))] ${className}`}>
+    {children}
+  </div>
+);
+
+export const Tab: React.FC<{
+  children: ReactNode;
+  isActive: boolean;
+  onClick: () => void;
+  className?: string;
+}> = ({ children, isActive, onClick, className = "" }) => (
+  <button
+    onClick={onClick}
+    className={`flex-1 px-4 py-3 text-sm font-medium transition-colors duration-200 ${
+      isActive
+        ? 'text-[rgb(var(--primary-blue))] border-b-2 border-[rgb(var(--primary-blue))]'
+        : 'text-[rgb(var(--text-white))] opacity-70 hover:opacity-100'
+    } ${className}`}
+  >
+    {children}
+  </button>
+);
+
+export const TabPanel: React.FC<{
+  children: ReactNode;
+  isActive: boolean;
+  className?: string;
+}> = ({ children, isActive, className = "" }) => (
+  <div className={`${isActive ? 'block' : 'hidden'} pt-6 ${className}`}>
+    {children}
+  </div>
+);
