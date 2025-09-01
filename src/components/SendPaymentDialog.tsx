@@ -20,7 +20,7 @@ import * as walletService from '../services/walletService';
 import { Bolt11InvoiceDetails, PrepareSendPaymentResponse, InputType } from '@breeztech/breez-sdk-spark';
 
 // Types
-type PaymentStep = 'input' | 'confirm' | 'processing' | 'result';
+type PaymentStep = 'input' | 'amount' | 'confirm' | 'processing' | 'result';
 type PaymentResult = 'success' | 'failure' | null;
 
 // Fee options interface
@@ -45,13 +45,148 @@ interface ConfirmStepProps {
   onConfirm: () => void;
 }
 
+interface AmountStepProps {
+  paymentMethod: string;
+  paymentInput: string;
+  amount: string;
+  setAmount: (value: string) => void;
+  selectedFeeRate: 'fast' | 'medium' | 'slow' | null;
+  setSelectedFeeRate: (rate: 'fast' | 'medium' | 'slow') => void;
+  feeOptions: FeeOptions | null;
+  isLoading: boolean;
+  error: string | null;
+  onBack: () => void;
+  onNext: () => void;
+}
+
 interface ResultStepProps {
   result: 'success' | 'failure';
   error: string | null;
   onClose: () => void;
 }
 
-// Removed unused component definitions - using unified input approach
+// Amount Step Component
+const AmountStep: React.FC<AmountStepProps> = ({
+  paymentMethod,
+  paymentInput,
+  amount,
+  setAmount,
+  selectedFeeRate,
+  setSelectedFeeRate,
+  feeOptions,
+  isLoading,
+  error,
+  onBack,
+  onNext,
+}) => {
+  const needsFeeSelection = paymentMethod === 'Bitcoin Address' && feeOptions;
+
+  return (
+    <FormGroup>
+      <div className="text-center mb-6">
+        <h3 className="text-xl font-semibold text-[rgb(var(--text-white))] mb-2">
+          {paymentMethod}
+        </h3>
+        <FormDescription>
+          Enter the amount you want to send
+        </FormDescription>
+      </div>
+
+      {/* Show the payment destination */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-[rgb(var(--text-white))] mb-2">
+          Payment Destination
+        </label>
+        <div className="p-3 bg-[rgb(var(--card-border))] rounded-lg">
+          <code className="text-sm text-[rgb(var(--text-white))] break-all">
+            {paymentInput}
+          </code>
+        </div>
+      </div>
+
+      {/* Amount input */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-[rgb(var(--text-white))] mb-2">
+          Amount (sats)
+        </label>
+        <input
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="Enter amount in satoshis"
+          className="w-full p-3 border border-[rgb(var(--card-border))] rounded-lg bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] placeholder-[rgb(var(--text-white))] placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary-blue))]"
+          disabled={isLoading}
+          min={1}
+        />
+      </div>
+
+      {/* Fee selection for Bitcoin addresses */}
+      {needsFeeSelection && (
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-[rgb(var(--text-white))] mb-2">
+            Fee Rate
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => setSelectedFeeRate('slow')}
+              disabled={isLoading}
+              className={`p-3 rounded-lg border text-sm font-medium transition-colors ${selectedFeeRate === 'slow'
+                ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))]'
+                : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
+                } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <div>Slow</div>
+              <div className="text-xs opacity-70">{feeOptions.slow} sat/vB</div>
+            </button>
+            <button
+              onClick={() => setSelectedFeeRate('medium')}
+              disabled={isLoading}
+              className={`p-3 rounded-lg border text-sm font-medium transition-colors ${selectedFeeRate === 'medium'
+                ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))]'
+                : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
+                } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <div>Medium</div>
+              <div className="text-xs opacity-70">{feeOptions.medium} sat/vB</div>
+            </button>
+            <button
+              onClick={() => setSelectedFeeRate('fast')}
+              disabled={isLoading}
+              className={`p-3 rounded-lg border text-sm font-medium transition-colors ${selectedFeeRate === 'fast'
+                ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))]'
+                : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
+                } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <div>Fast</div>
+              <div className="text-xs opacity-70">{feeOptions.fast} sat/vB</div>
+            </button>
+          </div>
+        </div>
+      )}
+
+      <FormError error={error} />
+
+      <div className="flex gap-3 mt-6">
+        <PrimaryButton
+          onClick={onBack}
+          disabled={isLoading}
+          className="flex-1 bg-gray-600 hover:bg-gray-700"
+        >
+          Back
+        </PrimaryButton>
+        <PrimaryButton
+          onClick={onNext}
+          disabled={isLoading || !amount || parseInt(amount) <= 0 || Boolean(needsFeeSelection && !selectedFeeRate)}
+          className="flex-1"
+        >
+          {isLoading ? (
+            <LoadingSpinner text="Processing..." size="small" />
+          ) : 'Continue'}
+        </PrimaryButton>
+      </div>
+    </FormGroup>
+  );
+};
 
 const ConfirmStep: React.FC<ConfirmStepProps> = ({
   amountSats,
@@ -178,20 +313,17 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose }
 
         if (!invoice.amountMsat || invoice.amountMsat === 0) {
           // Zero invoice - need amount input
-          setIsLoading(false);
-          return; // Stay on input step to show amount field
+          setCurrentStep('amount');
         } else {
           // Invoice with amount - proceed directly to prepare payment
           await prepareSendPayment(invoice);
         }
       } else if (parseResult.type === 'bitcoinAddress') {
-        // For Spark/Bitcoin addresses, we need amount input
-        setIsLoading(false);
-        return; // Stay on input step to show amount field
+        // For Bitcoin addresses, we need amount input
+        setCurrentStep('amount');
       } else if (parseResult.type === 'sparkAddress') {
         // Spark address - need amount input
-        setIsLoading(false);
-        return; // Stay on input step to show amount field
+        setCurrentStep('amount');
       } else {
         setError('Invalid payment destination');
       }
@@ -306,113 +438,56 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose }
     }
   };
 
-  const renderInputStep = () => {
-    const needsAmount = parsedInput && (
-      (parsedInput.type === 'bolt11Invoice' && (!parsedInput.amountMsat || parsedInput.amountMsat === 0)) ||
-      parsedInput.type === 'bitcoinAddress' ||
-      parsedInput.type === 'sparkAddress'
-    );
+  const renderInputStep = () => (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <label className="block text-sm font-medium text-[rgb(var(--text-white))]">
+          Payment Destination
+        </label>
+        <textarea
+          value={paymentInput}
+          onChange={(e) => setPaymentInput(e.target.value)}
+          placeholder="Enter Lightning invoice, Spark address, or Bitcoin address..."
+          className="w-full p-3 border border-[rgb(var(--card-border))] rounded-lg bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] placeholder-[rgb(var(--text-white))] placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary-blue))] resize-none"
+          rows={3}
+          disabled={isLoading}
+        />
 
-    const needsFeeSelection = parsedInput && parsedInput.type === 'bitcoinAddress' && feeOptions && !selectedFeeRate;
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
 
-    return (
-      <div className="space-y-6">
-        <div className="space-y-4">
-          <label className="block text-sm font-medium text-[rgb(var(--text-white))]">
-            Payment Destination
-          </label>
-          <textarea
-            value={paymentInput}
-            onChange={(e) => setPaymentInput(e.target.value)}
-            placeholder="Enter Lightning invoice, Spark address, or Bitcoin address..."
-            className="w-full p-3 border border-[rgb(var(--card-border))] rounded-lg bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] placeholder-[rgb(var(--text-white))] placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary-blue))] resize-none"
-            rows={3}
-            disabled={isLoading}
-          />
-
-          {/* Show amount input when needed */}
-          {needsAmount && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-[rgb(var(--text-white))]">
-                Amount (sats)
-              </label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="Enter amount in satoshis"
-                className="w-full p-3 border border-[rgb(var(--card-border))] rounded-lg bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] placeholder-[rgb(var(--text-white))] placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary-blue))]"
-                disabled={isLoading}
-                min={1}
-              />
-            </div>
-          )}
-
-          {/* Show fee selection for Bitcoin addresses */}
-          {needsFeeSelection && (
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-[rgb(var(--text-white))]">
-                Fee Rate
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => setSelectedFeeRate('slow')}
-                  disabled={isLoading}
-                  className={`p-3 rounded-lg border text-sm font-medium transition-colors ${selectedFeeRate === 'slow'
-                    ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))]'
-                    : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
-                    } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <div>Slow</div>
-                  <div className="text-xs opacity-70">{feeOptions.slow} sat/vB</div>
-                </button>
-                <button
-                  onClick={() => setSelectedFeeRate('medium')}
-                  disabled={isLoading}
-                  className={`p-3 rounded-lg border text-sm font-medium transition-colors ${selectedFeeRate === 'medium'
-                    ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))]'
-                    : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
-                    } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <div>Medium</div>
-                  <div className="text-xs opacity-70">{feeOptions.medium} sat/vB</div>
-                </button>
-                <button
-                  onClick={() => setSelectedFeeRate('fast')}
-                  disabled={isLoading}
-                  className={`p-3 rounded-lg border text-sm font-medium transition-colors ${selectedFeeRate === 'fast'
-                    ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))]'
-                    : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
-                    } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <div>Fast</div>
-                  <div className="text-xs opacity-70">{feeOptions.fast} sat/vB</div>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
-
-          <PrimaryButton
-            onClick={needsAmount ? processPaymentWithAmount : processPaymentInput}
-            disabled={isLoading || !paymentInput.trim() || (needsAmount && (!amount || parseInt(amount) <= 0)) || Boolean(needsFeeSelection)}
-            className="w-full"
-          >
-            {isLoading ? 'Processing...' : 'Continue'}
-          </PrimaryButton>
-        </div>
+        <PrimaryButton
+          onClick={processPaymentInput}
+          disabled={isLoading || !paymentInput.trim()}
+          className="w-full"
+        >
+          {isLoading ? 'Processing...' : 'Continue'}
+        </PrimaryButton>
       </div>
-    );
-  };
+    </div>
+  );
 
   const getStepIndex = (step: PaymentStep): number => {
-    const steps: PaymentStep[] = ['input', 'confirm', 'processing', 'result'];
+    const steps: PaymentStep[] = ['input', 'amount', 'confirm', 'processing', 'result'];
     return steps.indexOf(step);
+  };
+
+  // Get payment method display name
+  const getPaymentMethodName = (): string => {
+    if (!parsedInput) return '';
+    switch (parsedInput.type) {
+      case 'bolt11Invoice':
+        return 'Lightning Invoice';
+      case 'sparkAddress':
+        return 'Spark Address';
+      case 'bitcoinAddress':
+        return 'Bitcoin Address';
+      default:
+        return 'Payment';
+    }
   };
 
   // Don't render if not open
@@ -455,6 +530,26 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose }
             isLeft={getStepIndex('input') < getStepIndex(currentStep)}
           >
             {renderInputStep()}
+          </StepContent>
+
+          {/* Amount Step */}
+          <StepContent
+            isActive={currentStep === 'amount'}
+            isLeft={getStepIndex('amount') < getStepIndex(currentStep)}
+          >
+            <AmountStep
+              paymentMethod={getPaymentMethodName()}
+              paymentInput={paymentInput}
+              amount={amount}
+              setAmount={setAmount}
+              selectedFeeRate={selectedFeeRate}
+              setSelectedFeeRate={setSelectedFeeRate}
+              feeOptions={feeOptions}
+              isLoading={isLoading}
+              error={error}
+              onBack={() => setCurrentStep('input')}
+              onNext={processPaymentWithAmount}
+            />
           </StepContent>
 
           {/* Confirm Step */}
