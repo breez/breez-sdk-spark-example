@@ -1,12 +1,16 @@
-import React, { useRef, useState, useCallback } from 'react';
-import { Config, GetInfoResponse, Payment } from '@breeztech/breez-sdk-spark';
+import React, { useState, useRef, useCallback } from 'react';
+import { parseInput } from '../services/walletService';
 import * as walletService from '../services/walletService';
-import CollapsingWalletHeader from '../components/CollapsingWalletHeader';
-import TransactionList from '../components/TransactionList';
-import LoadingSpinner from '../components/LoadingSpinner';
+import {
+  LoadingSpinner
+} from '../components/ui';
 import SendPaymentDialog from '../components/SendPaymentDialog';
 import ReceivePaymentDialog from '../components/ReceivePaymentDialog';
+import QrScannerDialog from '../components/QrScannerDialog';
 import PaymentDetailsDialog from '../components/PaymentDetailsDialog';
+import CollapsingWalletHeader from '../components/CollapsingWalletHeader';
+import TransactionList from '../components/TransactionList';
+import { GetInfoResponse, Payment, Config } from '@breeztech/breez-sdk-spark';
 
 interface WalletPageProps {
   walletInfo: GetInfoResponse | null;
@@ -30,9 +34,11 @@ const WalletPage: React.FC<WalletPageProps> = ({
   config
 }) => {
   const [scrollProgress, setScrollProgress] = useState<number>(0);
-  const [isSendDialogOpen, setIsSendDialogOpen] = useState<boolean>(false);
-  const [isReceiveDialogOpen, setIsReceiveDialogOpen] = useState<boolean>(false);
+  const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
+  const [isReceiveDialogOpen, setIsReceiveDialogOpen] = useState(false);
+  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [scannedPaymentData, setScannedPaymentData] = useState<any>(null);
 
   const transactionsContainerRef = useRef<HTMLDivElement>(null);
   const collapseThreshold = 100; // pixels of scroll before header is fully collapsed
@@ -60,16 +66,41 @@ const WalletPage: React.FC<WalletPageProps> = ({
   // Handler for closing the send dialog and refreshing data
   const handleSendDialogClose = useCallback(() => {
     setIsSendDialogOpen(false);
+    setScannedPaymentData(null); // Clear scanned data when dialog closes
     // Refresh wallet data to show any new transactions
     refreshWalletData(false);
   }, [refreshWalletData]);
 
-  // Handler for closing the receive dialog and refreshing data
   const handleReceiveDialogClose = useCallback(() => {
     setIsReceiveDialogOpen(false);
     // Refresh wallet data to show any new transactions
     refreshWalletData(false);
   }, [refreshWalletData]);
+
+  const handleQrScannerClose = () => {
+    setIsQrScannerOpen(false);
+  };
+
+  const handleQrScan = async (data: string | null) => {
+    if (!data) return;
+
+    try {
+      // Parse the QR code result with SDK
+      const parseResult = await parseInput(data);
+      console.log('Parsed QR result:', parseResult);
+
+      // Close QR scanner
+      setIsQrScannerOpen(false);
+
+      // Set the scanned payment data to pass to SendPaymentDialog
+      setScannedPaymentData(parseResult);
+
+      // Open send dialog - it will automatically route to the appropriate step
+      setIsSendDialogOpen(true);
+    } catch (error) {
+      console.error('Failed to parse QR code:', error);
+    }
+  };
 
   return (
 
@@ -108,6 +139,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
       <SendPaymentDialog
         isOpen={isSendDialogOpen}
         onClose={handleSendDialogClose}
+        initialParsedData={scannedPaymentData}
       />
 
       {/* Receive Payment Dialog */}
@@ -117,19 +149,34 @@ const WalletPage: React.FC<WalletPageProps> = ({
         walletService={walletService}
       />
 
+      {/* QR Scanner Dialog */}
+      <QrScannerDialog
+        isOpen={isQrScannerOpen}
+        onClose={handleQrScannerClose}
+        onScan={handleQrScan}
+      />
+
       {/* Payment Details Dialog */}
       <PaymentDetailsDialog
         optionalPayment={selectedPayment}
         onClose={handlePaymentDetailsClose}
       />
 
-      <div className="bottom-bar gap-x-16 h-16 bg-[var(--primary-blue)] shadow-lg flex items-center justify-center z-30">
+      <div className="bottom-bar gap-x-8 h-16 bg-[var(--primary-blue)] shadow-lg flex items-center justify-center z-30">
         <button
           onClick={() => setIsSendDialogOpen(true)}
           className="flex items-center text-white px-4 py-2 rounded-lg hover:bg-[var(--secondary-blue)] transition-colors"
         >
           <span className="text-xl mr-2">↑</span>
           <span className="font-medium">Send</span>
+        </button>
+
+        <button
+          onClick={() => setIsQrScannerOpen(true)}
+          className="flex items-center text-white px-4 py-2 rounded-lg hover:bg-[var(--secondary-blue)] transition-colors"
+        >
+          <span className="text-xl mr-2">📷</span>
+          <span className="font-medium">Scan</span>
         </button>
 
         <button

@@ -34,6 +34,7 @@ interface FeeOptions {
 interface SendPaymentDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  initialParsedData?: InputType | null;
 }
 
 interface ConfirmStepProps {
@@ -253,7 +254,7 @@ const ResultStep: React.FC<ResultStepProps> = ({ result, error, onClose }) => {
 };
 
 // Main component
-const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose }) => {
+const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, initialParsedData }) => {
   // State
   const [currentStep, setCurrentStep] = useState<PaymentStep>('input');
   const [paymentInput, setPaymentInput] = useState<string>('');
@@ -267,12 +268,17 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose }
   const [prepareResponse, setPrepareResponse] = useState<PrepareSendPaymentResponse | null>(null);
   const [parsedInput, setParsedInput] = useState<InputType | null>(null);
 
-  // Reset state when dialog opens
+  // Reset state when dialog opens, or process initial data
   useEffect(() => {
     if (isOpen) {
       resetState();
+      
+      // If we have initial parsed data from QR scan, process it immediately
+      if (initialParsedData) {
+        processInitialParsedData(initialParsedData);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, initialParsedData]);
 
   const resetState = () => {
     setCurrentStep('input');
@@ -286,6 +292,45 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose }
     setError(null);
     setPaymentResult(null);
     setIsLoading(false);
+  };
+
+  // Process initial parsed data from QR scan
+  const processInitialParsedData = async (parseResult: InputType) => {
+    try {
+      setParsedInput(parseResult);
+      
+      // Populate the input field with the scanned data
+      if (parseResult.type === 'bolt11Invoice') {
+        setPaymentInput(parseResult.invoice.bolt11);
+        
+        // Handle bolt11 invoice
+        const invoice = parseResult;
+        setPaymentInfo(invoice);
+        
+        if (!invoice.amountMsat || invoice.amountMsat === 0) {
+          // Zero-amount invoice - go to amount step
+          setCurrentStep('amount');
+        } else {
+          // Invoice with amount - prepare payment directly
+          await prepareSendPayment(invoice);
+        }
+      } else if (parseResult.type === 'bitcoinAddress') {
+        setPaymentInput(parseResult.address);
+        // For Bitcoin addresses, always go to amount step
+        setCurrentStep('amount');
+      } else if (parseResult.type === 'sparkAddress') {
+        setPaymentInput(parseResult.address);
+        // For Spark addresses, always go to amount step
+        setCurrentStep('amount');
+      } else {
+        setError('Invalid payment destination');
+        setCurrentStep('input');
+      }
+    } catch (err) {
+      console.error('Failed to process initial parsed data:', err);
+      setError('Failed to process scanned payment data');
+      setCurrentStep('input');
+    }
   };
 
   // Unified payment processing function
