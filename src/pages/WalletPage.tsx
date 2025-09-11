@@ -173,10 +173,11 @@ const WalletPage: React.FC<WalletPageProps> = ({
 
         <button
           onClick={() => setIsQrScannerOpen(true)}
-          className="flex items-center text-white px-4 py-2 rounded-lg hover:bg-[var(--secondary-blue)] transition-colors"
+          className="flex items-center justify-center text-white p-3 rounded-lg hover:bg-[var(--secondary-blue)] transition-colors"
         >
-          <span className="text-xl mr-2">📷</span>
-          <span className="font-medium">Scan</span>
+          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M3 11h8V3H3v8zm2-6h4v4H5V5zM3 21h8v-8H3v8zm2-6h4v4H5v-4zM13 3v8h8V3h-8zm6 6h-4V5h4v4zM19 13h2v2h-2zM13 13h2v2h-2zM15 15h2v2h-2zM13 17h2v2h-2zM15 19h2v2h-2zM17 17h2v2h-2zM17 13h2v2h-2zM19 15h2v2h-2zM19 19h2v2h-2z"/>
+          </svg>
         </button>
 
         <button
