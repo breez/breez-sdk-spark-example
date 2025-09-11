@@ -167,7 +167,6 @@ const WalletPage: React.FC<WalletPageProps> = ({
           onClick={() => setIsSendDialogOpen(true)}
           className="flex items-center text-white px-4 py-2 rounded-lg hover:bg-[var(--secondary-blue)] transition-colors"
         >
-          <span className="text-xl mr-2">↑</span>
           <span className="font-medium">Send</span>
         </button>
 
@@ -184,7 +183,6 @@ const WalletPage: React.FC<WalletPageProps> = ({
           onClick={() => setIsReceiveDialogOpen(true)}
           className="flex items-center text-white px-4 py-2 rounded-lg hover:bg-[var(--secondary-blue)] transition-colors"
         >
-          <span className="text-xl mr-2">↓</span>
           <span className="font-medium">Receive</span>
         </button>
       </div>
