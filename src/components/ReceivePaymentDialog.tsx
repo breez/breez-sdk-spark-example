@@ -354,6 +354,41 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
     }
   };
 
+  // Generate Spark address on-demand
+  const generateSparkAddress = async () => {
+    if (sparkAddress || sparkLoading) return; // Don't generate if already exists or loading
+
+    setSparkLoading(true);
+    try {
+      const receiveResponse = await walletService.receivePayment({
+        paymentMethod: { type: 'sparkAddress' }
+      });
+      setSparkAddress(receiveResponse.paymentRequest);
+    } catch (err) {
+      console.error('Failed to generate Spark address:', err);
+      setError(`Failed to generate Spark address: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setSparkLoading(false);
+    }
+  };
+
+  // Generate Bitcoin address on-demand
+  const generateBitcoinAddress = async () => {
+    if (bitcoinAddress || bitcoinLoading) return; // Don't generate if already exists or loading
+
+    setBitcoinLoading(true);
+    try {
+      const receiveResponse = await walletService.receivePayment({
+        paymentMethod: { type: 'bitcoinAddress' }
+      });
+      setBitcoinAddress(receiveResponse.paymentRequest);
+    } catch (err) {
+      console.error('Failed to generate Bitcoin address:', err);
+      setError(`Failed to generate Bitcoin address: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setBitcoinLoading(false);
+    }
+  };
 
   // Load Lightning Address on-demand
   const loadLightningAddress = async () => {
@@ -443,6 +478,10 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
 
     if (tab === 'lightning') {
       loadLightningAddress();
+    } else if (tab === 'spark') {
+      generateSparkAddress();
+    } else if (tab === 'bitcoin') {
+      generateBitcoinAddress();
     }
   };
 
