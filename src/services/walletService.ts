@@ -171,3 +171,46 @@ export const getSavedMnemonic = (): string | null => {
 export const clearMnemonic = (): void => {
   localStorage.removeItem('walletMnemonic');
 };
+
+// Lightning Address Operations
+export const getLightningAddress = async (): Promise<string | null> => {
+  if (!sdk) throw new Error('SDK not initialized');
+  try {
+    const result = await sdk.getLightningAddress();
+    // Return the lightning address string from the result
+    return result?.lightningAddress || null;
+  } catch (error) {
+    console.error('Failed to get lightning address:', error);
+    return null;
+  }
+};
+
+export const checkLightningAddressAvailable = async (username: string): Promise<boolean> => {
+  if (!sdk) throw new Error('SDK not initialized');
+  try {
+    return await sdk.checkLightningAddressAvailable({ username });
+  } catch (error) {
+    console.error('Failed to check lightning address availability:', error);
+    throw error;
+  }
+};
+
+export const registerLightningAddress = async (username: string, description: string): Promise<void> => {
+  if (!sdk) throw new Error('SDK not initialized');
+  try {
+    await sdk.registerLightningAddress({ username, description });
+  } catch (error) {
+    console.error('Failed to register lightning address:', error);
+    throw error;
+  }
+};
+
+export const deleteLightningAddress = async (): Promise<void> => {
+  if (!sdk) throw new Error('SDK not initialized');
+  try {
+    await sdk.deleteLightningAddress();
+  } catch (error) {
+    console.error('Failed to delete lightning address:', error);
+    throw error;
+  }
+};
