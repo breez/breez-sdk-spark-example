@@ -280,6 +280,7 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
       resetState();
       setDefaultLimits();
       setActiveTab('lightning');
+      loadLightningAddress();
     }
   }, [isOpen]);
 
@@ -439,7 +440,7 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
     setError(null);
     setPaymentData('');
     setFeeSats(0);
-    
+
     if (tab === 'lightning') {
       loadLightningAddress();
     }
@@ -480,13 +481,13 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
               isActive={activeTab === 'spark'}
               onClick={() => handleTabChange('spark')}
             >
-              Spark Address
+              Spark
             </Tab>
             <Tab
               isActive={activeTab === 'bitcoin'}
               onClick={() => handleTabChange('bitcoin')}
             >
-              Bitcoin Address
+              Bitcoin
             </Tab>
           </TabList>
 

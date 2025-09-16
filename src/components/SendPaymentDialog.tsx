@@ -272,7 +272,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
   useEffect(() => {
     if (isOpen) {
       resetState();
-      
+
       // If we have initial parsed data from QR scan, process it immediately
       if (initialParsedData) {
         processInitialParsedData(initialParsedData);
@@ -298,15 +298,15 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
   const processInitialParsedData = async (parseResult: InputType) => {
     try {
       setParsedInput(parseResult);
-      
+
       // Populate the input field with the scanned data
       if (parseResult.type === 'bolt11Invoice') {
         setPaymentInput(parseResult.invoice.bolt11);
-        
+
         // Handle bolt11 invoice
         const invoice = parseResult;
         setPaymentInfo(invoice);
-        
+
         if (!invoice.amountMsat || invoice.amountMsat === 0) {
           // Zero-amount invoice - go to amount step
           setCurrentStep('amount');
