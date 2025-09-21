@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import * as walletService from '../services/walletService';
+import { useWallet } from '../contexts/WalletContext';
 import LoadingSpinner from './LoadingSpinner';
 import {
   DialogHeader, FormGroup,
@@ -9,14 +9,13 @@ import {
 } from './ui';
 
 // Types
-type PaymentMethod = 'lightning' | 'spark' | 'bitcoin';
-type ReceiveStep = 'loading_limits' | 'input' | 'qr' | 'loading';
+import type { PaymentMethod, ReceiveStep } from '../types/domain';
+import { DEFAULT_RECEIVE_LIMITS } from '../constants/limits';
 
 // Props interfaces
 interface ReceivePaymentDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  walletService: typeof walletService;
 }
 
 
@@ -248,7 +247,8 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ paymentData, feeSats, tit
 };
 
 // Main component
-const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onClose, walletService }): JSX.Element => {
+const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onClose }): JSX.Element => {
+  const wallet = useWallet();
   // State
   const [activeTab, setActiveTab] = useState<PaymentMethod>('lightning');
   const [currentStep, setCurrentStep] = useState<ReceiveStep>('loading_limits');
@@ -308,10 +308,7 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
   const setDefaultLimits = async () => {
     try {
       // Set reasonable default limits for receiving lightning payments
-      setLimits({
-        min: 1000, // 1000 sats minimum
-        max: 10000000 // 10M sats maximum
-      });
+      setLimits(DEFAULT_RECEIVE_LIMITS);
 
       // Move to input step after setting limits
       setCurrentStep('input');
@@ -335,7 +332,7 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
 
     try {
       const amountSats = parseInt(amount);
-      const receiveResponse = await walletService.receivePayment({
+      const receiveResponse = await wallet.receivePayment({
         paymentMethod: {
           type: 'bolt11Invoice',
           description,
@@ -360,7 +357,7 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
 
     setSparkLoading(true);
     try {
-      const receiveResponse = await walletService.receivePayment({
+      const receiveResponse = await wallet.receivePayment({
         paymentMethod: { type: 'sparkAddress' }
       });
       setSparkAddress(receiveResponse.paymentRequest);
@@ -378,7 +375,7 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
 
     setBitcoinLoading(true);
     try {
-      const receiveResponse = await walletService.receivePayment({
+      const receiveResponse = await wallet.receivePayment({
         paymentMethod: { type: 'bitcoinAddress' }
       });
       setBitcoinAddress(receiveResponse.paymentRequest);
@@ -396,7 +393,7 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
 
     setLightningAddressLoading(true);
     try {
-      const address = await walletService.getLightningAddress();
+      const address = await wallet.getLightningAddress();
       setLightningAddress(address);
     } catch (err) {
       console.error('Failed to load Lightning address:', err);
@@ -439,7 +436,7 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
 
     try {
       // Check if username is available
-      const isAvailable = await walletService.checkLightningAddressAvailable(username);
+      const isAvailable = await wallet.checkLightningAddressAvailable(username);
 
       if (!isAvailable) {
         setLightningAddressError('This username is not available');
@@ -448,10 +445,10 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
       }
 
       // Register the new address with description
-      await walletService.registerLightningAddress(username, description || 'Lightning Address');
+      await wallet.registerLightningAddress(username, description || 'Lightning Address');
 
       // Get the actual lightning address from the wallet service
-      const actualAddress = await walletService.getLightningAddress();
+      const actualAddress = await wallet.getLightningAddress();
       setLightningAddress(actualAddress);
       setIsEditingLightningAddress(false);
       setLightningAddressEditValue('');

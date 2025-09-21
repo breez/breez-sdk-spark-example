@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Config, GetInfoResponse, Network, Payment, SdkEvent, defaultConfig } from '@breeztech/breez-sdk-spark';
-import * as walletService from './services/walletService';
+import { WalletProvider, useWallet } from './contexts/WalletContext';
 import LoadingSpinner from './components/LoadingSpinner';
 import { ToastProvider, useToast } from './contexts/ToastContext';
 
@@ -30,6 +30,8 @@ const AppContent: React.FC = () => {
   const eventListenerIdRef = useRef<string | null>(null);
 
   // Function to refresh wallet data (usable via a callback)
+  const wallet = useWallet();
+
   const refreshWalletData = useCallback(async (showLoading: boolean = true) => {
     if (!isConnected) return;
 
@@ -38,8 +40,8 @@ const AppContent: React.FC = () => {
         setIsLoading(true);
       }
 
-      const info = await walletService.getWalletInfo();
-      const txns = await walletService.getTransactions();
+      const info = await wallet.getWalletInfo();
+      const txns = await wallet.getTransactions();
 
       setWalletInfo(info);
       setTransactions(txns);
@@ -51,7 +53,7 @@ const AppContent: React.FC = () => {
         setIsLoading(false);
       }
     }
-  }, [isConnected]);
+  }, [isConnected, wallet]);
 
 
   // SDK event handler with toast notifications and auto-close of receive dialog
@@ -125,12 +127,12 @@ const AppContent: React.FC = () => {
     }
   }, [isConnected, fetchUsdRate]);
 
-  // Try to connect with saved mnemonic on app startup
+  // Try to connect with saved mnemonic on app startup (run once)
   useEffect(() => {
     console.log('useEffect checkForExistingWallet...');
     const checkForExistingWallet = async () => {
       console.log('checkForExistingWallet...');
-      const savedMnemonic = walletService.getSavedMnemonic();
+      const savedMnemonic = wallet.getSavedMnemonic();
       console.log('Saved mnemonic:', savedMnemonic);
       if (savedMnemonic) {
         try {
@@ -141,7 +143,7 @@ const AppContent: React.FC = () => {
         } catch (error) {
           console.error('Failed to connect with saved mnemonic:', error);
           setError('Failed to connect with saved mnemonic. Please try again.');
-          walletService.clearMnemonic();
+          wallet.clearMnemonic();
           setCurrentScreen('home'); // Go back to home screen on failure
           setIsLoading(false);
         }
@@ -153,21 +155,14 @@ const AppContent: React.FC = () => {
 
     checkForExistingWallet();
 
-    // Clean up when unmounting
-    return () => {
-      console.log('useEffect cleanup...');
-      if (isConnected) {
-        walletService.disconnect()
-          .catch(err => console.error('Error disconnecting wallet:', err));
-      }
-    };
+    // No cleanup here; logout handles disconnect explicitly
   }, []);
 
   // Set up event listener when connected
   useEffect(() => {
     if (isConnected) {
       console.log('Setting up event listener...');
-      walletService.addEventListener(handleSdkEvent)
+      wallet.addEventListener(handleSdkEvent)
         .then(listenerId => {
           eventListenerIdRef.current = listenerId;
           console.log('Registered event listener with ID:', listenerId);
@@ -180,17 +175,22 @@ const AppContent: React.FC = () => {
       return () => {
         // Clean up by removing the specific listener
         if (eventListenerIdRef.current) {
-          walletService.removeEventListener(eventListenerIdRef.current)
+          wallet.removeEventListener(eventListenerIdRef.current)
             .catch(error => console.error('Error removing event listener:', error));
           eventListenerIdRef.current = null;
         }
       };
     }
-  }, [isConnected, handleSdkEvent]);
+  }, [isConnected, handleSdkEvent, wallet]);
 
   const connectWallet = async (mnemonic: string, restore: boolean) => {
     try {
       console.log('Connecting wallet...');
+      // Guard against double-connect
+      if (isConnected) {
+        console.log('Already connected; skipping connectWallet');
+        return;
+      }
       setIsLoading(true);
       setIsRestoring(restore); // Mark that we're restoring data      
       setError(null);
@@ -208,14 +208,14 @@ const AppContent: React.FC = () => {
       const config: Config = defaultConfig(network as Network);
       config.apiKey = breezApiKey;
       setConfig(config);
-      await walletService.initWallet(mnemonic, config);
+      await wallet.initWallet(mnemonic, config);
 
       // Save mnemonic for future use
-      walletService.saveMnemonic(mnemonic);
+      wallet.saveMnemonic(mnemonic);
 
       // Get wallet info and transactions
-      const info = await walletService.getWalletInfo();
-      const txns = await walletService.getTransactions();
+      const info = await wallet.getWalletInfo();
+      const txns = await wallet.getTransactions();
 
       setWalletInfo(info);
       setTransactions(txns);
@@ -240,11 +240,11 @@ const AppContent: React.FC = () => {
 
       // Disconnect from Breez SDK
       if (isConnected) {
-        await walletService.disconnect();
+        await wallet.disconnect();
       }
 
       // Clear the stored mnemonic
-      walletService.clearMnemonic();
+      wallet.clearMnemonic();
 
       // Reset state
       setIsConnected(false);
@@ -335,11 +335,13 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <ToastProvider>
-      <div className="flex-grow flex main-wrapper">
-        <div className="flex-grow max-w-4xl mx-auto">
-          <AppContent />
+      <WalletProvider>
+        <div className="flex-grow flex main-wrapper">
+          <div className="flex-grow max-w-4xl mx-auto">
+            <AppContent />
+          </div>
         </div>
-      </div>
+      </WalletProvider>
     </ToastProvider>
   );
 }

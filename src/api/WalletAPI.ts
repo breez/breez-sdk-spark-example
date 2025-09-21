@@ -1,0 +1,44 @@
+import type {
+  Config,
+  GetInfoResponse,
+  PrepareSendPaymentRequest,
+  PrepareSendPaymentResponse,
+  ReceivePaymentRequest,
+  ReceivePaymentResponse,
+  SendPaymentRequest,
+  SendPaymentResponse,
+  Payment,
+  SdkEvent,
+  InputType,
+} from '@breeztech/breez-sdk-spark';
+
+export interface WalletAPI {
+  // Lifecycle
+  initWallet: (mnemonic: string, config: Config) => Promise<void>;
+  disconnect: () => Promise<void>;
+
+  // Payments
+  parseInput: (input: string) => Promise<InputType>;
+  prepareSendPayment: (params: PrepareSendPaymentRequest) => Promise<PrepareSendPaymentResponse>;
+  sendPayment: (params: SendPaymentRequest) => Promise<SendPaymentResponse>;
+  receivePayment: (params: ReceivePaymentRequest) => Promise<ReceivePaymentResponse>;
+
+  // Data
+  getWalletInfo: () => Promise<GetInfoResponse | null>;
+  getTransactions: () => Promise<Payment[]>;
+
+  // Events
+  addEventListener: (callback: (event: SdkEvent) => void) => Promise<string>;
+  removeEventListener: (listenerId: string) => Promise<void>;
+
+  // Storage helpers
+  saveMnemonic: (mnemonic: string) => void;
+  getSavedMnemonic: () => string | null;
+  clearMnemonic: () => void;
+
+  // Lightning Address
+  getLightningAddress: () => Promise<string | null>;
+  checkLightningAddressAvailable: (username: string) => Promise<boolean>;
+  registerLightningAddress: (username: string, description: string) => Promise<void>;
+  deleteLightningAddress: () => Promise<void>;
+}

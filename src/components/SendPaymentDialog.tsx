@@ -16,19 +16,15 @@ import {
   FormDescription,
   LoadingSpinner
 } from './ui';
-import * as walletService from '../services/walletService';
+import { useWallet } from '../contexts/WalletContext';
 import { Bolt11InvoiceDetails, PrepareSendPaymentResponse, InputType } from '@breeztech/breez-sdk-spark';
 
 // Types
-type PaymentStep = 'input' | 'amount' | 'confirm' | 'processing' | 'result';
+import type { PaymentStep, FeeOptions } from '../types/domain';
+import { BITCOIN_FEE_PRESETS } from '../constants/fees';
 type PaymentResult = 'success' | 'failure' | null;
 
-// Fee options interface
-interface FeeOptions {
-  fast: number;
-  medium: number;
-  slow: number;
-}
+// Fee options interface moved to shared types
 
 // Props interfaces
 interface SendPaymentDialogProps {
@@ -255,6 +251,7 @@ const ResultStep: React.FC<ResultStepProps> = ({ result, error, onClose }) => {
 
 // Main component
 const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, initialParsedData }) => {
+  const wallet = useWallet();
   // State
   const [currentStep, setCurrentStep] = useState<PaymentStep>('input');
   const [paymentInput, setPaymentInput] = useState<string>('');
@@ -345,7 +342,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
 
     try {
       // First, use sdk.parse to determine the input type
-      const parseResult = await walletService.parseInput(paymentInput.trim());
+      const parseResult = await wallet.parseInput(paymentInput.trim());
       setParsedInput(parseResult);
 
       if (parseResult.type === 'bolt11Invoice') {
@@ -395,7 +392,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
         await prepareSendPayment(invoice, parseInt(amount));
       } else {
         // Spark or Bitcoin address
-        const response = await walletService.prepareSendPayment({
+        const response = await wallet.prepareSendPayment({
           paymentRequest: paymentInput.trim(),
           amountSats: parseInt(amount),
         });
@@ -404,11 +401,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
 
         if (response.paymentMethod.type === 'bitcoinAddress') {
           // Set fee options for Bitcoin payments
-          setFeeOptions({
-            fast: 20,
-            medium: 10,
-            slow: 5
-          });
+          setFeeOptions(BITCOIN_FEE_PRESETS);
 
           // If no fee rate selected yet, don't proceed to confirm
           if (!selectedFeeRate) {
@@ -438,7 +431,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
     setIsLoading(true);
 
     try {
-      const response = await walletService.prepareSendPayment({
+      const response = await wallet.prepareSendPayment({
         paymentRequest: invoice.invoice.bolt11,
         amountSats: amountSat,
       });
@@ -467,7 +460,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
       if (prepareResponse.paymentMethod.type === 'bolt11Invoice') {
         useSpark = (prepareResponse.paymentMethod as any).sparkTransferFeeSats != null;
       }
-      const result = await walletService.sendPayment({ prepareResponse, options: { type: 'bolt11Invoice', useSpark } });
+      const result = await wallet.sendPayment({ prepareResponse, options: { type: 'bolt11Invoice', useSpark } });
       console.log('Payment result:', result);
       setPaymentResult('success');
     } catch (err) {

@@ -1,6 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { parseInput } from '../services/walletService';
-import * as walletService from '../services/walletService';
+import { useWallet } from '../contexts/WalletContext';
 import {
   LoadingSpinner
 } from '../components/ui';
@@ -33,6 +32,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
   onLogout,
   config
 }) => {
+  const wallet = useWallet();
   const [scrollProgress, setScrollProgress] = useState<number>(0);
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
   const [isReceiveDialogOpen, setIsReceiveDialogOpen] = useState(false);
@@ -86,7 +86,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
 
     try {
       // Parse the QR code result with SDK
-      const parseResult = await parseInput(data);
+      const parseResult = await wallet.parseInput(data);
       console.log('Parsed QR result:', parseResult);
 
       // Close QR scanner
@@ -146,7 +146,6 @@ const WalletPage: React.FC<WalletPageProps> = ({
       <ReceivePaymentDialog
         isOpen={isReceiveDialogOpen}
         onClose={handleReceiveDialogClose}
-        walletService={walletService}
       />
 
       {/* QR Scanner Dialog */}

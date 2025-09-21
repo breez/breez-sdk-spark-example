@@ -27,19 +27,36 @@ class WebLogger {
 }
 // Private SDK instance - not exposed outside this module
 let sdk: BreezSdk | null = null;
+let connectingPromise: Promise<void> | null = null;
 
 export const initWallet = async (mnemonic: string, config: Config): Promise<void> => {
-  try {
-    const logger = new WebLogger();
-    initLogging(logger);
-    sdk = await connect({ config, mnemonic, storageDir: "spark-wallet-example" });
-    console.log('Wallet initialized successfully');
-
-    // Return void instead of the SDK instance
-  } catch (error) {
-    console.error('Failed to initialize wallet:', error);
-    throw error;
+  // If already connected, do nothing
+  if (sdk) {
+    console.warn('initWallet called but SDK is already initialized; skipping');
+    return;
   }
+
+  // If a connection is in progress, await it
+  if (connectingPromise) {
+    console.warn('initWallet called while a connection is in progress; awaiting existing connection');
+    return connectingPromise;
+  }
+
+  connectingPromise = (async () => {
+    try {
+      const logger = new WebLogger();
+      initLogging(logger);
+      sdk = await connect({ config, mnemonic, storageDir: "spark-wallet-example" });
+      console.log('Wallet initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize wallet:', error);
+      throw error;
+    } finally {
+      connectingPromise = null;
+    }
+  })();
+
+  return connectingPromise;
 };
 
 // Remove getSdk() method
