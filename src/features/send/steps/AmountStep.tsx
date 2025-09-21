@@ -68,38 +68,53 @@ const AmountStep: React.FC<AmountStepProps> = ({
             <button
               onClick={() => setSelectedFeeRate('slow')}
               disabled={isLoading}
-              className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
+              className={`relative p-3 rounded-lg border text-sm font-medium transition-colors ${
                 selectedFeeRate === 'slow'
-                  ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))]'
+                  ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))] ring-2 ring-[rgb(var(--primary-blue))]'
                   : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
               } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
+              {selectedFeeRate === 'slow' && (
+                <svg className="absolute top-2 right-2 w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414l2.293 2.293 6.543-6.543a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
               <div>Slow</div>
-              <div className="text-xs opacity-70">{feeOptions.slow} sat/vB</div>
+              <div className="text-xs opacity-70">{feeOptions.slow} sats</div>
             </button>
             <button
               onClick={() => setSelectedFeeRate('medium')}
               disabled={isLoading}
-              className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
+              className={`relative p-3 rounded-lg border text-sm font-medium transition-colors ${
                 selectedFeeRate === 'medium'
-                  ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))]'
+                  ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))] ring-2 ring-[rgb(var(--primary-blue))]'
                   : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
               } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
+              {selectedFeeRate === 'medium' && (
+                <svg className="absolute top-2 right-2 w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414l2.293 2.293 6.543-6.543a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
               <div>Medium</div>
-              <div className="text-xs opacity-70">{feeOptions.medium} sat/vB</div>
+              <div className="text-xs opacity-70">{feeOptions.medium} sats</div>
             </button>
             <button
               onClick={() => setSelectedFeeRate('fast')}
               disabled={isLoading}
-              className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
+              className={`relative p-3 rounded-lg border text-sm font-medium transition-colors ${
                 selectedFeeRate === 'fast'
-                  ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))]'
+                  ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))] ring-2 ring-[rgb(var(--primary-blue))]'
                   : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
               } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
+              {selectedFeeRate === 'fast' && (
+                <svg className="absolute top-2 right-2 w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414l2.293 2.293 6.543-6.543a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
               <div>Fast</div>
-              <div className="text-xs opacity-70">{feeOptions.fast} sat/vB</div>
+              <div className="text-xs opacity-70">{feeOptions.fast} sats</div>
             </button>
           </div>
         </div>

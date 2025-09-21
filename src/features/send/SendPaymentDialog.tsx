@@ -5,7 +5,6 @@ import { Bolt11InvoiceDetails, PrepareSendPaymentResponse, InputType } from '@br
 
 // Types
 import type { PaymentStep, FeeOptions } from '../../types/domain';
-import { BITCOIN_FEE_PRESETS } from '../../constants/fees';
 
 type PaymentResult = 'success' | 'failure' | null;
 
@@ -236,13 +235,21 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
     setIsLoading(true);
 
     try {
-      let useSpark = false;
       if (prepareResponse.paymentMethod.type === 'bolt11Invoice') {
-        useSpark = (prepareResponse.paymentMethod as any).sparkTransferFeeSats != null;
+        let useSpark = prepareResponse.paymentMethod.sparkTransferFeeSats != null;
+
+        const result = await wallet.sendPayment({ prepareResponse, options: { type: 'bolt11Invoice', useSpark } });
+        console.log('Payment result:', result);
+        setPaymentResult('success');
+      } else if (prepareResponse.paymentMethod.type === 'bitcoinAddress') {
+        const result = await wallet.sendPayment({ prepareResponse, options: { type: 'bitcoinAddress', confirmationSpeed: selectedFeeRate! } });
+        console.log('Payment result:', result);
+        setPaymentResult('success');
+      } else if (prepareResponse.paymentMethod.type === 'sparkAddress') {
+        const result = await wallet.sendPayment({ prepareResponse });
+        console.log('Payment result:', result);
+        setPaymentResult('success');
       }
-      const result = await wallet.sendPayment({ prepareResponse, options: { type: 'bolt11Invoice', useSpark } });
-      console.log('Payment result:', result);
-      setPaymentResult('success');
     } catch (err) {
       console.error('Payment failed:', err);
       setError(`Payment failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -301,7 +308,20 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
         feesSat = method.lightningFeeSats;
       }
     } else if (paymentMethod.type === 'bitcoinAddress') {
-      feesSat = (paymentMethod as any).feeQuote?.totalFees || 0;
+      const feeQuote = paymentMethod.feeQuote;
+      let selectedQuote = feeQuote.speedSlow;
+      switch (selectedFeeRate) {
+        case 'fast':
+          selectedQuote = feeQuote.speedFast;
+          break;
+        case 'medium':
+          selectedQuote = feeQuote.speedMedium;
+          break;
+        case 'slow':
+          selectedQuote = feeQuote.speedSlow;
+          break;
+      }
+      feesSat = selectedQuote.l1BroadcastFeeSat + selectedQuote.userFeeSat;
     }
   }
 

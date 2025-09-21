@@ -17,7 +17,6 @@ import {
 
 // Types
 import type { PaymentMethod, ReceiveStep } from '../../types/domain';
-import { DEFAULT_RECEIVE_LIMITS } from '../../constants/limits';
 import { useLightningAddress } from './hooks/useLightningAddress';
 import SparkAddressDisplay from './SparkAddressDisplay';
 import BitcoinAddressDisplay from './BitcoinAddressDisplay';
@@ -103,14 +102,13 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
   useEffect(() => {
     if (isOpen) {
       resetState();
-      setDefaultLimits();
       setActiveTab('lightning');
       loadLightningAddress();
     }
   }, [isOpen]);
 
   const resetState = () => {
-    setCurrentStep('loading_limits');
+    setCurrentStep('input');
     setDescription('');
     setAmount('');
     setError(null);
@@ -125,21 +123,6 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
     // Reset Lightning Address state
     resetLightningAddress();
     setShowAmountPanel(false);
-  };
-
-  // Set default limits since fetchLightningLimits is not available in new API
-  const setDefaultLimits = async () => {
-    try {
-      // Set reasonable default limits for receiving lightning payments
-      setLimits(DEFAULT_RECEIVE_LIMITS);
-
-      // Move to input step after setting limits
-      setCurrentStep('input');
-    } catch (err) {
-      console.error('Failed to set default limits:', err);
-      setError('Failed to set payment limits. Please try again.');
-      setCurrentStep('input');
-    }
   };
 
   // Generate Bolt11 invoice
