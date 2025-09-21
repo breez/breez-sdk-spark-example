@@ -74,7 +74,6 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [paymentData, setPaymentData] = useState<string>('');
   const [feeSats, setFeeSats] = useState<number>(0);
-  const [limits, setLimits] = useState<{ min: number; max: number }>({ min: 1, max: 1000000 });
 
   // State for on-demand address generation
   const [sparkAddress, setSparkAddress] = useState<string | null>(null);
@@ -317,7 +316,7 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
             setAmount={setAmount}
             description={description}
             setDescription={setDescription}
-            limits={limits}
+            limits={{ min: 1, max: 1000000 }}
             isLoading={isLoading}
             error={error}
             onCreateInvoice={generateBolt11Invoice}
