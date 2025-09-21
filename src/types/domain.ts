@@ -7,7 +7,7 @@ export type PaymentMethod = 'lightning' | 'spark' | 'bitcoin';
 export type ReceiveStep = 'loading_limits' | 'input' | 'qr' | 'loading';
 
 // Steps for the Send dialog
-export type PaymentStep = 'input' | 'amount' | 'confirm' | 'processing' | 'result';
+export type PaymentStep = 'input' | 'amount' | 'fee' | 'confirm' | 'processing' | 'result';
 
 // Common fee options structure (e.g., for on-chain fee presets)
 export interface FeeOptions {

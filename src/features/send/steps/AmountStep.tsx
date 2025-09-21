@@ -1,16 +1,11 @@
 import React from 'react';
 import { FormGroup, FormError, PrimaryButton, FormDescription } from '../../../components/ui';
 import LoadingSpinner from '../../../components/LoadingSpinner';
-import type { FeeOptions } from '../../../types/domain';
 
 export interface AmountStepProps {
-  paymentMethod: string;
   paymentInput: string;
   amount: string;
   setAmount: (value: string) => void;
-  selectedFeeRate: 'fast' | 'medium' | 'slow' | null;
-  setSelectedFeeRate: (rate: 'fast' | 'medium' | 'slow') => void;
-  feeOptions: FeeOptions | null;
   isLoading: boolean;
   error: string | null;
   onBack: () => void;
@@ -18,20 +13,14 @@ export interface AmountStepProps {
 }
 
 const AmountStep: React.FC<AmountStepProps> = ({
-  paymentMethod,
   paymentInput,
   amount,
   setAmount,
-  selectedFeeRate,
-  setSelectedFeeRate,
-  feeOptions,
   isLoading,
   error,
   onBack,
   onNext,
 }) => {
-  const needsFeeSelection = paymentMethod === 'Bitcoin Address' && !!feeOptions;
-
   return (
     <FormGroup>
       <div className="text-center mb-6">
@@ -60,65 +49,7 @@ const AmountStep: React.FC<AmountStepProps> = ({
         />
       </div>
 
-      {/* Fee selection for Bitcoin addresses */}
-      {needsFeeSelection && feeOptions && (
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-[rgb(var(--text-white))] mb-2">Fee Rate</label>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={() => setSelectedFeeRate('slow')}
-              disabled={isLoading}
-              className={`relative p-3 rounded-lg border text-sm font-medium transition-colors ${
-                selectedFeeRate === 'slow'
-                  ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))] ring-2 ring-[rgb(var(--primary-blue))]'
-                  : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
-              } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {selectedFeeRate === 'slow' && (
-                <svg className="absolute top-2 right-2 w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414l2.293 2.293 6.543-6.543a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              )}
-              <div>Slow</div>
-              <div className="text-xs opacity-70">{feeOptions.slow} sats</div>
-            </button>
-            <button
-              onClick={() => setSelectedFeeRate('medium')}
-              disabled={isLoading}
-              className={`relative p-3 rounded-lg border text-sm font-medium transition-colors ${
-                selectedFeeRate === 'medium'
-                  ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))] ring-2 ring-[rgb(var(--primary-blue))]'
-                  : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
-              } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {selectedFeeRate === 'medium' && (
-                <svg className="absolute top-2 right-2 w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414l2.293 2.293 6.543-6.543a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              )}
-              <div>Medium</div>
-              <div className="text-xs opacity-70">{feeOptions.medium} sats</div>
-            </button>
-            <button
-              onClick={() => setSelectedFeeRate('fast')}
-              disabled={isLoading}
-              className={`relative p-3 rounded-lg border text-sm font-medium transition-colors ${
-                selectedFeeRate === 'fast'
-                  ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))] ring-2 ring-[rgb(var(--primary-blue))]'
-                  : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
-              } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {selectedFeeRate === 'fast' && (
-                <svg className="absolute top-2 right-2 w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414l2.293 2.293 6.543-6.543a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              )}
-              <div>Fast</div>
-              <div className="text-xs opacity-70">{feeOptions.fast} sats</div>
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Fee selection removed from generic AmountStep; handled in workflow-specific steps */}
 
       <FormError error={error} />
 
@@ -128,12 +59,7 @@ const AmountStep: React.FC<AmountStepProps> = ({
         </PrimaryButton>
         <PrimaryButton
           onClick={onNext}
-          disabled={
-            isLoading ||
-            !amount ||
-            parseInt(amount) <= 0 ||
-            Boolean(needsFeeSelection && !selectedFeeRate)
-          }
+          disabled={isLoading || !amount || parseInt(amount) <= 0}
           className="flex-1"
         >
           {isLoading ? <LoadingSpinner text="Processing..." size="small" /> : 'Continue'}

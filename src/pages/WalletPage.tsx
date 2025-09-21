@@ -38,7 +38,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
   const [isReceiveDialogOpen, setIsReceiveDialogOpen] = useState(false);
   const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [scannedPaymentData, setScannedPaymentData] = useState<any>(null);
+  const [scannedPaymentData, setScannedPaymentData] = useState<string | null>(null);
 
   const transactionsContainerRef = useRef<HTMLDivElement>(null);
   const collapseThreshold = 100; // pixels of scroll before header is fully collapsed
@@ -93,7 +93,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
       setIsQrScannerOpen(false);
 
       // Set the scanned payment data to pass to SendPaymentDialog
-      setScannedPaymentData(parseResult);
+      setScannedPaymentData(data);
 
       // Open send dialog - it will automatically route to the appropriate step
       setIsSendDialogOpen(true);
@@ -139,7 +139,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
       <SendPaymentDialog
         isOpen={isSendDialogOpen}
         onClose={handleSendDialogClose}
-        initialParsedData={scannedPaymentData}
+        initialPaymentInput={scannedPaymentData}
       />
 
       {/* Receive Payment Dialog */}
@@ -174,7 +174,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
           className="flex items-center justify-center text-white p-3 rounded-lg hover:bg-[var(--secondary-blue)] transition-colors"
         >
           <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M3 11h8V3H3v8zm2-6h4v4H5V5zM3 21h8v-8H3v8zm2-6h4v4H5v-4zM13 3v8h8V3h-8zm6 6h-4V5h4v4zM19 13h2v2h-2zM13 13h2v2h-2zM15 15h2v2h-2zM13 17h2v2h-2zM15 19h2v2h-2zM17 17h2v2h-2zM17 13h2v2h-2zM19 15h2v2h-2zM19 19h2v2h-2z"/>
+            <path d="M3 11h8V3H3v8zm2-6h4v4H5V5zM3 21h8v-8H3v8zm2-6h4v4H5v-4zM13 3v8h8V3h-8zm6 6h-4V5h4v4zM19 13h2v2h-2zM13 13h2v2h-2zM15 15h2v2h-2zM13 17h2v2h-2zM15 19h2v2h-2zM17 17h2v2h-2zM17 13h2v2h-2zM19 15h2v2h-2zM19 19h2v2h-2z" />
           </svg>
         </button>
 
