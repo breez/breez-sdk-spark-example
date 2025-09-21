@@ -10,6 +10,8 @@ import Bolt11Workflow from './workflows/Bolt11Workflow';
 import BitcoinWorkflow from './workflows/BitcoinWorkflow';
 import SparkWorkflow from './workflows/SparkWorkflow';
 import AmountStep from './steps/AmountStep';
+import ProcessingStep from './steps/ProcessingStep';
+import ResultStep from './steps/ResultStep';
 
 // Props interfaces
 interface SendPaymentDialogProps {
@@ -22,7 +24,7 @@ interface SendPaymentDialogProps {
 const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, initialPaymentInput }) => {
   const wallet = useWallet();
   // Container state: input parsing + routing to workflow per input type
-  const [currentStep, setCurrentStep] = useState<'input' | 'amount' | 'workflow'>('input');
+  const [currentStep, setCurrentStep] = useState<'input' | 'amount' | 'workflow' | 'processing' | 'result'>('input');
   const [paymentInput, setPaymentInput] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   // Fee selection moved into Bitcoin workflow
@@ -30,11 +32,12 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [parsedInput, setParsedInput] = useState<InputType | null>(null);
   const [prepareResponse, setPrepareResponse] = useState<import('@breeztech/breez-sdk-spark').PrepareSendPaymentResponse | null>(null);
+  const [paymentResult, setPaymentResult] = useState<'success' | 'failure' | null>(null);
 
   // Reset state when dialog opens, or process initial data
   useEffect(() => {
+    resetState();
     if (isOpen) {
-      resetState();
 
       // If we have initial parsed data from QR scan, process it immediately
       if (initialPaymentInput) {
@@ -72,7 +75,8 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
       setParsedInput(parseResult);
       if (parseResult.type === 'bolt11Invoice' && parseResult.amountMsat && parseResult.amountMsat > 0) {
         const sats = Math.floor(parseResult.amountMsat / 1000);
-        onAmountNext(sats);
+        setAmount(String(sats));
+        await prepareSendPayment(paymentInput, sats);
       } else if (parseResult.type === 'bitcoinAddress' || parseResult.type === 'sparkAddress') {
         setCurrentStep('amount');
       } else {
@@ -102,7 +106,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
       setCurrentStep('workflow');
     } catch (err) {
       console.error('Failed to prepare payment:', err);
-      setError('Failed to prepare payment');
+      setError(`Failed to prepare payment ${err instanceof Error ? err.message : 'Unknown error'}`);
       setCurrentStep('amount');
     } finally {
       setIsLoading(false);
@@ -119,8 +123,14 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
     setAmount(String(amountNum));
     await prepareSendPayment(paymentInput, amountNum);
   };
-  const getStepIndex = (step: 'input' | 'amount' | 'workflow'): number => {
-    const steps: Array<'input' | 'amount' | 'workflow'> = ['input', 'amount', 'workflow'];
+  const getStepIndex = (step: 'input' | 'amount' | 'workflow' | 'processing' | 'result'): number => {
+    const steps: Array<'input' | 'amount' | 'workflow' | 'processing' | 'result'> = [
+      'input',
+      'amount',
+      'workflow',
+      'processing',
+      'result',
+    ];
     return steps.indexOf(step);
   };
 
@@ -147,6 +157,25 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
     return 'Send Payment';
   };
 
+  // Generic send handler: transitions to processing/result with error handling
+  const handleSend = async (options?: any) => {
+    if (!prepareResponse) return;
+    setCurrentStep('processing');
+    setIsLoading(true);
+    setError(null);
+    try {
+      await wallet.sendPayment({ prepareResponse, options });
+      setPaymentResult('success');
+    } catch (err) {
+      console.error('Payment failed:', err);
+      setError(`Payment failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setPaymentResult('failure');
+    } finally {
+      setIsLoading(false);
+      setCurrentStep('result');
+    }
+  };
+
   return (
     <BottomSheetContainer isOpen={isOpen} onClose={onClose}>
       <BottomSheetCard className="bottom-sheet-card">
@@ -160,7 +189,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
               setPaymentInput={setPaymentInput}
               isLoading={isLoading}
               error={error}
-              onContinue={processPaymentInput}
+              onContinue={() => processPaymentInput()}
             />
           </StepContent>
 
@@ -183,9 +212,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
                 method={prepareResponse.paymentMethod}
                 amountSats={prepareResponse.amountSats}
                 onBack={() => setCurrentStep('input')}
-                onSend={async (options: any) => {
-                  await wallet.sendPayment({ prepareResponse, options });
-                }}
+                onSend={handleSend}
               />
             )}
             {prepareResponse && prepareResponse.paymentMethod.type === 'bitcoinAddress' && (
@@ -193,9 +220,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
                 method={prepareResponse.paymentMethod}
                 amountSats={prepareResponse.amountSats}
                 onBack={() => setCurrentStep('amount')}
-                onSend={async (options: any) => {
-                  await wallet.sendPayment({ prepareResponse, options });
-                }}
+                onSend={handleSend}
               />
             )}
             {prepareResponse && prepareResponse.paymentMethod.type === 'sparkAddress' && (
@@ -203,11 +228,19 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
                 method={prepareResponse.paymentMethod}
                 amountSats={prepareResponse.amountSats}
                 onBack={() => setCurrentStep('input')}
-                onSend={async () => {
-                  await wallet.sendPayment({ prepareResponse });
-                }}
+                onSend={handleSend}
               />
             )}
+          </StepContent>
+
+          {/* Processing Step (generic) */}
+          <StepContent isActive={currentStep === 'processing'} isLeft={getStepIndex('processing') < getStepIndex(currentStep)}>
+            <ProcessingStep />
+          </StepContent>
+
+          {/* Result Step (generic) */}
+          <StepContent isActive={currentStep === 'result'} isLeft={getStepIndex('result') < getStepIndex(currentStep)}>
+            <ResultStep result={paymentResult === 'success' ? 'success' : 'failure'} error={error} onClose={onClose} />
           </StepContent>
         </StepContainer>
       </BottomSheetCard>

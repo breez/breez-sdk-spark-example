@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import type { SendPaymentMethod } from '@breeztech/breez-sdk-spark';
 import type { PaymentStep } from '../../../types/domain';
-import { StepContainer, StepContent } from '../../../components/ui';
+import { PrimaryButton, StepContainer, StepContent } from '../../../components/ui';
 import ConfirmStep from '../steps/ConfirmStep';
-import ProcessingStep from '../steps/ProcessingStep';
-import ResultStep from '../steps/ResultStep';
 
 interface BitcoinWorkflowProps {
   method: Extract<SendPaymentMethod, { type: 'bitcoinAddress' }>;
@@ -13,13 +11,9 @@ interface BitcoinWorkflowProps {
   onSend: (options: { type: 'bitcoinAddress'; confirmationSpeed: 'fast' | 'medium' | 'slow' }) => Promise<void>;
 }
 
-type PaymentResult = 'success' | 'failure' | null;
-
 const BitcoinWorkflow: React.FC<BitcoinWorkflowProps> = ({ method, amountSats, onBack, onSend }) => {
   const [step, setStep] = useState<PaymentStep>('fee');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<PaymentResult>(null);
+  // Fee selection happens here; processing/result are handled by parent
   const [selectedFeeRate, setSelectedFeeRate] = useState<'fast' | 'medium' | 'slow' | null>(null);
 
   const getStepIndex = (s: PaymentStep) => {
@@ -29,19 +23,7 @@ const BitcoinWorkflow: React.FC<BitcoinWorkflowProps> = ({ method, amountSats, o
 
   const handleSend = async () => {
     if (!selectedFeeRate) return;
-    setStep('processing');
-    setIsLoading(true);
-    try {
-      await onSend({ type: 'bitcoinAddress', confirmationSpeed: selectedFeeRate });
-      setResult('success');
-    } catch (err) {
-      console.error('Payment failed:', err);
-      setError(`Payment failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      setResult('failure');
-    } finally {
-      setIsLoading(false);
-      setStep('result');
-    }
+    await onSend({ type: 'bitcoinAddress', confirmationSpeed: selectedFeeRate });
   };
 
   // Compute fees from prepared response and selected rate
@@ -55,18 +37,17 @@ const BitcoinWorkflow: React.FC<BitcoinWorkflowProps> = ({ method, amountSats, o
   return (
     <StepContainer>
       {/* Fee selection */}
-      <StepContent isActive={step === 'fee'} isLeft={false}>
+      <StepContent isActive={step === 'fee'} isLeft={getStepIndex('fee') < getStepIndex(step)}>
         <div className="mb-4">
           <label className="block text-sm font-medium text-[rgb(var(--text-white))] mb-2">Select Fee Rate</label>
           <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => setSelectedFeeRate('slow')}
-              disabled={isLoading}
-              className={`relative p-3 rounded-lg border text-sm font-medium transition-colors ${
-                selectedFeeRate === 'slow'
-                  ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))] ring-2 ring-[rgb(var(--primary-blue))]'
-                  : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
-              } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={false}
+              className={`relative p-3 rounded-lg border text-sm font-medium transition-colors ${selectedFeeRate === 'slow'
+                ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))] ring-2 ring-[rgb(var(--primary-blue))]'
+                : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
+                }`}
             >
               {selectedFeeRate === 'slow' && (
                 <svg className="absolute top-2 right-2 w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -78,12 +59,11 @@ const BitcoinWorkflow: React.FC<BitcoinWorkflowProps> = ({ method, amountSats, o
             </button>
             <button
               onClick={() => setSelectedFeeRate('medium')}
-              disabled={isLoading}
-              className={`relative p-3 rounded-lg border text-sm font-medium transition-colors ${
-                selectedFeeRate === 'medium'
-                  ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))] ring-2 ring-[rgb(var(--primary-blue))]'
-                  : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
-              } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={false}
+              className={`relative p-3 rounded-lg border text-sm font-medium transition-colors ${selectedFeeRate === 'medium'
+                ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))] ring-2 ring-[rgb(var(--primary-blue))]'
+                : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
+                }`}
             >
               {selectedFeeRate === 'medium' && (
                 <svg className="absolute top-2 right-2 w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -95,12 +75,11 @@ const BitcoinWorkflow: React.FC<BitcoinWorkflowProps> = ({ method, amountSats, o
             </button>
             <button
               onClick={() => setSelectedFeeRate('fast')}
-              disabled={isLoading}
-              className={`relative p-3 rounded-lg border text-sm font-medium transition-colors ${
-                selectedFeeRate === 'fast'
-                  ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))] ring-2 ring-[rgb(var(--primary-blue))]'
-                  : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
-              } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={false}
+              className={`relative p-3 rounded-lg border text-sm font-medium transition-colors ${selectedFeeRate === 'fast'
+                ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))] ring-2 ring-[rgb(var(--primary-blue))]'
+                : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
+                }`}
             >
               {selectedFeeRate === 'fast' && (
                 <svg className="absolute top-2 right-2 w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -113,31 +92,21 @@ const BitcoinWorkflow: React.FC<BitcoinWorkflowProps> = ({ method, amountSats, o
           </div>
         </div>
         <div className="flex gap-3 mt-6">
-          <button onClick={onBack} className="flex-1 bg-gray-600 hover:bg-gray-700 text-white p-3 rounded-lg" disabled={isLoading}>
+          <PrimaryButton onClick={onBack} className="flex-1 bg-gray-600 hover:bg-gray-700 text-white p-3 rounded-lg" disabled={false}>
             Back
-          </button>
-          <button
+          </PrimaryButton>
+          <PrimaryButton
             onClick={() => setStep('confirm')}
-            className="flex-1 bg-[rgb(var(--primary-blue))] hover:bg-[rgb(var(--secondary-blue))] text-white p-3 rounded-lg"
-            disabled={isLoading || !selectedFeeRate}
+            className="flex-1"
+            disabled={!selectedFeeRate}
           >
             Continue
-          </button>
+          </PrimaryButton>
         </div>
       </StepContent>
       {/* Confirm */}
       <StepContent isActive={step === 'confirm'} isLeft={getStepIndex('confirm') < getStepIndex(step)}>
-        <ConfirmStep amountSats={amountSats} feesSat={feesSat} error={error} isLoading={isLoading} onConfirm={handleSend} />
-      </StepContent>
-
-      {/* Processing */}
-      <StepContent isActive={step === 'processing'} isLeft={getStepIndex('processing') < getStepIndex(step)}>
-        <ProcessingStep />
-      </StepContent>
-
-      {/* Result */}
-      <StepContent isActive={step === 'result'} isLeft={getStepIndex('result') < getStepIndex(step)}>
-        <ResultStep result={result === 'success' ? 'success' : 'failure'} error={error} onClose={onBack} />
+        <ConfirmStep amountSats={amountSats} feesSat={feesSat} error={null} isLoading={false} onConfirm={handleSend} />
       </StepContent>
     </StepContainer>
   );
