@@ -1,21 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  DialogHeader,
-  StepContainer,
-  StepContent,
-  BottomSheetContainer,
-  BottomSheetCard,
-  FormGroup,
-  FormError,
-  PrimaryButton,
-  PaymentInfoCard,
-  PaymentInfoRow,
-  PaymentInfoDivider,
-  ResultIcon,
-  ResultMessage,
-  FormDescription,
-  LoadingSpinner
-} from './ui';
+import { DialogHeader, StepContainer, StepContent, BottomSheetContainer, BottomSheetCard } from './ui';
 import { useWallet } from '../contexts/WalletContext';
 import { Bolt11InvoiceDetails, PrepareSendPaymentResponse, InputType } from '@breeztech/breez-sdk-spark';
 
@@ -24,230 +8,18 @@ import type { PaymentStep, FeeOptions } from '../types/domain';
 import { BITCOIN_FEE_PRESETS } from '../constants/fees';
 type PaymentResult = 'success' | 'failure' | null;
 
-// Fee options interface moved to shared types
-
 // Props interfaces
 interface SendPaymentDialogProps {
   isOpen: boolean;
   onClose: () => void;
   initialParsedData?: InputType | null;
 }
-
-interface ConfirmStepProps {
-  amountSats: number | null;
-  feesSat: number | null;
-  error: string | null;
-  isLoading: boolean;
-  onBack: () => void;
-  onConfirm: () => void;
-}
-
-interface AmountStepProps {
-  paymentMethod: string;
-  paymentInput: string;
-  amount: string;
-  setAmount: (value: string) => void;
-  selectedFeeRate: 'fast' | 'medium' | 'slow' | null;
-  setSelectedFeeRate: (rate: 'fast' | 'medium' | 'slow') => void;
-  feeOptions: FeeOptions | null;
-  isLoading: boolean;
-  error: string | null;
-  onBack: () => void;
-  onNext: () => void;
-}
-
-interface ResultStepProps {
-  result: 'success' | 'failure';
-  error: string | null;
-  onClose: () => void;
-}
-
-// Amount Step Component
-const AmountStep: React.FC<AmountStepProps> = ({
-  paymentMethod,
-  paymentInput,
-  amount,
-  setAmount,
-  selectedFeeRate,
-  setSelectedFeeRate,
-  feeOptions,
-  isLoading,
-  error,
-  onBack,
-  onNext,
-}) => {
-  const needsFeeSelection = paymentMethod === 'Bitcoin Address' && feeOptions;
-
-  return (
-    <FormGroup>
-      <div className="text-center mb-6">
-        <FormDescription>
-          Enter the amount you want to send
-        </FormDescription>
-      </div>
-
-      {/* Show the payment destination */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-[rgb(var(--text-white))] mb-2">
-          Payment Destination
-        </label>
-        <div className="p-3 bg-[rgb(var(--card-border))] rounded-lg">
-          <code className="text-sm text-[rgb(var(--text-white))] break-all">
-            {paymentInput}
-          </code>
-        </div>
-      </div>
-
-      {/* Amount input */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-[rgb(var(--text-white))] mb-2">
-          Amount (sats)
-        </label>
-        <input
-          type="number"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="Enter amount in satoshis"
-          className="w-full p-3 border border-[rgb(var(--card-border))] rounded-lg bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] placeholder-[rgb(var(--text-white))] placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary-blue))]"
-          disabled={isLoading}
-          min={1}
-        />
-      </div>
-
-      {/* Fee selection for Bitcoin addresses */}
-      {needsFeeSelection && (
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-[rgb(var(--text-white))] mb-2">
-            Fee Rate
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={() => setSelectedFeeRate('slow')}
-              disabled={isLoading}
-              className={`p-3 rounded-lg border text-sm font-medium transition-colors ${selectedFeeRate === 'slow'
-                ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))]'
-                : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
-                } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <div>Slow</div>
-              <div className="text-xs opacity-70">{feeOptions.slow} sat/vB</div>
-            </button>
-            <button
-              onClick={() => setSelectedFeeRate('medium')}
-              disabled={isLoading}
-              className={`p-3 rounded-lg border text-sm font-medium transition-colors ${selectedFeeRate === 'medium'
-                ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))]'
-                : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
-                } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <div>Medium</div>
-              <div className="text-xs opacity-70">{feeOptions.medium} sat/vB</div>
-            </button>
-            <button
-              onClick={() => setSelectedFeeRate('fast')}
-              disabled={isLoading}
-              className={`p-3 rounded-lg border text-sm font-medium transition-colors ${selectedFeeRate === 'fast'
-                ? 'bg-[rgb(var(--primary-blue))] text-white border-[rgb(var(--primary-blue))]'
-                : 'bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] border-[rgb(var(--card-border))] hover:border-[rgb(var(--primary-blue))]'
-                } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <div>Fast</div>
-              <div className="text-xs opacity-70">{feeOptions.fast} sat/vB</div>
-            </button>
-          </div>
-        </div>
-      )}
-
-      <FormError error={error} />
-
-      <div className="flex gap-3 mt-6">
-        <PrimaryButton
-          onClick={onBack}
-          disabled={isLoading}
-          className="flex-1 bg-gray-600 hover:bg-gray-700"
-        >
-          Back
-        </PrimaryButton>
-        <PrimaryButton
-          onClick={onNext}
-          disabled={isLoading || !amount || parseInt(amount) <= 0 || Boolean(needsFeeSelection && !selectedFeeRate)}
-          className="flex-1"
-        >
-          {isLoading ? (
-            <LoadingSpinner text="Processing..." size="small" />
-          ) : 'Continue'}
-        </PrimaryButton>
-      </div>
-    </FormGroup>
-  );
-};
-
-const ConfirmStep: React.FC<ConfirmStepProps> = ({
-  amountSats,
-  feesSat,
-  error,
-  isLoading,
-  onConfirm,
-}) => {
-  return (
-    <FormGroup>
-      <center className="m-6">
-        <FormDescription>
-          You are requested to pay
-        </FormDescription>
-        <div className="mt-2 text-2xl font-bold text-[rgb(var(--text-white))]">
-          {((amountSats || 0) + (feesSat || 0)).toLocaleString()} sats
-        </div>
-      </center>
-      <PaymentInfoCard>
-        <PaymentInfoRow
-          label="Amount"
-          value={`${amountSats?.toLocaleString() || '0'} sats`}
-        />
-        <PaymentInfoRow
-          label="Fee"
-          value={`${feesSat?.toLocaleString() || '0'} sats`}
-        />
-        <PaymentInfoDivider />
-      </PaymentInfoCard>
-
-      <FormError error={error} />
-
-      <div className="mt-6 flex justify-center">
-        <PrimaryButton onClick={onConfirm} disabled={isLoading}>
-          {isLoading ? (
-            <LoadingSpinner text="Processing..." size="small" />
-          ) : 'Pay'}
-        </PrimaryButton>
-      </div>
-    </FormGroup>
-  );
-};
-
-const ProcessingStep: React.FC = () => {
-  return (
-    <div className="flex flex-col items-center justify-center h-full">
-      <LoadingSpinner text="Processing payment..." />
-    </div>
-  );
-};
-
-const ResultStep: React.FC<ResultStepProps> = ({ result, error, onClose }) => {
-  return (
-    <div className="flex flex-col items-center justify-center h-full">
-      <ResultIcon type={result} />
-      <ResultMessage
-        title={result === 'success' ? 'Payment Successful!' : 'Payment Failed'}
-        description={result === 'success'
-          ? 'Your payment has been sent successfully.'
-          : error || 'There was an error processing your payment.'}
-      />
-      <PrimaryButton onClick={onClose} className="mt-6">
-        Close
-      </PrimaryButton>
-    </div>
-  );
-};
+// External step components
+import InputStep from '../features/send/steps/InputStep';
+import AmountStep from '../features/send/steps/AmountStep';
+import ConfirmStep from '../features/send/steps/ConfirmStep';
+import ProcessingStep from '../features/send/steps/ProcessingStep';
+import ResultStep from '../features/send/steps/ResultStep';
 
 // Main component
 const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, initialParsedData }) => {
@@ -473,37 +245,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
     }
   };
 
-  const renderInputStep = () => (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <label className="block text-sm font-medium text-[rgb(var(--text-white))]">
-          Payment Destination
-        </label>
-        <textarea
-          value={paymentInput}
-          onChange={(e) => setPaymentInput(e.target.value)}
-          placeholder="Enter Lightning invoice, Spark address, or Bitcoin address..."
-          className="w-full p-3 border border-[rgb(var(--card-border))] rounded-lg bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] placeholder-[rgb(var(--text-white))] placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary-blue))] resize-none"
-          rows={3}
-          disabled={isLoading}
-        />
-
-        {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        )}
-
-        <PrimaryButton
-          onClick={processPaymentInput}
-          disabled={isLoading || !paymentInput.trim()}
-          className="w-full"
-        >
-          {isLoading ? 'Processing...' : 'Continue'}
-        </PrimaryButton>
-      </div>
-    </div>
-  );
+  // Input step moved to external component
 
   const getStepIndex = (step: PaymentStep): number => {
     const steps: PaymentStep[] = ['input', 'amount', 'confirm', 'processing', 'result'];
@@ -572,7 +314,13 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
             isActive={currentStep === 'input'}
             isLeft={getStepIndex('input') < getStepIndex(currentStep)}
           >
-            {renderInputStep()}
+            <InputStep
+              paymentInput={paymentInput}
+              setPaymentInput={setPaymentInput}
+              isLoading={isLoading}
+              error={error}
+              onContinue={processPaymentInput}
+            />
           </StepContent>
 
           {/* Amount Step */}
