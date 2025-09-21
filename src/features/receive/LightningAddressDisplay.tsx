@@ -1,9 +1,11 @@
 import React from 'react';
+import type { LightningAddressInfo } from '@breeztech/breez-sdk-spark';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { QRCodeContainer, PrimaryButton, FormGroup, FormInput, FormError } from '../../components/ui';
+import { useToast } from '../../contexts/ToastContext';
 
 export interface LightningAddressDisplayProps {
-  address: string | null;
+  address: LightningAddressInfo | null;
   isLoading: boolean;
   isEditing: boolean;
   editValue: string;
@@ -19,14 +21,32 @@ const EditableAddressText: React.FC<{
   text: string;
   onEdit: () => void;
 }> = ({ text, onEdit }) => {
+  const { showToast } = useToast();
   return (
     <div className="relative w-full">
       <input
         type="text"
         value={text}
         readOnly
-        className="w-full px-3 py-2 pr-12 bg-[rgb(var(--card-border))] text-[rgb(var(--text-white))] rounded text-center"
+        className="w-full px-3 py-2 pr-24 bg-[rgb(var(--card-border))] text-[rgb(var(--text-white))] rounded text-center"
       />
+      {/* Copy button */}
+      <button
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(text);
+            showToast('success', 'Copied!');
+          } catch {
+            // no-op fallback
+          }
+        }}
+        className="absolute right-10 top-1/2 transform -translate-y-1/2 p-2 text-[rgb(var(--text-white))] hover:text-[var(--primary-blue)] transition-colors"
+        title="Copy Lightning Address"
+      >
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M8 2a2 2 0 00-2 2v1H5a2 2 0 00-2 2v7a2 2 0 002 2h6a2 2 0 002-2v-1h1a2 2 0 002-2V6l-4-4H8zm6 6h-2a2 2 0 01-2-2V4H8v1h3a1 1 0 011 1v2h2v2z"/>
+        </svg>
+      </button>
       <button
         onClick={onEdit}
         className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 text-[rgb(var(--text-white))] hover:text-[var(--primary-blue)] transition-colors"
@@ -119,10 +139,10 @@ const LightningAddressDisplay: React.FC<LightningAddressDisplayProps> = ({
         </p>
       </div>
 
-      <QRCodeContainer value={address || ''} />
+      <QRCodeContainer value={address?.lnurl || ''} />
 
       <div className="w-full space-y-4">
-        <EditableAddressText text={address || ''} onEdit={onEdit} />
+        <EditableAddressText text={address?.lightningAddress || ''} onEdit={onEdit} />
 
         <div className="flex justify-center">
           <PrimaryButton onClick={onCustomizeAmount}>Create Invoice</PrimaryButton>

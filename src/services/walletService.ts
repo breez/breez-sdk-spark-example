@@ -190,12 +190,12 @@ export const clearMnemonic = (): void => {
 };
 
 // Lightning Address Operations
-export const getLightningAddress = async (): Promise<string | null> => {
+export const getLightningAddress = async (): Promise<breezSdk.LightningAddressInfo | null> => {
   if (!sdk) throw new Error('SDK not initialized');
   try {
+    // Return the full structure as provided by the underlying SDK
     const result = await sdk.getLightningAddress();
-    // Return the lightning address string from the result
-    return result?.lightningAddress || null;
+    return result ?? null;
   } catch (error) {
     console.error('Failed to get lightning address:', error);
     return null;

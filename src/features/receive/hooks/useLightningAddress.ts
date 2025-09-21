@@ -1,14 +1,15 @@
 import { useCallback, useState } from 'react';
+import type { LightningAddressInfo } from '@breeztech/breez-sdk-spark';
 import { useWallet } from '../../../contexts/WalletContext';
 
 export interface UseLightningAddress {
-  address: string | null;
+  address: LightningAddressInfo | null;
   isLoading: boolean;
   isEditing: boolean;
   editValue: string;
   error: string | null;
   load: () => Promise<void>;
-  beginEdit: (currentAddress?: string | null) => void;
+  beginEdit: (currentAddress?: LightningAddressInfo | null) => void;
   cancelEdit: () => void;
   setEditValue: (v: string) => void;
   save: (description?: string) => Promise<void>;
@@ -18,7 +19,7 @@ export interface UseLightningAddress {
 export const useLightningAddress = (): UseLightningAddress => {
   const wallet = useWallet();
 
-  const [address, setAddress] = useState<string | null>(null);
+  const [address, setAddress] = useState<LightningAddressInfo | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editValue, setEditValue] = useState<string>('');
@@ -56,8 +57,9 @@ export const useLightningAddress = (): UseLightningAddress => {
     }
   }, [wallet]);
 
-  const beginEdit = useCallback((currentAddress?: string | null) => {
-    const initial = extractUsername(currentAddress ?? address ?? '');
+  const beginEdit = useCallback((currentAddress?: LightningAddressInfo | null) => {
+    const addrStr = currentAddress?.lightningAddress ?? address?.lightningAddress ?? '';
+    const initial = extractUsername(addrStr);
     setEditValue(initial);
     setIsEditing(true);
     setError(null);
@@ -88,8 +90,8 @@ export const useLightningAddress = (): UseLightningAddress => {
       }
 
       await wallet.registerLightningAddress(username, description || 'Lightning Address');
-      const actualAddress = await wallet.getLightningAddress();
-      setAddress(actualAddress);
+      const actualInfo = await wallet.getLightningAddress();
+      setAddress(actualInfo);
       setIsEditing(false);
       setEditValue('');
     } catch (err) {

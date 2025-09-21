@@ -10,6 +10,7 @@ import type {
   Payment,
   SdkEvent,
   InputType,
+  LightningAddressInfo,
 } from '@breeztech/breez-sdk-spark';
 
 export interface WalletAPI {
@@ -37,7 +38,7 @@ export interface WalletAPI {
   clearMnemonic: () => void;
 
   // Lightning Address
-  getLightningAddress: () => Promise<string | null>;
+  getLightningAddress: () => Promise<LightningAddressInfo | null>;
   checkLightningAddressAvailable: (username: string) => Promise<boolean>;
   registerLightningAddress: (username: string, description: string) => Promise<void>;
   deleteLightningAddress: () => Promise<void>;
