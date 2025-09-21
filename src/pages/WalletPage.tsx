@@ -3,8 +3,8 @@ import { useWallet } from '../contexts/WalletContext';
 import {
   LoadingSpinner
 } from '../components/ui';
-import SendPaymentDialog from '../components/SendPaymentDialog';
-import ReceivePaymentDialog from '../components/ReceivePaymentDialog';
+import SendPaymentDialog from '../features/send/SendPaymentDialog';
+import ReceivePaymentDialog from '../features/receive/ReceivePaymentDialog';
 import QrScannerDialog from '../components/QrScannerDialog';
 import PaymentDetailsDialog from '../components/PaymentDetailsDialog';
 import CollapsingWalletHeader from '../components/CollapsingWalletHeader';
