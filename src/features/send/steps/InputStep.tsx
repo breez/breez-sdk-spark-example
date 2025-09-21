@@ -19,7 +19,7 @@ const InputStep: React.FC<InputStepProps> = ({ paymentInput, setPaymentInput, is
         <textarea
           value={paymentInput}
           onChange={(e) => setPaymentInput(e.target.value)}
-          placeholder="Enter Lightning invoice, Spark address, or Bitcoin address..."
+          placeholder="Invoice | Lightning Address | BTC Address | LNURL"
           className="w-full p-3 border border-[rgb(var(--card-border))] rounded-lg bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] placeholder-[rgb(var(--text-white))] placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary-blue))] resize-none"
           rows={3}
           disabled={isLoading}

@@ -125,7 +125,7 @@ const LightningAddressDisplay: React.FC<LightningAddressDisplayProps> = ({
         <EditableAddressText text={address || ''} onEdit={onEdit} />
 
         <div className="flex justify-center">
-          <PrimaryButton onClick={onCustomizeAmount}>Customize Amount</PrimaryButton>
+          <PrimaryButton onClick={onCustomizeAmount}>Create Invoice</PrimaryButton>
         </div>
       </div>
     </div>

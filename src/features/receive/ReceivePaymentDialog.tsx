@@ -272,9 +272,6 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
             <Tab isActive={activeTab === 'lightning'} onClick={() => handleTabChange('lightning')}>
               Lightning
             </Tab>
-            <Tab isActive={activeTab === 'spark'} onClick={() => handleTabChange('spark')}>
-              Spark
-            </Tab>
             <Tab isActive={activeTab === 'bitcoin'} onClick={() => handleTabChange('bitcoin')}>
               Bitcoin
             </Tab>
