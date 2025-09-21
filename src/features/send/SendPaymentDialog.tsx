@@ -72,8 +72,7 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
       setParsedInput(parseResult);
       if (parseResult.type === 'bolt11Invoice' && parseResult.amountMsat && parseResult.amountMsat > 0) {
         const sats = Math.floor(parseResult.amountMsat / 1000);
-        setAmount(String(sats));
-        await prepareSendPayment(currentInput, sats);
+        onAmountNext(sats);
       } else if (parseResult.type === 'bitcoinAddress' || parseResult.type === 'sparkAddress') {
         setCurrentStep('amount');
       } else {
@@ -110,14 +109,14 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
     }
   };
 
-  const onAmountNext = async () => {
+  const onAmountNext = async (amountNum: number) => {
     if (!parsedInput) return;
-    const amountNum = parseInt(amount);
     if (!amountNum || amountNum <= 0) {
       setError('Please enter a valid amount');
       return;
     }
-
+    // sync the amount state with the chosen amount
+    setAmount(String(amountNum));
     await prepareSendPayment(paymentInput, amountNum);
   };
   const getStepIndex = (step: 'input' | 'amount' | 'workflow'): number => {
@@ -170,7 +169,6 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
             <AmountStep
               paymentInput={paymentInput}
               amount={amount}
-              setAmount={setAmount}
               isLoading={isLoading}
               error={error}
               onBack={() => setCurrentStep('input')}

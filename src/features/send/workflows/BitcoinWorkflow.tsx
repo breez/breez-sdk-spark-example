@@ -23,7 +23,7 @@ const BitcoinWorkflow: React.FC<BitcoinWorkflowProps> = ({ method, amountSats, o
   const [selectedFeeRate, setSelectedFeeRate] = useState<'fast' | 'medium' | 'slow' | null>(null);
 
   const getStepIndex = (s: PaymentStep) => {
-    const order: PaymentStep[] = ['amount', 'confirm', 'processing', 'result'];
+    const order: PaymentStep[] = ['fee', 'confirm', 'processing', 'result'];
     return order.indexOf(s);
   };
 

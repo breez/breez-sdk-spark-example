@@ -1,26 +1,33 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { FormGroup, FormError, PrimaryButton, FormDescription } from '../../../components/ui';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 
 export interface AmountStepProps {
   paymentInput: string;
   amount: string;
-  setAmount: (value: string) => void;
   isLoading: boolean;
   error: string | null;
   onBack: () => void;
-  onNext: () => void;
+  onNext: (amountSats: number) => void;
 }
 
 const AmountStep: React.FC<AmountStepProps> = ({
   paymentInput,
   amount,
-  setAmount,
   isLoading,
   error,
   onBack,
   onNext,
 }) => {
+  const [localAmount, setLocalAmount] = useState<string>(amount || '');
+
+  // keep local input in sync when parent-provided amount changes (e.g., prefilled)
+  useEffect(() => {
+    setLocalAmount(amount || '');
+  }, [amount]);
+
+  const validAmount = localAmount && parseInt(localAmount) > 0;
+
   return (
     <FormGroup>
       <div className="text-center mb-6">
@@ -40,8 +47,8 @@ const AmountStep: React.FC<AmountStepProps> = ({
         <label className="block text-sm font-medium text-[rgb(var(--text-white))] mb-2">Amount (sats)</label>
         <input
           type="number"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          value={localAmount}
+          onChange={(e) => setLocalAmount(e.target.value)}
           placeholder="Enter amount in satoshis"
           className="w-full p-3 border border-[rgb(var(--card-border))] rounded-lg bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] placeholder-[rgb(var(--text-white))] placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary-blue))]"
           disabled={isLoading}
@@ -58,8 +65,8 @@ const AmountStep: React.FC<AmountStepProps> = ({
           Back
         </PrimaryButton>
         <PrimaryButton
-          onClick={onNext}
-          disabled={isLoading || !amount || parseInt(amount) <= 0}
+          onClick={() => validAmount && onNext(parseInt(localAmount))}
+          disabled={isLoading || !validAmount}
           className="flex-1"
         >
           {isLoading ? <LoadingSpinner text="Processing..." size="small" /> : 'Continue'}
