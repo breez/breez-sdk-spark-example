@@ -29,10 +29,24 @@ export const useLightningAddress = (): UseLightningAddress => {
     return value.includes('@') ? value.split('@')[0] : value;
   };
 
+  const generateRandomLetterString = (length: number): string => {
+    const characters = "abcdefghijklmnopqrstuvwxyz";
+    let result = "";
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return result;
+  }
+
   const load = useCallback(async () => {
     setIsLoading(true);
     try {
-      const addr = await wallet.getLightningAddress();
+      let addr = await wallet.getLightningAddress();
+      if (!addr) {
+        const randomString = generateRandomLetterString(6);
+        await wallet.registerLightningAddress(randomString, 'randomString@breez.tips');
+        addr = await wallet.getLightningAddress();
+      }
       setAddress(addr);
     } catch (err) {
       console.error('Failed to load Lightning address:', err);
