@@ -19,6 +19,7 @@ import {
   initLogging,
   connect,
 } from '@breeztech/breez-sdk-spark';
+import type { WalletAPI } from './WalletAPI';
 
 class WebLogger {
   log = (logEntry: LogEntry) => {
@@ -230,4 +231,36 @@ export const deleteLightningAddress = async (): Promise<void> => {
     console.error('Failed to delete lightning address:', error);
     throw error;
   }
+};
+
+// Aggregate API object implementing WalletAPI
+export const walletApi: WalletAPI = {
+  // Lifecycle
+  initWallet,
+  disconnect,
+
+  // Payments
+  parseInput,
+  prepareSendPayment,
+  sendPayment,
+  receivePayment,
+
+  // Data
+  getWalletInfo,
+  getTransactions,
+
+  // Events
+  addEventListener,
+  removeEventListener,
+
+  // Storage helpers
+  saveMnemonic,
+  getSavedMnemonic,
+  clearMnemonic,
+
+  // Lightning Address
+  getLightningAddress,
+  checkLightningAddressAvailable,
+  registerLightningAddress,
+  deleteLightningAddress,
 };

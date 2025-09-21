@@ -1,11 +1,11 @@
 import React, { createContext, useContext } from 'react';
-import type { WalletAPI } from '../api/WalletAPI';
-import { walletApiImpl } from '../api/WalletApiImpl';
+import type { WalletAPI } from '../services/WalletAPI';
+import { walletApi } from '../services/walletService';
 
 const WalletContext = createContext<WalletAPI | null>(null);
 
 export const WalletProvider: React.FC<{ children: React.ReactNode; api?: WalletAPI }> = ({ children, api }) => {
-  const value = api ?? walletApiImpl;
+  const value = api ?? walletApi;
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
 };
 
