@@ -174,8 +174,14 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
         setPrepareResponse(response);
 
         if (response.paymentMethod.type === 'bitcoinAddress') {
+          let { speedSlow, speedMedium, speedFast } = response.paymentMethod.feeQuote;
+          let feeOptions = {
+            slow: speedSlow.l1BroadcastFeeSat + speedSlow.userFeeSat,
+            medium: speedMedium.l1BroadcastFeeSat + speedMedium.userFeeSat,
+            fast: speedFast.l1BroadcastFeeSat + speedFast.userFeeSat,
+          };
           // Set fee options for Bitcoin payments
-          setFeeOptions(BITCOIN_FEE_PRESETS);
+          setFeeOptions(feeOptions);
 
           // If no fee rate selected yet, don't proceed to confirm
           if (!selectedFeeRate) {

@@ -12,7 +12,7 @@ const ResultStep: React.FC<ResultStepProps> = ({ result, error, onClose }) => {
     <div className="flex flex-col items-center justify-center h-full">
       <ResultIcon type={result} />
       <ResultMessage
-        title={result === 'success' ? 'Payment Successful!' : 'Payment Failed'}
+        title={result === 'success' ? 'Payment Sent!' : 'Payment Failed'}
         description={result === 'success' ? 'Your payment has been sent successfully.' : error || 'There was an error processing your payment.'}
       />
       <PrimaryButton onClick={onClose} className="mt-6">
