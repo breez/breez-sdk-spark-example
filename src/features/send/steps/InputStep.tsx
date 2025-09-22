@@ -1,15 +1,21 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { PrimaryButton } from '../../../components/ui';
 
 export interface InputStepProps {
   paymentInput: string;
-  setPaymentInput: (v: string) => void;
   isLoading: boolean;
   error: string | null;
-  onContinue: () => void;
+  onContinue: (paymentInput: string) => void;
 }
 
-const InputStep: React.FC<InputStepProps> = ({ paymentInput, setPaymentInput, isLoading, error, onContinue }) => {
+const InputStep: React.FC<InputStepProps> = ({ paymentInput, isLoading, error, onContinue }) => {
+  const [localPaymentInput, setLocalPaymentInput] = useState<string>(paymentInput || '');
+
+  // keep local input in sync when parent-provided amount changes (e.g., prefilled)
+  useEffect(() => {
+    setLocalPaymentInput(paymentInput || '');
+  }, [paymentInput]);
+
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -17,8 +23,8 @@ const InputStep: React.FC<InputStepProps> = ({ paymentInput, setPaymentInput, is
           Payment Destination
         </label>
         <textarea
-          value={paymentInput}
-          onChange={(e) => setPaymentInput(e.target.value)}
+          value={localPaymentInput}
+          onChange={(e) => setLocalPaymentInput(e.target.value)}
           placeholder="Invoice | Lightning Address | BTC Address | LNURL"
           className="w-full p-3 border border-[rgb(var(--card-border))] rounded-lg bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))] placeholder-[rgb(var(--text-white))] placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary-blue))] resize-none"
           rows={3}
@@ -32,8 +38,8 @@ const InputStep: React.FC<InputStepProps> = ({ paymentInput, setPaymentInput, is
         )}
 
         <PrimaryButton
-          onClick={onContinue}
-          disabled={isLoading || !paymentInput.trim()}
+          onClick={() => onContinue(localPaymentInput)}
+          disabled={isLoading || !localPaymentInput.trim()}
           className="w-full"
         >
           {isLoading ? 'Processing...' : 'Continue'}

@@ -18,6 +18,10 @@ import {
   LogEntry,
   initLogging,
   connect,
+  PrepareLnurlPayResponse,
+  PrepareLnurlPayRequest,
+  LnurlPayRequest,
+  LnurlPayResponse,
 } from '@breeztech/breez-sdk-spark';
 import type { WalletAPI } from './WalletAPI';
 
@@ -67,6 +71,20 @@ export const initWallet = async (mnemonic: string, config: Config): Promise<void
 export const parseInput = async (input: string): Promise<breezSdk.InputType> => {
   // Use the module-level parse function instead of SDK instance method
   return await breezSdk.parse(input);
+};
+
+export const prepareLnurlPay = async (
+  params: PrepareLnurlPayRequest
+): Promise<PrepareLnurlPayResponse> => {
+  if (!sdk) throw new Error('SDK not initialized');
+  return await sdk.prepareLnurlPay(params);
+};
+
+export const lnurlPay = async (
+  params: LnurlPayRequest
+): Promise<LnurlPayResponse> => {
+  if (!sdk) throw new Error('SDK not initialized');
+  return await sdk.lnurlPay(params);
 };
 
 export const prepareSendPayment = async (
@@ -241,6 +259,8 @@ export const walletApi: WalletAPI = {
 
   // Payments
   parseInput,
+  prepareLnurlPay,
+  lnurlPay,
   prepareSendPayment,
   sendPayment,
   receivePayment,

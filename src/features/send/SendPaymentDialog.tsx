@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DialogHeader, StepContainer, StepContent, BottomSheetContainer, BottomSheetCard } from '../../components/ui';
 import { useWallet } from '../../contexts/WalletContext';
-import { InputType } from '@breeztech/breez-sdk-spark';
 // No fee UI in generic amount step; BTC fee selection is handled inside Bitcoin workflow
 
 // External components
@@ -12,12 +11,13 @@ import SparkWorkflow from './workflows/SparkWorkflow';
 import AmountStep from './steps/AmountStep';
 import ProcessingStep from './steps/ProcessingStep';
 import ResultStep from './steps/ResultStep';
+import { SendInput } from '@/types/domain';
 
 // Props interfaces
 interface SendPaymentDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  initialPaymentInput?: string | null;
+  initialPaymentInput?: SendInput | null;
 }
 
 // Main component
@@ -25,12 +25,11 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
   const wallet = useWallet();
   // Container state: input parsing + routing to workflow per input type
   const [currentStep, setCurrentStep] = useState<'input' | 'amount' | 'workflow' | 'processing' | 'result'>('input');
-  const [paymentInput, setPaymentInput] = useState<string>('');
+  const [paymentInput, setPaymentInput] = useState<SendInput | null>(null);
   const [amount, setAmount] = useState<string>('');
   // Fee selection moved into Bitcoin workflow
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [parsedInput, setParsedInput] = useState<InputType | null>(null);
   const [prepareResponse, setPrepareResponse] = useState<import('@breeztech/breez-sdk-spark').PrepareSendPaymentResponse | null>(null);
   const [paymentResult, setPaymentResult] = useState<'success' | 'failure' | null>(null);
 
@@ -42,17 +41,15 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
       // If we have initial parsed data from QR scan, process it immediately
       if (initialPaymentInput) {
         setPaymentInput(initialPaymentInput);
-        processPaymentInput(initialPaymentInput);
+        processPaymentInput(initialPaymentInput.rawInput);
       }
     }
   }, [isOpen, initialPaymentInput]);
 
   const resetState = () => {
     setCurrentStep('input');
-    setPaymentInput('');
+    setPaymentInput(null);
     setAmount('');
-    // reset fee-related state (handled in BTC workflow)
-    setParsedInput(null);
     setPrepareResponse(null);
     setError(null);
     setIsLoading(false);
@@ -60,25 +57,28 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
 
   // Unified payment processing function
   const processPaymentInput = async (input: string | null = null) => {
-    const currentInput = input || paymentInput;
-    if (!currentInput.trim()) {
+    const currentInput = (input || paymentInput?.rawInput)?.trim();
+    if (!currentInput) {
       setError('Please enter a payment destination');
       return;
     }
+
 
     setIsLoading(true);
     setError(null);
 
     try {
       // First, use sdk.parse to determine the input type
-      const parseResult = await wallet.parseInput(currentInput.trim());
-      setParsedInput(parseResult);
+      const parseResult = await wallet.parseInput(currentInput);
+      setPaymentInput({ rawInput: currentInput.trim(), parsedInput: parseResult });
       if (parseResult.type === 'bolt11Invoice' && parseResult.amountMsat && parseResult.amountMsat > 0) {
         const sats = Math.floor(parseResult.amountMsat / 1000);
         setAmount(String(sats));
-        await prepareSendPayment(paymentInput, sats);
+        await prepareSendPayment(currentInput, sats);
       } else if (parseResult.type === 'bitcoinAddress' || parseResult.type === 'sparkAddress') {
         setCurrentStep('amount');
+      } else if (parseResult.type === 'lnurlPay') {
+        //await wallet.prepareLnurlPay({ lnurl: parseResult.lnurl });
       } else {
         setError('Invalid payment destination');
         setCurrentStep('input');
@@ -114,14 +114,12 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
   };
 
   const onAmountNext = async (amountNum: number) => {
-    if (!parsedInput) return;
     if (!amountNum || amountNum <= 0) {
       setError('Please enter a valid amount');
       return;
     }
-    // sync the amount state with the chosen amount
     setAmount(String(amountNum));
-    await prepareSendPayment(paymentInput, amountNum);
+    await prepareSendPayment(paymentInput?.rawInput || '', amountNum);
   };
   const getStepIndex = (step: 'input' | 'amount' | 'workflow' | 'processing' | 'result'): number => {
     const steps: Array<'input' | 'amount' | 'workflow' | 'processing' | 'result'> = [
@@ -136,8 +134,8 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
 
   // Get payment method display name
   const getPaymentMethodName = (): string => {
-    if (!parsedInput) return '';
-    switch (parsedInput.type) {
+    if (!paymentInput) return '';
+    switch (paymentInput.parsedInput.type) {
       case 'bolt11Invoice':
         return 'Lightning Invoice';
       case 'sparkAddress':
@@ -185,18 +183,17 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
           {/* Input Step */}
           <StepContent isActive={currentStep === 'input'} isLeft={getStepIndex('input') < getStepIndex(currentStep)}>
             <InputStep
-              paymentInput={paymentInput}
-              setPaymentInput={setPaymentInput}
+              paymentInput={paymentInput?.rawInput || ''}
               isLoading={isLoading}
               error={error}
-              onContinue={() => processPaymentInput()}
+              onContinue={(paymentInput) => processPaymentInput(paymentInput)}
             />
           </StepContent>
 
           {/* Amount Step (common) */}
           <StepContent isActive={currentStep === 'amount'} isLeft={getStepIndex('amount') < getStepIndex(currentStep)}>
             <AmountStep
-              paymentInput={paymentInput}
+              paymentInput={paymentInput?.rawInput || ''}
               amount={amount}
               isLoading={isLoading}
               error={error}

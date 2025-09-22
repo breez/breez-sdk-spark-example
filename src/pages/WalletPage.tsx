@@ -10,6 +10,7 @@ import PaymentDetailsDialog from '../components/PaymentDetailsDialog';
 import CollapsingWalletHeader from '../components/CollapsingWalletHeader';
 import TransactionList from '../components/TransactionList';
 import { GetInfoResponse, Payment, Config } from '@breeztech/breez-sdk-spark';
+import { SendInput } from '@/types/domain';
 
 interface WalletPageProps {
   walletInfo: GetInfoResponse | null;
@@ -38,7 +39,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
   const [isReceiveDialogOpen, setIsReceiveDialogOpen] = useState(false);
   const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [scannedPaymentData, setScannedPaymentData] = useState<string | null>(null);
+  const [paymentInput, setPaymentInput] = useState<SendInput | null>(null);
 
   const transactionsContainerRef = useRef<HTMLDivElement>(null);
   const collapseThreshold = 100; // pixels of scroll before header is fully collapsed
@@ -66,7 +67,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
   // Handler for closing the send dialog and refreshing data
   const handleSendDialogClose = useCallback(() => {
     setIsSendDialogOpen(false);
-    setScannedPaymentData(null); // Clear scanned data when dialog closes
+    setPaymentInput(null); // Clear scanned data when dialog closes
     // Refresh wallet data to show any new transactions
     refreshWalletData(false);
   }, [refreshWalletData]);
@@ -93,7 +94,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
       setIsQrScannerOpen(false);
 
       // Set the scanned payment data to pass to SendPaymentDialog
-      setScannedPaymentData(data);
+      setPaymentInput({ rawInput: data, parsedInput: parseResult });
 
       // Open send dialog - it will automatically route to the appropriate step
       setIsSendDialogOpen(true);
@@ -139,7 +140,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
       <SendPaymentDialog
         isOpen={isSendDialogOpen}
         onClose={handleSendDialogClose}
-        initialPaymentInput={scannedPaymentData}
+        initialPaymentInput={paymentInput}
       />
 
       {/* Receive Payment Dialog */}

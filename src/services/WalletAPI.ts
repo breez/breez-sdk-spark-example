@@ -11,6 +11,10 @@ import type {
   SdkEvent,
   InputType,
   LightningAddressInfo,
+  PrepareLnurlPayRequest,
+  PrepareLnurlPayResponse,
+  LnurlPayRequest,
+  LnurlPayResponse,
 } from '@breeztech/breez-sdk-spark';
 
 export interface WalletAPI {
@@ -20,6 +24,8 @@ export interface WalletAPI {
 
   // Payments
   parseInput: (input: string) => Promise<InputType>;
+  prepareLnurlPay: (params: PrepareLnurlPayRequest) => Promise<PrepareLnurlPayResponse>;
+  lnurlPay: (params: LnurlPayRequest) => Promise<LnurlPayResponse>;
   prepareSendPayment: (params: PrepareSendPaymentRequest) => Promise<PrepareSendPaymentResponse>;
   sendPayment: (params: SendPaymentRequest) => Promise<SendPaymentResponse>;
   receivePayment: (params: ReceivePaymentRequest) => Promise<ReceivePaymentResponse>;
