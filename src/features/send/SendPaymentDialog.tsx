@@ -8,10 +8,12 @@ import InputStep from './steps/InputStep';
 import Bolt11Workflow from './workflows/Bolt11Workflow';
 import BitcoinWorkflow from './workflows/BitcoinWorkflow';
 import SparkWorkflow from './workflows/SparkWorkflow';
+import LnurlWorkflow from './workflows/LnurlWorkflow';
 import AmountStep from './steps/AmountStep';
 import ProcessingStep from './steps/ProcessingStep';
 import ResultStep from './steps/ResultStep';
 import { SendInput } from '@/types/domain';
+import { LnurlPayRequestDetails, PrepareLnurlPayRequest } from '@breeztech/breez-sdk-spark';
 
 // Props interfaces
 interface SendPaymentDialogProps {
@@ -78,7 +80,10 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
       } else if (parseResult.type === 'bitcoinAddress' || parseResult.type === 'sparkAddress') {
         setCurrentStep('amount');
       } else if (parseResult.type === 'lnurlPay') {
-        //await wallet.prepareLnurlPay({ lnurl: parseResult.lnurl });
+        // Route to LNURL workflow to collect amount and (optional) comment
+        setCurrentStep('workflow');
+      } else if (parseResult.type === 'lightningAddress') {
+        setCurrentStep('workflow');
       } else {
         setError('Invalid payment destination');
         setCurrentStep('input');
@@ -142,6 +147,10 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
         return 'Spark Address';
       case 'bitcoinAddress':
         return 'Bitcoin Address';
+      case 'lnurlPay':
+        return 'LNURL Pay';
+      case 'lightningAddress':
+        return 'Lightning Address';
       default:
         return 'Payment';
     }
@@ -172,6 +181,34 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
       setIsLoading(false);
       setCurrentStep('result');
     }
+  };
+
+  // Generic runner for flows like LNURL Pay where the workflow provides the operation
+  const handleRun = async (runner: () => Promise<void>) => {
+    setCurrentStep('processing');
+    setIsLoading(true);
+    setError(null);
+    try {
+      await runner();
+      setPaymentResult('success');
+    } catch (err) {
+      console.error('Operation failed:', err);
+      setError(`Operation failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setPaymentResult('failure');
+    } finally {
+      setIsLoading(false);
+      setCurrentStep('result');
+    }
+  };
+
+  const getLnurlPayRequestDetails = (): LnurlPayRequestDetails | null => {
+    if (paymentInput && paymentInput.parsedInput.type === 'lnurlPay') {
+      return paymentInput.parsedInput;
+    }
+    if (paymentInput && paymentInput.parsedInput.type === 'lightningAddress') {
+      return paymentInput.parsedInput.payRequest;
+    }
+    return null;
   };
 
   return (
@@ -226,6 +263,19 @@ const SendPaymentDialog: React.FC<SendPaymentDialogProps> = ({ isOpen, onClose, 
                 amountSats={prepareResponse.amountSats}
                 onBack={() => setCurrentStep('input')}
                 onSend={handleSend}
+              />
+            )}
+            {getLnurlPayRequestDetails() && (
+              <LnurlWorkflow
+                parsed={getLnurlPayRequestDetails()!}
+                onBack={() => setCurrentStep('input')}
+                onRun={handleRun}
+                onPrepare={async (prepareRequest: PrepareLnurlPayRequest) => {
+                  return await wallet.prepareLnurlPay(prepareRequest);
+                }}
+                onPay={async (prepareResponse) => {
+                  await wallet.lnurlPay({ prepareResponse });
+                }}
               />
             )}
           </StepContent>
