@@ -195,7 +195,7 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
   // Lightning Address management via hook
   const handleEditLightningAddress = () => beginEditLightningAddress(lightningAddress);
   const handleCancelEditLightningAddress = () => cancelEditLightningAddress();
-  const handleSaveLightningAddress = async () => saveLightningAddress(description || 'Lightning Address');
+  const handleSaveLightningAddress = async () => saveLightningAddress();
 
   const handleCustomizeAmount = () => {
     setShowAmountPanel(true);
