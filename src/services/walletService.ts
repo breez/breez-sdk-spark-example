@@ -51,7 +51,7 @@ export const initWallet = async (mnemonic: string, config: Config): Promise<void
     try {
       const logger = new WebLogger();
       initLogging(logger);
-      sdk = await connect({ config, mnemonic, storageDir: "spark-wallet-example" });
+      sdk = await connect({ config, seed: { type: "mnemonic", mnemonic }, storageDir: "spark-wallet-example" });
       console.log('Wallet initialized successfully');
     } catch (error) {
       console.error('Failed to initialize wallet:', error);
