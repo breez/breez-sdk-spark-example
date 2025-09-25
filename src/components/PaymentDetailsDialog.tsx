@@ -18,7 +18,8 @@ const PaymentDetailsDialog: React.FC<PaymentDetailsDialogProps> = ({ optionalPay
     txId: false,
     swapId: false,
     assetId: false,
-    destination: false
+    destination: false,
+    lnurlMetadata: false
   });
 
   // Format date and time
@@ -95,6 +96,55 @@ const PaymentDetailsDialog: React.FC<PaymentDetailsDialogProps> = ({ optionalPay
                 onToggle={() => toggleField('destinationPubkey')}
               />
             )}
+
+            {payment.details?.type === 'lightning' && payment.details.lnurlPayInfo && (
+              <>
+                <PaymentInfoRow
+                  label="LNURL Payment"
+                  value={payment.details.lnurlPayInfo.domain || 'Unknown'}
+                />
+
+                {payment.details.lnurlPayInfo.metadata && (
+                  <CollapsibleCodeField
+                    label="LNURL Metadata"
+                    value={payment.details.lnurlPayInfo.metadata}
+                    isVisible={visibleFields.lnurlMetadata}
+                    onToggle={() => toggleField('lnurlMetadata')}
+                  />
+                )}
+                
+                {payment.details.lnurlPayInfo.comment && (
+                  <PaymentInfoRow
+                    label="Comment"
+                    value={payment.details.lnurlPayInfo.comment}
+                  />
+                )}
+                
+                {payment.details.lnurlPayInfo.rawSuccessAction && (
+                  <>
+                    <PaymentInfoRow
+                      label="Success Action Type"
+                      value={payment.details.lnurlPayInfo.rawSuccessAction.type || 'Unknown'}
+                    />
+                    {payment.details.lnurlPayInfo.rawSuccessAction.type === 'message' && 
+                      payment.details.lnurlPayInfo.rawSuccessAction.data && (
+                      <PaymentInfoRow
+                        label="Success Message"
+                        value={payment.details.lnurlPayInfo.rawSuccessAction.data.message || ''}
+                      />
+                    )}
+                    {payment.details.lnurlPayInfo.rawSuccessAction.type === 'url' && 
+                      payment.details.lnurlPayInfo.rawSuccessAction.data && (
+                      <PaymentInfoRow
+                        label="Success URL"
+                        value={payment.details.lnurlPayInfo.rawSuccessAction.data.url || ''}
+                      />
+                    )}
+                  </>
+                )}
+              </>
+            )}
+            
             {payment.details?.type === 'deposit' && payment.details.txId && (
               <div className="mt-4">
                 <CollapsibleCodeField
