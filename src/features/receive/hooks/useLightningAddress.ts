@@ -12,7 +12,7 @@ export interface UseLightningAddress {
   beginEdit: (currentAddress?: LightningAddressInfo | null) => void;
   cancelEdit: () => void;
   setEditValue: (v: string) => void;
-  save: (description?: string) => Promise<void>;
+  save: () => Promise<void>;
   reset: () => void;
 }
 
@@ -45,7 +45,7 @@ export const useLightningAddress = (): UseLightningAddress => {
       let addr = await wallet.getLightningAddress();
       if (!addr) {
         const randomString = generateRandomLetterString(6);
-        await wallet.registerLightningAddress(randomString, 'randomString@breez.tips');
+        await wallet.registerLightningAddress(randomString, `Pay to ${randomString}@breez.tips`);
         addr = await wallet.getLightningAddress();
       }
       setAddress(addr);
@@ -71,7 +71,7 @@ export const useLightningAddress = (): UseLightningAddress => {
     setError(null);
   }, []);
 
-  const save = useCallback(async (description?: string) => {
+  const save = useCallback(async () => {
     const username = extractUsername(editValue.trim());
     if (!username) {
       setError('Please enter a username');
@@ -89,7 +89,7 @@ export const useLightningAddress = (): UseLightningAddress => {
         return;
       }
 
-      await wallet.registerLightningAddress(username, description || 'Lightning Address');
+      await wallet.registerLightningAddress(username, `Pay to ${username}@breez.tips`);
       const actualInfo = await wallet.getLightningAddress();
       setAddress(actualInfo);
       setIsEditing(false);
