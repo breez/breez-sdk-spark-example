@@ -2,16 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { Transition } from '@headlessui/react';
 import { PrimaryButton, FormGroup, FormInput, FormError } from '../components/ui';
 import { getSettings, saveSettings, UserSettings } from '../services/settings';
+import type { Config } from '@breeztech/breez-sdk-spark';
 
 interface SettingsPageProps {
   onBack: () => void;
+  config: Config | null;
 }
 
-const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
+const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
   const [isOpen, setIsOpen] = useState(true);
-  const [feeType, setFeeType] = useState<'fixed' | 'relative'>('fixed');
+  const [feeType, setFeeType] = useState<'fixed' | 'rate'>('fixed');
   const [feeValue, setFeeValue] = useState<string>('1');
   const [error, setError] = useState<string | null>(null);
+  // New settings fields
+  const [syncIntervalSecs, setSyncIntervalSecs] = useState<string>('');
+  const [lnurlDomain, setLnurlDomain] = useState<string>('');
+  const [preferSparkOverLightning, setPreferSparkOverLightning] = useState<boolean>(false);
 
   useEffect(() => {
     const s = getSettings();
@@ -19,10 +25,28 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
       setFeeType('fixed');
       setFeeValue(String(s.depositMaxFee.amount));
     } else {
-      setFeeType('relative');
-      setFeeValue(String(s.depositMaxFee.percentage));
+      setFeeType('rate');
+      setFeeValue(String(s.depositMaxFee.satPerVbyte));
     }
-  }, []);
+
+    // Defaults for new fields: prefer saved settings, otherwise fall back to config
+    const cfg: any = config ?? {};
+    setSyncIntervalSecs(
+      typeof s.syncIntervalSecs === 'number'
+        ? String(s.syncIntervalSecs)
+        : (typeof cfg.syncIntervalSecs === 'number' ? String(cfg.syncIntervalSecs) : '')
+    );
+    setLnurlDomain(
+      typeof s.lnurlDomain === 'string'
+        ? s.lnurlDomain
+        : (typeof cfg.lnurlDomain === 'string' ? cfg.lnurlDomain : '')
+    );
+    setPreferSparkOverLightning(
+      typeof s.preferSparkOverLightning === 'boolean'
+        ? s.preferSparkOverLightning
+        : (typeof cfg.preferSparkOverLightning === 'boolean' ? cfg.preferSparkOverLightning : false)
+    );
+  }, [config]);
 
   const handleClose = () => {
     setIsOpen(false);
@@ -36,10 +60,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
       return;
     }
     setError(null);
-    const updated: UserSettings =
-      feeType === 'fixed'
+    const updated: UserSettings = {
+      ...(feeType === 'fixed'
         ? { depositMaxFee: { type: 'fixed', amount: Math.floor(n) } }
-        : { depositMaxFee: { type: 'relative', percentage: n } };
+        : { depositMaxFee: { type: 'rate', satPerVbyte: n } }),
+      syncIntervalSecs: syncIntervalSecs !== '' ? Math.max(0, Math.floor(Number(syncIntervalSecs))) : undefined,
+      lnurlDomain: lnurlDomain !== '' ? lnurlDomain : undefined,
+      preferSparkOverLightning,
+    };
     saveSettings(updated);
     handleClose();
   };
@@ -83,8 +111,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
                       Absolute (sats)
                     </button>
                     <button
-                      className={`px-3 py-1 rounded ${feeType === 'relative' ? 'bg-[var(--primary-blue)] text-white' : 'bg-[rgb(var(--card-border))] text-[rgb(var(--text-white))]'}`}
-                      onClick={() => setFeeType('relative')}
+                      className={`px-3 py-1 rounded ${feeType === 'rate' ? 'bg-[var(--primary-blue)] text-white' : 'bg-[rgb(var(--card-border))] text-[rgb(var(--text-white))]'}`}
+                      onClick={() => setFeeType('rate')}
                       type="button"
                     >
                       Relative (%)
@@ -103,6 +131,50 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
                   </div>
 
                   <FormError error={error} />
+                </FormGroup>
+              </div>
+
+              <div className="card-no-border p-4">
+                <h2 className="text-[rgb(var(--text-white))] font-medium mb-3">Synchronization</h2>
+                <FormGroup>
+                  <label htmlFor="sync-interval" className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">Sync interval (seconds)</label>
+                  <FormInput
+                    id="sync-interval"
+                    type="number"
+                    min={0}
+                    value={syncIntervalSecs}
+                    onChange={(e) => setSyncIntervalSecs(e.target.value)}
+                    placeholder="e.g. 30"
+                  />
+                </FormGroup>
+              </div>
+
+              <div className="card-no-border p-4">
+                <h2 className="text-[rgb(var(--text-white))] font-medium mb-3">LNURL</h2>
+                <FormGroup>
+                  <label htmlFor="lnurl-domain" className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">LNURL domain</label>
+                  <FormInput
+                    id="lnurl-domain"
+                    type="text"
+                    value={lnurlDomain}
+                    onChange={(e) => setLnurlDomain(e.target.value)}
+                    placeholder="example.com"
+                  />
+                </FormGroup>
+              </div>
+
+              <div className="card-no-border p-4">
+                <h2 className="text-[rgb(var(--text-white))] font-medium mb-3">Lightning Default</h2>
+                <FormGroup>
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="form-checkbox"
+                      checked={preferSparkOverLightning}
+                      onChange={(e) => setPreferSparkOverLightning(e.currentTarget.checked)}
+                    />
+                    <span className="text-[rgb(var(--text-white))] opacity-90">Prefer Spark address over Lightning invoice (when available)</span>
+                  </label>
                 </FormGroup>
               </div>
             </div>

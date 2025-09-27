@@ -11,6 +11,7 @@ import GeneratePage from './pages/GeneratePage';
 import WalletPage from './pages/WalletPage';
 import UnclaimedDepositsPage from './pages/UnclaimedDepositsPage';
 import SettingsPage from './pages/SettingsPage';
+import { getSettings } from './services/settings';
 
 // Main App without toast functionality
 const AppContent: React.FC = () => {
@@ -230,8 +231,29 @@ const AppContent: React.FC = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const network = (overrideNetwork ?? (urlParams.get('network') ?? 'mainnet')) as Network;
       const config: Config = defaultConfig(network);
-      //config.maxDepositClaimFee = { type: 'fixed', amount: 1 };
       config.apiKey = breezApiKey;
+
+      // Apply persisted user settings to config
+      try {
+        const s = getSettings();
+        // Max fee for deposit claim
+        if (s.depositMaxFee) {
+          config.maxDepositClaimFee = s.depositMaxFee;
+        }
+        // Optional settings
+        if (s.syncIntervalSecs != null) {
+          config.syncIntervalSecs = s.syncIntervalSecs;
+        }
+        if (s.lnurlDomain != null) {
+          config.lnurlDomain = s.lnurlDomain;
+        }
+        if (s.preferSparkOverLightning != null) {
+          config.preferSparkOverLightning = s.preferSparkOverLightning;
+        }
+      } catch (e) {
+        console.warn('Failed to apply user settings to config:', e);
+      }
+
       setConfig(config);
       await wallet.initWallet(mnemonic, config);
 
@@ -327,7 +349,7 @@ const AppContent: React.FC = () => {
 
       case 'settings':
         return (
-          <SettingsPage onBack={() => setCurrentScreen('wallet')} />
+          <SettingsPage onBack={() => setCurrentScreen('wallet')} config={config} />
         );
 
       case 'restore':

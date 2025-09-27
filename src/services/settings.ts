@@ -1,9 +1,10 @@
-export type DepositMaxFeeSetting =
-  | { type: 'fixed'; amount: number }
-  | { type: 'relative'; percentage: number };
+import { Fee } from "@breeztech/breez-sdk-spark/web";
 
 export interface UserSettings {
-  depositMaxFee: DepositMaxFeeSetting;
+  depositMaxFee: Fee;
+  syncIntervalSecs?: number;
+  lnurlDomain?: string;
+  preferSparkOverLightning?: boolean;
 }
 
 const SETTINGS_KEY = 'user_settings_v1';
@@ -19,15 +20,19 @@ export function getSettings(): UserSettings {
     const parsed = JSON.parse(raw) as Partial<UserSettings>;
     // Merge with defaults defensively
     const depositMaxFee = parsed?.depositMaxFee ?? defaultSettings.depositMaxFee;
-    if (depositMaxFee && depositMaxFee.type === 'fixed' && typeof (depositMaxFee as any).amount !== 'number') {
+    if (depositMaxFee && depositMaxFee.type === 'fixed' && typeof depositMaxFee.amount !== 'number') {
       return defaultSettings;
     }
-    if (depositMaxFee && depositMaxFee.type === 'relative' && typeof (depositMaxFee as any).percentage !== 'number') {
+    if (depositMaxFee && depositMaxFee.type === 'rate' && typeof depositMaxFee.satPerVbyte !== 'number') {
       return defaultSettings;
     }
-    return {
-      depositMaxFee: depositMaxFee as DepositMaxFeeSetting,
+    const out: UserSettings = {
+      depositMaxFee: depositMaxFee as Fee,
+      syncIntervalSecs: typeof parsed.syncIntervalSecs === 'number' ? parsed.syncIntervalSecs : undefined,
+      lnurlDomain: typeof parsed.lnurlDomain === 'string' ? parsed.lnurlDomain : undefined,
+      preferSparkOverLightning: typeof parsed.preferSparkOverLightning === 'boolean' ? parsed.preferSparkOverLightning : undefined,
     };
+    return out;
   } catch {
     return defaultSettings;
   }
