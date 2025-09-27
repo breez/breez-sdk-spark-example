@@ -22,6 +22,7 @@ import {
   PrepareLnurlPayRequest,
   LnurlPayRequest,
   LnurlPayResponse,
+  DepositInfo,
 } from '@breeztech/breez-sdk-spark';
 import type { WalletAPI } from './WalletAPI';
 
@@ -96,6 +97,11 @@ export const receivePayment = async (
 ): Promise<ReceivePaymentResponse> => {
   if (!sdk) throw new Error('SDK not initialized');
   return await sdk.receivePayment(params);
+};
+
+export const unclaimedDeposits = async (): Promise<DepositInfo[]> => {
+  if (!sdk) throw new Error('SDK not initialized');
+  return (await sdk.listUnclaimedDeposits({})).deposits;
 };
 
 // Event handling
