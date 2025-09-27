@@ -229,7 +229,7 @@ const AppContent: React.FC = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const network = (overrideNetwork ?? (urlParams.get('network') ?? 'mainnet')) as Network;
       const config: Config = defaultConfig(network);
-      config.maxDepositClaimFee = { type: 'fixed', amount: 1 };
+      //config.maxDepositClaimFee = { type: 'fixed', amount: 1 };
       config.apiKey = breezApiKey;
       setConfig(config);
       await wallet.initWallet(mnemonic, config);
