@@ -69,7 +69,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
       preferSparkOverLightning,
     };
     saveSettings(updated);
-    handleClose();
+    // Reload to apply new config values on next connect
+    window.location.reload();
   };
 
   return (
