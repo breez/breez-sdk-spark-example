@@ -103,7 +103,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
               <div className="card-no-border p-4">
                 <FormGroup>
                   <label className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">
-                    Max fee
+                    Max Deposit Claim fee
                   </label>
                   <div className="flex gap-2 items-center">
                     <select
