@@ -320,6 +320,50 @@ const AppContent: React.FC = () => {
             error={error}
             onClearError={clearError}
             onLogout={handleLogout}
+            onChangeNetwork={async (network) => {
+              try {
+                setIsLoading(true);
+                // Disconnect current session if connected
+                if (isConnected) {
+                  // Clean event listener if exists
+                  if (eventListenerIdRef.current) {
+                    try { await wallet.removeEventListener(eventListenerIdRef.current); } catch {}
+                    eventListenerIdRef.current = null;
+                  }
+                  await wallet.disconnect();
+                  setIsConnected(false);
+                }
+
+                // Update URL param so refresh preserves network choice
+                const url = new URL(window.location.href);
+                url.searchParams.set('network', network);
+                window.history.replaceState({}, '', url.toString());
+
+                // Reconnect if mnemonic is present
+                const mnemonic = wallet.getSavedMnemonic();
+                const breezApiKey = import.meta.env.VITE_BREEZ_API_KEY;
+                if (!breezApiKey) throw new Error('Breez API key not configured');
+
+                const newConfig: Config = defaultConfig(network);
+                newConfig.apiKey = breezApiKey;
+                setConfig(newConfig);
+
+                if (mnemonic) {
+                  await wallet.initWallet(mnemonic, newConfig);
+                  setIsConnected(true);
+                  // Fetch data on new network
+                  await refreshWalletData(false);
+                } else {
+                  // No mnemonic means route to home
+                  setCurrentScreen('home');
+                }
+              } catch (err) {
+                console.error('Failed to switch network:', err);
+                setError('Failed to switch network');
+              } finally {
+                setIsLoading(false);
+              }
+            }}
           />
         );
 

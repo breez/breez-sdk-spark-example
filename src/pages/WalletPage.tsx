@@ -9,7 +9,7 @@ import QrScannerDialog from '../components/QrScannerDialog';
 import PaymentDetailsDialog from '../components/PaymentDetailsDialog';
 import CollapsingWalletHeader from '../components/CollapsingWalletHeader';
 import TransactionList from '../components/TransactionList';
-import { GetInfoResponse, Payment, Config } from '@breeztech/breez-sdk-spark';
+import { GetInfoResponse, Payment, Config, Network } from '@breeztech/breez-sdk-spark';
 import { SendInput } from '@/types/domain';
 
 interface WalletPageProps {
@@ -22,6 +22,7 @@ interface WalletPageProps {
   onClearError: () => void;
   onLogout: () => void;
   config: Config | null;
+  onChangeNetwork: (network: Network) => void;
 }
 
 const WalletPage: React.FC<WalletPageProps> = ({
@@ -31,7 +32,8 @@ const WalletPage: React.FC<WalletPageProps> = ({
   refreshWalletData,
   isRestoring,
   onLogout,
-  config
+  config,
+  onChangeNetwork
 }) => {
   const wallet = useWallet();
   const [scrollProgress, setScrollProgress] = useState<number>(0);
@@ -121,6 +123,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
           config={config}
           scrollProgress={scrollProgress}
           onLogout={onLogout}
+          onChangeNetwork={onChangeNetwork}
         />
       </div>
 

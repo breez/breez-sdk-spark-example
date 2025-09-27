@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Config, GetInfoResponse } from '@breeztech/breez-sdk-spark';
+import type { Config, GetInfoResponse, Network } from '@breeztech/breez-sdk-spark';
 
 interface CollapsingWalletHeaderProps {
   walletInfo: GetInfoResponse | null;
@@ -7,6 +7,7 @@ interface CollapsingWalletHeaderProps {
   scrollProgress: number;
   onLogout: () => void;
   config: Config | null;
+  onChangeNetwork: (network: Network) => void;
 }
 
 const CollapsingWalletHeader: React.FC<CollapsingWalletHeaderProps> = ({
@@ -14,7 +15,8 @@ const CollapsingWalletHeader: React.FC<CollapsingWalletHeaderProps> = ({
   scrollProgress,
   usdRate,
   onLogout,
-  config
+  config,
+  onChangeNetwork
 }) => {
   if (!walletInfo) return null;
 
@@ -49,9 +51,15 @@ const CollapsingWalletHeader: React.FC<CollapsingWalletHeaderProps> = ({
           </svg>
         </button>
         {config && (
-          <span className="text-[rgb(var(--text-white))] text-sm font-medium opacity-75 capitalize">
-            {config.network}
-          </span>
+          <select
+            value={config.network}
+            onChange={(e) => onChangeNetwork(e.currentTarget.value as Network)}
+            className="bg-transparent border border-[rgb(var(--card-border))] rounded-md px-2 py-1 text-[rgb(var(--text-white))] text-sm opacity-80 capitalize focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary-blue))]"
+            title="Select Network"
+          >
+            <option className="bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))]" value="mainnet">Mainnet</option>
+            <option className="bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))]" value="regtest">Regtest</option>
+          </select>
         )}
       </div>
       {/* Main Balance - always visible but scales down */}
