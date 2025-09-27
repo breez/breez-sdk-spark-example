@@ -101,34 +101,30 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
 
             <div className="flex-1 max-w-4xl mx-auto w-full p-4 space-y-4">
               <div className="card-no-border p-4">
-                <h2 className="text-[rgb(var(--text-white))] font-medium mb-3">Max Fee for Deposit</h2>
                 <FormGroup>
-                  <div className="flex gap-2 mb-2">
-                    <button
-                      className={`px-3 py-1 rounded ${feeType === 'fixed' ? 'bg-[var(--primary-blue)] text-white' : 'bg-[rgb(var(--card-border))] text-[rgb(var(--text-white))]'}`}
-                      onClick={() => setFeeType('fixed')}
-                      type="button"
+                  <label className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">
+                    Max fee
+                  </label>
+                  <div className="flex gap-2 items-center">
+                    <select
+                      value={feeType}
+                      onChange={(e) => setFeeType(e.currentTarget.value as 'fixed' | 'rate')}
+                      className="min-w-[170px] bg-transparent border border-[rgb(var(--card-border))] rounded-md px-2 py-2 text-[rgb(var(--text-white))] text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary-blue))]"
+                      aria-label="Max fee type"
                     >
-                      Absolute (sats)
-                    </button>
-                    <button
-                      className={`px-3 py-1 rounded ${feeType === 'rate' ? 'bg-[var(--primary-blue)] text-white' : 'bg-[rgb(var(--card-border))] text-[rgb(var(--text-white))]'}`}
-                      onClick={() => setFeeType('rate')}
-                      type="button"
-                    >
-                      Relative (%)
-                    </button>
-                  </div>
-
-                  <div>
-                    <FormInput
-                      id="deposit-fee-default"
-                      type="number"
-                      min={0}
-                      value={feeValue}
-                      onChange={(e) => setFeeValue(e.target.value)}
-                      placeholder={feeType === 'fixed' ? 'Max fee in sats' : 'Max fee in %'}
-                    />
+                      <option className="bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))]" value="fixed">Fixed (sats)</option>
+                      <option className="bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))]" value="rate">Rate (sat/vB)</option>
+                    </select>
+                    <div className="flex-1">
+                      <FormInput
+                        id="deposit-fee-default"
+                        type="number"
+                        min={0}
+                        value={feeValue}
+                        onChange={(e) => setFeeValue(e.target.value)}
+                        placeholder={feeType === 'fixed' ? 'Max fee in sats' : 'Max fee in sat/vB'}
+                      />
+                    </div>
                   </div>
 
                   <FormError error={error} />
@@ -136,7 +132,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
               </div>
 
               <div className="card-no-border p-4">
-                <h2 className="text-[rgb(var(--text-white))] font-medium mb-3">Synchronization</h2>
                 <FormGroup>
                   <label htmlFor="sync-interval" className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">Sync interval (seconds)</label>
                   <FormInput
@@ -151,7 +146,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
               </div>
 
               <div className="card-no-border p-4">
-                <h2 className="text-[rgb(var(--text-white))] font-medium mb-3">LNURL</h2>
                 <FormGroup>
                   <label htmlFor="lnurl-domain" className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">LNURL domain</label>
                   <FormInput
@@ -165,8 +159,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
               </div>
 
               <div className="card-no-border p-4">
-                <h2 className="text-[rgb(var(--text-white))] font-medium mb-3">Lightning Default</h2>
                 <FormGroup>
+                  <label className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">Prefer Spark</label>
                   <label className="inline-flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
