@@ -23,6 +23,7 @@ interface WalletPageProps {
   onLogout: () => void;
   config: Config | null;
   onChangeNetwork: (network: Network) => void;
+  hasUnclaimedDeposits: boolean;
 }
 
 const WalletPage: React.FC<WalletPageProps> = ({
@@ -33,7 +34,8 @@ const WalletPage: React.FC<WalletPageProps> = ({
   isRestoring,
   onLogout,
   config,
-  onChangeNetwork
+  onChangeNetwork,
+  hasUnclaimedDeposits
 }) => {
   const wallet = useWallet();
   const [scrollProgress, setScrollProgress] = useState<number>(0);
@@ -124,6 +126,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
           scrollProgress={scrollProgress}
           onLogout={onLogout}
           onChangeNetwork={onChangeNetwork}
+          hasUnclaimedDeposits={hasUnclaimedDeposits}
         />
       </div>
 

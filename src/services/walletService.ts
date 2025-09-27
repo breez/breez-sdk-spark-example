@@ -265,6 +265,7 @@ export const walletApi: WalletAPI = {
   prepareSendPayment,
   sendPayment,
   receivePayment,
+  unclaimedDeposits,
 
   // Data
   getWalletInfo,

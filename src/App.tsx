@@ -23,6 +23,7 @@ const AppContent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [usdRate, setUsdRate] = useState<number | null>(null);
   const [config, setConfig] = useState<Config | null>(null);
+  const [hasUnclaimedDeposits, setHasUnclaimedDeposits] = useState<boolean>(false);
 
   const { showToast } = useToast();
 
@@ -54,6 +55,17 @@ const AppContent: React.FC = () => {
       }
     }
   }, [isConnected, wallet]);
+
+  // Fetch unclaimed deposits list and update indicator
+  const fetchUnclaimedDeposits = useCallback(async () => {
+    try {
+      const deposits = await wallet.unclaimedDeposits();
+      setHasUnclaimedDeposits((deposits?.length ?? 0) > 0);
+    } catch (e) {
+      console.warn('Failed to fetch unclaimed deposits:', e);
+      setHasUnclaimedDeposits(false);
+    }
+  }, [wallet]);
 
 
   // SDK event handler with toast notifications and auto-close of receive dialog
@@ -95,6 +107,7 @@ const AppContent: React.FC = () => {
         `${event.claimedDeposits.length} deposits were claimed`
       );
       refreshWalletData(false);
+      fetchUnclaimedDeposits();
     } else if (event.type === 'claimDepositsFailed') {
       console.log('Claim deposits failed event received');
       showToast(
@@ -102,9 +115,11 @@ const AppContent: React.FC = () => {
         'Failed to Claim Deposits',
         `${event.unclaimedDeposits.length} deposits could not be claimed`
       );
+      // Refresh the list as some may remain unclaimed
+      fetchUnclaimedDeposits();
     }
     refreshWalletData(false);
-  }, [refreshWalletData, showToast, isRestoring]);
+  }, [refreshWalletData, showToast, isRestoring, fetchUnclaimedDeposits]);
 
   // Note: Fiat rate functionality removed as it's not available in the new WASM API
   // USD rate will be set to null for now
@@ -207,6 +222,7 @@ const AppContent: React.FC = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const network = (overrideNetwork ?? (urlParams.get('network') ?? 'mainnet')) as Network;
       const config: Config = defaultConfig(network);
+      config.maxDepositClaimFee = { type: 'fixed', amount: 1 };
       config.apiKey = breezApiKey;
       setConfig(config);
       await wallet.initWallet(mnemonic, config);
@@ -223,6 +239,8 @@ const AppContent: React.FC = () => {
       setTransactions(txns);
 
       setIsConnected(true);
+      // Fetch unclaimed deposits indicator after connect
+      await fetchUnclaimedDeposits();
       setCurrentScreen('wallet'); // Navigate to wallet screen
       // We'll keep isLoading true until first sync for new wallets
       setIsLoading(false);
@@ -322,6 +340,7 @@ const AppContent: React.FC = () => {
             error={error}
             onClearError={clearError}
             onLogout={handleLogout}
+            hasUnclaimedDeposits={hasUnclaimedDeposits}
             onChangeNetwork={async (network) => {
               try {
                 setIsLoading(true);

@@ -8,6 +8,7 @@ interface CollapsingWalletHeaderProps {
   onLogout: () => void;
   config: Config | null;
   onChangeNetwork: (network: Network) => void;
+  hasUnclaimedDeposits: boolean;
 }
 
 const CollapsingWalletHeader: React.FC<CollapsingWalletHeaderProps> = ({
@@ -16,7 +17,8 @@ const CollapsingWalletHeader: React.FC<CollapsingWalletHeaderProps> = ({
   usdRate,
   onLogout,
   config,
-  onChangeNetwork
+  onChangeNetwork,
+  hasUnclaimedDeposits
 }) => {
   if (!walletInfo) return null;
 
@@ -62,6 +64,22 @@ const CollapsingWalletHeader: React.FC<CollapsingWalletHeaderProps> = ({
           </select>
         )}
       </div>
+      {/* Top-right warning icon for unclaimed deposits */}
+      {hasUnclaimedDeposits && (
+        <div className="absolute top-4 right-4 z-10">
+          <button
+            type="button"
+            className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/40"
+            title="There are unclaimed deposits that need attention"
+            aria-label="Unclaimed deposits"
+          >
+            {/* Exclamation triangle icon */}
+            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.485 0l6.518 11.6c.75 1.336-.213 3.001-1.742 3.001H3.48c-1.53 0-2.492-1.665-1.742-3.001l6.52-11.6zM11 13a1 1 0 10-2 0 1 1 0 002 0zm-1-2a1 1 0 01-1-1V7a1 1 0 112 0v3a1 1 0 01-1 1z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      )}
       {/* Main Balance - always visible but scales down */}
       <div
         className="text-center transition-all duration-200 pt-12"
