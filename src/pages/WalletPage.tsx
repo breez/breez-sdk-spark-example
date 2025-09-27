@@ -8,6 +8,7 @@ import ReceivePaymentDialog from '../features/receive/ReceivePaymentDialog';
 import QrScannerDialog from '../components/QrScannerDialog';
 import PaymentDetailsDialog from '../components/PaymentDetailsDialog';
 import CollapsingWalletHeader from '../components/CollapsingWalletHeader';
+import SideMenu from '../components/SideMenu';
 import TransactionList from '../components/TransactionList';
 import { GetInfoResponse, Payment, Config, Network } from '@breeztech/breez-sdk-spark';
 import { SendInput } from '@/types/domain';
@@ -25,6 +26,7 @@ interface WalletPageProps {
   onChangeNetwork: (network: Network) => void;
   hasUnclaimedDeposits: boolean;
   onOpenUnclaimedDeposits: () => void;
+  onOpenSettings: () => void;
 }
 
 const WalletPage: React.FC<WalletPageProps> = ({
@@ -37,7 +39,8 @@ const WalletPage: React.FC<WalletPageProps> = ({
   config,
   onChangeNetwork,
   hasUnclaimedDeposits,
-  onOpenUnclaimedDeposits
+  onOpenUnclaimedDeposits,
+  onOpenSettings
 }) => {
   const wallet = useWallet();
   const [scrollProgress, setScrollProgress] = useState<number>(0);
@@ -46,6 +49,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
   const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [paymentInput, setPaymentInput] = useState<SendInput | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const transactionsContainerRef = useRef<HTMLDivElement>(null);
   const collapseThreshold = 100; // pixels of scroll before header is fully collapsed
@@ -126,7 +130,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
           usdRate={usdRate}
           config={config}
           scrollProgress={scrollProgress}
-          onLogout={onLogout}
+          onOpenMenu={() => setIsMenuOpen(true)}
           onChangeNetwork={onChangeNetwork}
           hasUnclaimedDeposits={hasUnclaimedDeposits}
           onOpenUnclaimedDeposits={onOpenUnclaimedDeposits}
@@ -195,6 +199,14 @@ const WalletPage: React.FC<WalletPageProps> = ({
           <span className="font-medium">Receive</span>
         </button>
       </div>
+
+      {/* Side Menu */}
+      <SideMenu
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        onLogout={onLogout}
+        onOpenSettings={onOpenSettings}
+      />
     </div>
   );
 };

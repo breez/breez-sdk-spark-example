@@ -10,11 +10,12 @@ import RestorePage from './pages/RestorePage';
 import GeneratePage from './pages/GeneratePage';
 import WalletPage from './pages/WalletPage';
 import UnclaimedDepositsPage from './pages/UnclaimedDepositsPage';
+import SettingsPage from './pages/SettingsPage';
 
 // Main App without toast functionality
 const AppContent: React.FC = () => {
   // Screen navigation state
-  const [currentScreen, setCurrentScreen] = useState<'home' | 'restore' | 'generate' | 'wallet' | 'unclaimedDeposits'>('home');
+  const [currentScreen, setCurrentScreen] = useState<'home' | 'restore' | 'generate' | 'wallet' | 'unclaimedDeposits' | 'settings'>('home');
 
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -324,6 +325,11 @@ const AppContent: React.FC = () => {
           />
         );
 
+      case 'settings':
+        return (
+          <SettingsPage onBack={() => setCurrentScreen('wallet')} />
+        );
+
       case 'restore':
         return (
           <RestorePage
@@ -357,6 +363,7 @@ const AppContent: React.FC = () => {
             onLogout={handleLogout}
             hasUnclaimedDeposits={hasUnclaimedDeposits}
             onOpenUnclaimedDeposits={() => setCurrentScreen('unclaimedDeposits')}
+            onOpenSettings={() => setCurrentScreen('settings')}
             onChangeNetwork={async (network) => {
               try {
                 setIsLoading(true);
