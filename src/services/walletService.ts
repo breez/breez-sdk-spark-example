@@ -23,6 +23,7 @@ import {
   LnurlPayRequest,
   LnurlPayResponse,
   DepositInfo,
+  Fee,
 } from '@breeztech/breez-sdk-spark';
 import type { WalletAPI } from './WalletAPI';
 
@@ -104,6 +105,15 @@ export const unclaimedDeposits = async (): Promise<DepositInfo[]> => {
   return (await sdk.listUnclaimedDeposits({})).deposits;
 };
 
+export const claimDeposit = async (txid: string, vout: number, maxFee: Fee): Promise<void> => {
+  if (!sdk) throw new Error('SDK not initialized');
+  await sdk.claimDeposit({ txid, vout, maxFee });
+};
+
+export const refundDeposit = async (txid: string, vout: number, destinationAddress: string, fee: Fee): Promise<void> => {
+  if (!sdk) throw new Error('SDK not initialized');
+  await sdk.refundDeposit({ txid, vout, destinationAddress, fee });
+};
 // Event handling
 export const addEventListener = async (
   callback: (event: SdkEvent) => void
@@ -266,6 +276,8 @@ export const walletApi: WalletAPI = {
   sendPayment,
   receivePayment,
   unclaimedDeposits,
+  claimDeposit,
+  refundDeposit,
 
   // Data
   getWalletInfo,

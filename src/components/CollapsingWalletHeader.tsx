@@ -9,6 +9,7 @@ interface CollapsingWalletHeaderProps {
   config: Config | null;
   onChangeNetwork: (network: Network) => void;
   hasUnclaimedDeposits: boolean;
+  onOpenUnclaimedDeposits: () => void;
 }
 
 const CollapsingWalletHeader: React.FC<CollapsingWalletHeaderProps> = ({
@@ -18,7 +19,8 @@ const CollapsingWalletHeader: React.FC<CollapsingWalletHeaderProps> = ({
   onLogout,
   config,
   onChangeNetwork,
-  hasUnclaimedDeposits
+  hasUnclaimedDeposits,
+  onOpenUnclaimedDeposits
 }) => {
   if (!walletInfo) return null;
 
@@ -72,6 +74,7 @@ const CollapsingWalletHeader: React.FC<CollapsingWalletHeaderProps> = ({
             className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/40"
             title="There are unclaimed deposits that need attention"
             aria-label="Unclaimed deposits"
+            onClick={onOpenUnclaimedDeposits}
           >
             {/* Exclamation triangle icon */}
             <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">

@@ -16,6 +16,7 @@ import type {
   LnurlPayRequest,
   LnurlPayResponse,
   DepositInfo,
+  Fee,
 } from '@breeztech/breez-sdk-spark';
 
 export interface WalletAPI {
@@ -32,6 +33,8 @@ export interface WalletAPI {
   sendPayment: (params: SendPaymentRequest) => Promise<SendPaymentResponse>;
   receivePayment: (params: ReceivePaymentRequest) => Promise<ReceivePaymentResponse>;
   unclaimedDeposits: () => Promise<DepositInfo[]>;
+  claimDeposit: (txid: string, vout: number, maxFee: Fee) => Promise<void>;
+  refundDeposit: (txid: string, vout: number, destinationAddress: string, fee: Fee) => Promise<void>;
 
   // Data
   getWalletInfo: () => Promise<GetInfoResponse | null>;

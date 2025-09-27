@@ -9,11 +9,12 @@ import HomePage from './pages/HomePage';
 import RestorePage from './pages/RestorePage';
 import GeneratePage from './pages/GeneratePage';
 import WalletPage from './pages/WalletPage';
+import UnclaimedDepositsPage from './pages/UnclaimedDepositsPage';
 
 // Main App without toast functionality
 const AppContent: React.FC = () => {
   // Screen navigation state
-  const [currentScreen, setCurrentScreen] = useState<'home' | 'restore' | 'generate' | 'wallet'>('home');
+  const [currentScreen, setCurrentScreen] = useState<'home' | 'restore' | 'generate' | 'wallet' | 'unclaimedDeposits'>('home');
 
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -83,6 +84,7 @@ const AppContent: React.FC = () => {
 
       // Don't show loading indicator for automatic refresh
       refreshWalletData(false);
+      fetchUnclaimedDeposits();
     }
 
     // Handle SDK events with toast notifications
@@ -90,6 +92,7 @@ const AppContent: React.FC = () => {
       console.log('Wallet synced event received');
       // Refresh wallet data when synced
       refreshWalletData(false);
+      fetchUnclaimedDeposits();
     } else if (event.type === 'paymentSucceeded') {
       console.log('Payment succeeded event received');
       let direction = event.payment.paymentType === 'send' ? 'sent' : 'received';
@@ -101,25 +104,29 @@ const AppContent: React.FC = () => {
       refreshWalletData(false);
     } else if (event.type === 'claimDepositsSucceeded') {
       console.log('Claim deposits succeeded event received');
-      showToast(
-        'success',
-        'Deposits Claimed Successfully',
-        `${event.claimedDeposits.length} deposits were claimed`
-      );
+      if (currentScreen !== 'unclaimedDeposits') {
+        showToast(
+          'success',
+          'Deposits Claimed Successfully',
+          `${event.claimedDeposits.length} deposits were claimed`
+        );
+      }
       refreshWalletData(false);
       fetchUnclaimedDeposits();
     } else if (event.type === 'claimDepositsFailed') {
       console.log('Claim deposits failed event received');
-      showToast(
-        'error',
-        'Failed to Claim Deposits',
-        `${event.unclaimedDeposits.length} deposits could not be claimed`
-      );
+      if (currentScreen !== 'unclaimedDeposits') {
+        showToast(
+          'error',
+          'Failed to Claim Deposits',
+          `${event.unclaimedDeposits.length} deposits could not be claimed`
+        );
+      }
       // Refresh the list as some may remain unclaimed
       fetchUnclaimedDeposits();
     }
     refreshWalletData(false);
-  }, [refreshWalletData, showToast, isRestoring, fetchUnclaimedDeposits]);
+  }, [refreshWalletData, showToast, isRestoring, fetchUnclaimedDeposits, currentScreen]);
 
   // Note: Fiat rate functionality removed as it's not available in the new WASM API
   // USD rate will be set to null for now
@@ -309,6 +316,14 @@ const AppContent: React.FC = () => {
           />
         );
 
+      case 'unclaimedDeposits':
+        return (
+          <UnclaimedDepositsPage
+            onBack={() => setCurrentScreen('wallet')}
+            onChanged={fetchUnclaimedDeposits}
+          />
+        );
+
       case 'restore':
         return (
           <RestorePage
@@ -341,6 +356,7 @@ const AppContent: React.FC = () => {
             onClearError={clearError}
             onLogout={handleLogout}
             hasUnclaimedDeposits={hasUnclaimedDeposits}
+            onOpenUnclaimedDeposits={() => setCurrentScreen('unclaimedDeposits')}
             onChangeNetwork={async (network) => {
               try {
                 setIsLoading(true);
