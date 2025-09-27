@@ -21,6 +21,7 @@ export interface WalletAPI {
   // Lifecycle
   initWallet: (mnemonic: string, config: Config) => Promise<void>;
   disconnect: () => Promise<void>;
+  connected: () => boolean;
 
   // Payments
   parseInput: (input: string) => Promise<InputType>;

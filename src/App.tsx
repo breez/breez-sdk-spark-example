@@ -183,14 +183,15 @@ const AppContent: React.FC = () => {
     }
   }, [isConnected, handleSdkEvent, wallet]);
 
-  const connectWallet = async (mnemonic: string, restore: boolean) => {
+  const connectWallet = async (mnemonic: string, restore: boolean, overrideNetwork?: Network) => {
     try {
       console.log('Connecting wallet...');
       // Guard against double-connect
-      if (isConnected) {
+      if (wallet.connected()) {
         console.log('Already connected; skipping connectWallet');
         return;
       }
+      console.log('Connecting wallet...');
       setIsLoading(true);
       setIsRestoring(restore); // Mark that we're restoring data      
       setError(null);
@@ -204,12 +205,13 @@ const AppContent: React.FC = () => {
       }
 
       const urlParams = new URLSearchParams(window.location.search);
-      const network = urlParams.get('network') ?? 'mainnet';
-      const config: Config = defaultConfig(network as Network);
+      const network = (overrideNetwork ?? (urlParams.get('network') ?? 'mainnet')) as Network;
+      const config: Config = defaultConfig(network);
       config.apiKey = breezApiKey;
       setConfig(config);
       await wallet.initWallet(mnemonic, config);
 
+      console.log('Wallet connected successfully');
       // Save mnemonic for future use
       wallet.saveMnemonic(mnemonic);
 
@@ -327,7 +329,7 @@ const AppContent: React.FC = () => {
                 if (isConnected) {
                   // Clean event listener if exists
                   if (eventListenerIdRef.current) {
-                    try { await wallet.removeEventListener(eventListenerIdRef.current); } catch {}
+                    try { await wallet.removeEventListener(eventListenerIdRef.current); } catch { }
                     eventListenerIdRef.current = null;
                   }
                   await wallet.disconnect();
@@ -341,18 +343,8 @@ const AppContent: React.FC = () => {
 
                 // Reconnect if mnemonic is present
                 const mnemonic = wallet.getSavedMnemonic();
-                const breezApiKey = import.meta.env.VITE_BREEZ_API_KEY;
-                if (!breezApiKey) throw new Error('Breez API key not configured');
-
-                const newConfig: Config = defaultConfig(network);
-                newConfig.apiKey = breezApiKey;
-                setConfig(newConfig);
-
                 if (mnemonic) {
-                  await wallet.initWallet(mnemonic, newConfig);
-                  setIsConnected(true);
-                  // Fetch data on new network
-                  await refreshWalletData(false);
+                  await connectWallet(mnemonic, false, network);
                 } else {
                   // No mnemonic means route to home
                   setCurrentScreen('home');

@@ -32,7 +32,7 @@ class WebLogger {
 }
 // Private SDK instance - not exposed outside this module
 let sdk: BreezSdk | null = null;
-let connectingPromise: Promise<void> | null = null;
+let logger: WebLogger | null = null;
 
 export const initWallet = async (mnemonic: string, config: Config): Promise<void> => {
   // If already connected, do nothing
@@ -41,27 +41,17 @@ export const initWallet = async (mnemonic: string, config: Config): Promise<void
     return;
   }
 
-  // If a connection is in progress, await it
-  if (connectingPromise) {
-    console.warn('initWallet called while a connection is in progress; awaiting existing connection');
-    return connectingPromise;
-  }
-
-  connectingPromise = (async () => {
-    try {
-      const logger = new WebLogger();
+  try {
+    if (!logger) {
+      logger = new WebLogger();
       initLogging(logger);
-      sdk = await connect({ config, seed: { type: "mnemonic", mnemonic }, storageDir: "spark-wallet-example" });
-      console.log('Wallet initialized successfully');
-    } catch (error) {
-      console.error('Failed to initialize wallet:', error);
-      throw error;
-    } finally {
-      connectingPromise = null;
     }
-  })();
-
-  return connectingPromise;
+    sdk = await connect({ config, seed: { type: "mnemonic", mnemonic }, storageDir: "spark-wallet-example" });
+    console.log('Wallet initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize wallet:', error);
+    throw error;
+  }
 };
 
 // Remove getSdk() method
@@ -193,6 +183,10 @@ export const disconnect = async (): Promise<void> => {
   }
 };
 
+export const connected = (): boolean => {
+  return sdk !== null;
+};
+
 // Helper to save mnemonic to localStorage
 export const saveMnemonic = (mnemonic: string): void => {
   localStorage.setItem('walletMnemonic', mnemonic);
@@ -256,6 +250,7 @@ export const walletApi: WalletAPI = {
   // Lifecycle
   initWallet,
   disconnect,
+  connected,
 
   // Payments
   parseInput,
