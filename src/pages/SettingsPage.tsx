@@ -87,7 +87,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
           className="absolute inset-0"
         >
           <div className="flex flex-col h-full bg-[var(--card-bg)]">
-            <div className="relative px-4 py-3 border-b border-[rgb(var(--card-border))]">
+            <div className="relative px-4 py-3 border-[rgb(var(--card-border))]">
               <h1 className="text-center text-lg font-semibold text-[rgb(var(--text-white))]">Settings</h1>
               <button
                 onClick={handleClose}
@@ -174,7 +174,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
               </div>
             </div>
 
-            <div className="p-4 border-t border-[rgb(var(--card-border))]">
+            <div className="p-4 border-[rgb(var(--card-border))]">
               <PrimaryButton className="w-full" onClick={handleSave}>
                 Save
               </PrimaryButton>
