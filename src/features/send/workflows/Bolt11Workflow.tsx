@@ -6,13 +6,13 @@ interface Bolt11WorkflowProps {
   method: Extract<SendPaymentMethod, { type: 'bolt11Invoice' }>;
   amountSats: number;
   onBack: () => void;
-  onSend: (options: { type: 'bolt11Invoice'; useSpark: boolean }) => Promise<void>;
+  onSend: (options: { type: 'bolt11Invoice'; preferSpark: boolean }) => Promise<void>;
 }
 
 const Bolt11Workflow: React.FC<Bolt11WorkflowProps> = ({ method, amountSats, onSend }) => {
   const handleSend = () => {
-    const useSpark = method.sparkTransferFeeSats != null;
-    return onSend({ type: 'bolt11Invoice', useSpark });
+    const preferSpark = method.sparkTransferFeeSats != null;
+    return onSend({ type: 'bolt11Invoice', preferSpark });
   };
 
   // Compute display fees from prepared response
