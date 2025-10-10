@@ -437,7 +437,7 @@ function App() {
     <ToastProvider>
       <WalletProvider>
         <div className="flex-grow flex main-wrapper">
-          <div className="flex-grow max-w-4xl mx-auto">
+          <div id="content-root" className="flex-grow max-w-4xl mx-auto relative">
             <AppContent />
           </div>
         </div>

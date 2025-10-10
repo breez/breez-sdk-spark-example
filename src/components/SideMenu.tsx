@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Transition } from '@headlessui/react';
 
 interface SideMenuProps {
@@ -9,33 +10,65 @@ interface SideMenuProps {
 }
 
 const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onLogout, onOpenSettings }) => {
-  return (
-    <div className="relative z-50">
-      <Transition show={isOpen} as="div">
-        {/* Backdrop */}
-        <Transition.Child
-          as="div"
-          enter="transition-opacity ease-out duration-200"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="transition-opacity ease-in duration-150"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-black bg-opacity-30" onClick={onClose} />
-        </Transition.Child>
+  const [leftOffset, setLeftOffset] = useState<number | null>(null);
 
-        {/* Panel */}
-        <Transition.Child
-          as="div"
-          enter="transform transition ease-out duration-300"
-          enterFrom="-translate-x-full"
-          enterTo="translate-x-0"
-          leave="transform transition ease-in duration-200"
-          leaveFrom="translate-x-0"
-          leaveTo="-translate-x-full"
+  useEffect(() => {
+    const calc = () => {
+      const el = document.getElementById('content-root');
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      setLeftOffset(rect.left);
+    };
+    calc();
+    window.addEventListener('resize', calc);
+    window.addEventListener('scroll', calc, true);
+    return () => {
+      window.removeEventListener('resize', calc);
+      window.removeEventListener('scroll', calc, true);
+    };
+  }, []);
+
+  // Also recalc offset when the menu opens to capture any layout shifts
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    const el = document.getElementById('content-root');
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setLeftOffset(rect.left);
+  }, [isOpen]);
+
+  return createPortal(
+    <Transition show={isOpen} as="div" className="fixed inset-0 z-50">
+      {/* Backdrop */}
+      <Transition.Child
+        as="div"
+        enter="transition-opacity ease-out duration-200"
+        enterFrom="opacity-0"
+        enterTo="opacity-100"
+        leave="transition-opacity ease-in duration-150"
+        leaveFrom="opacity-100"
+        leaveTo="opacity-0"
+        className="fixed inset-0"
+      >
+        <div className="fixed inset-0 bg-black bg-opacity-30" onClick={onClose} />
+      </Transition.Child>
+
+      {/* Panel */}
+      {leftOffset !== null && (
+        <div
+          className="fixed top-0 bottom-0 w-64 overflow-hidden"
+          style={{ left: leftOffset }}
         >
-          <div className="fixed inset-y-0 left-0 w-64 bg-[var(--card-bg)] border-r border-[rgb(var(--card-border))] shadow-xl p-4">
+          <Transition.Child
+            as="div"
+            enter="transition transform ease-out duration-300"
+            enterFrom="-translate-x-full"
+            enterTo="translate-x-0"
+            leave="transition transform ease-in duration-200"
+            leaveFrom="translate-x-0"
+            leaveTo="-translate-x-full"
+            className="w-64 h-full bg-[var(--card-bg)] shadow-xl p-4"
+          >
             <div className="flex items-center justify-between mb-6">
               <div className="text-[rgb(var(--text-white))] font-semibold">Menu</div>
               <button onClick={onClose} className="text-[rgb(var(--text-white))] opacity-75 hover:opacity-100" aria-label="Close">
@@ -59,10 +92,11 @@ const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onLogout, onOpenSe
                 Logout
               </button>
             </nav>
-          </div>
-        </Transition.Child>
-      </Transition>
-    </div>
+          </Transition.Child>
+        </div>
+      )}
+    </Transition>,
+    document.body
   );
 };
 
