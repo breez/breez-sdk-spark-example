@@ -10,7 +10,7 @@ export interface UserSettings {
 const SETTINGS_KEY = 'user_settings_v1';
 
 const defaultSettings: UserSettings = {
-  depositMaxFee: { type: 'fixed', amount: 1 },
+  depositMaxFee: { type: 'rate', satPerVbyte: 1 },
 };
 
 export function getSettings(): UserSettings {
