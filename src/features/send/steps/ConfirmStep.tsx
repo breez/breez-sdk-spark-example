@@ -11,8 +11,8 @@ import {
 import LoadingSpinner from '../../../components/LoadingSpinner';
 
 export interface ConfirmStepProps {
-  amountSats: number | null;
-  feesSat: number | null;
+  amountSats: bigint | null;
+  feesSat: bigint | null;
   error: string | null;
   isLoading: boolean;
   onBack?: () => void;
@@ -25,7 +25,7 @@ const ConfirmStep: React.FC<ConfirmStepProps> = ({ amountSats, feesSat, error, i
       <center className="m-6">
         <FormDescription>You are requested to pay</FormDescription>
         <div className="mt-2 text-2xl font-bold text-[rgb(var(--text-white))]">
-          {(((amountSats || 0) + (feesSat || 0)) as number).toLocaleString()} sats
+          {((amountSats || BigInt(0)) + (feesSat || BigInt(0))).toLocaleString()} sats
         </div>
       </center>
       <PaymentInfoCard>

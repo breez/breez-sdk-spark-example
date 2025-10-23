@@ -6,7 +6,7 @@ import ConfirmStep from '../steps/ConfirmStep';
 
 interface BitcoinWorkflowProps {
   method: Extract<SendPaymentMethod, { type: 'bitcoinAddress' }>;
-  amountSats: number;
+  amountSats: bigint;
   onBack: () => void;
   onSend: (options: { type: 'bitcoinAddress'; confirmationSpeed: 'fast' | 'medium' | 'slow' }) => Promise<void>;
 }
@@ -28,10 +28,10 @@ const BitcoinWorkflow: React.FC<BitcoinWorkflowProps> = ({ method, amountSats, o
 
   // Compute fees from prepared response and selected rate
   const fq = method.feeQuote;
-  let feesSat: number | null = null;
+  let feesSat: bigint | null = null;
   if (selectedFeeRate) {
     const selected = selectedFeeRate === 'fast' ? fq.speedFast : selectedFeeRate === 'medium' ? fq.speedMedium : fq.speedSlow;
-    feesSat = selected.l1BroadcastFeeSat + selected.userFeeSat;
+    feesSat = BigInt(selected.l1BroadcastFeeSat + selected.userFeeSat);
   }
 
   return (

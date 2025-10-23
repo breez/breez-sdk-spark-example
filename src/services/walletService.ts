@@ -62,7 +62,8 @@ export const initWallet = async (mnemonic: string, config: Config): Promise<void
 // Payment Operations
 export const parseInput = async (input: string): Promise<breezSdk.InputType> => {
   // Use the module-level parse function instead of SDK instance method
-  return await breezSdk.parse(input);
+  if (!sdk) throw new Error('SDK not initialized');
+  return await sdk.parse(input);
 };
 
 export const prepareLnurlPay = async (
