@@ -4,7 +4,7 @@ import ConfirmStep from '../steps/ConfirmStep';
 
 interface Bolt11WorkflowProps {
   method: Extract<SendPaymentMethod, { type: 'bolt11Invoice' }>;
-  amountSats: number;
+  amountSats: bigint;
   onBack: () => void;
   onSend: (options: { type: 'bolt11Invoice'; preferSpark: boolean }) => Promise<void>;
 }
@@ -16,11 +16,11 @@ const Bolt11Workflow: React.FC<Bolt11WorkflowProps> = ({ method, amountSats, onS
   };
 
   // Compute display fees from prepared response
-  let feesSat: number | null = null;
+  let feesSat: bigint | null = null;
   if (method.sparkTransferFeeSats != null) {
-    feesSat = method.sparkTransferFeeSats;
+    feesSat = BigInt(method.sparkTransferFeeSats);
   } else if (method.lightningFeeSats != null) {
-    feesSat = method.lightningFeeSats;
+    feesSat = BigInt(method.lightningFeeSats);
   }
 
   return <ConfirmStep amountSats={amountSats} feesSat={feesSat} error={null} isLoading={false} onConfirm={handleSend} />;
