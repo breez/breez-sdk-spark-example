@@ -145,7 +145,7 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
         },
       });
       setPaymentData(receiveResponse.paymentRequest);
-      setFeeSats(receiveResponse.feeSats || 0);
+      setFeeSats(Number(receiveResponse.fee) || 0);
       setCurrentStep('qr');
     } catch (err) {
       console.error('Failed to generate invoice:', err);
