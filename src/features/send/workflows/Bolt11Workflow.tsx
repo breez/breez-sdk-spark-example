@@ -4,7 +4,7 @@ import ConfirmStep from '../steps/ConfirmStep';
 
 interface Bolt11WorkflowProps {
   method: Extract<SendPaymentMethod, { type: 'bolt11Invoice' }>;
-  amountSats: number;
+  amountSats: bigint;
   onBack: () => void;
   onSend: (options: { type: 'bolt11Invoice'; preferSpark: boolean }) => Promise<void>;
 }

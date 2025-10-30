@@ -4,7 +4,7 @@ import ConfirmStep from '../steps/ConfirmStep';
 
 interface SparkWorkflowProps {
   method: Extract<SendPaymentMethod, { type: 'sparkAddress' }>;
-  amountSats: number;
+  amountSats: bigint;
   onBack: () => void;
   onSend: (options?: any) => Promise<void>;
 }

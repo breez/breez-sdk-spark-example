@@ -6,7 +6,7 @@ import ConfirmStep from '../steps/ConfirmStep';
 
 interface BitcoinWorkflowProps {
   method: Extract<SendPaymentMethod, { type: 'bitcoinAddress' }>;
-  amountSats: number;
+  amountSats: bigint;
   onBack: () => void;
   onSend: (options: { type: 'bitcoinAddress'; confirmationSpeed: 'fast' | 'medium' | 'slow' }) => Promise<void>;
 }

@@ -104,7 +104,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, onPayme
                   <p className={`font-medium text-sm ${tx.paymentType === 'receive' ? 'text-[rgb(var(--accent-green))]' : 'text-[rgb(var(--accent-red))]'}`}>
                     {tx.paymentType === 'receive' ? '+' : '-'} {tx.amount.toLocaleString()}
                   </p>
-                  {tx.fees > 0 && <p className="text-[rgb(var(--text-white))] opacity-70 text-xs">Fee {tx.fees}</p>}
+                  {tx.fees > 0 && <p className="text-[rgb(var(--text-white))] opacity-70 text-xs">Fee {tx.fees.toString()}</p>}
                 </div>
               </div>
             </div>

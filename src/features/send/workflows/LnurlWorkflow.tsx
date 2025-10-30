@@ -92,7 +92,7 @@ const LnurlWorkflow: React.FC<LnurlWorkflowProps> = ({ parsed, onBack, onRun, on
 
   if (step === 'confirm' && prepareResponse) {
     return (
-      <ConfirmStep amountSats={parseInt(amount, 10)} feesSat={feesSat} error={error} isLoading={isLoading} onConfirm={onConfirm} />
+      <ConfirmStep amountSats={BigInt(parseInt(amount, 10))} feesSat={feesSat} error={error} isLoading={isLoading} onConfirm={onConfirm} />
     );
   }
 
