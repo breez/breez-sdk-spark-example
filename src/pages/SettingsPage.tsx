@@ -13,6 +13,7 @@ interface SettingsPageProps {
 const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
   const wallet = useWallet();
   const [isOpen, setIsOpen] = useState(true);
+  const [isDevMode, setIsDevMode] = useState<boolean>(false);
   const [feeType, setFeeType] = useState<'fixed' | 'rate'>('fixed');
   const [feeValue, setFeeValue] = useState<string>('1');
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +26,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
   const [isLoadingUserSettings, setIsLoadingUserSettings] = useState<boolean>(true);
 
   useEffect(() => {
+    // Determine dev mode once on mount from URL param
+    const params = new URLSearchParams(window.location.search);
+    setIsDevMode(params.get('dev') === 'true');
+
     const s = getSettings();
     if (s.depositMaxFee.type === 'fixed') {
       setFeeType('fixed');
@@ -77,15 +82,17 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
       return;
     }
     setError(null);
-    const updated: UserSettings = {
-      ...(feeType === 'fixed'
-        ? { depositMaxFee: { type: 'fixed', amount: Math.floor(n) } }
-        : { depositMaxFee: { type: 'rate', satPerVbyte: n } }),
-      syncIntervalSecs: syncIntervalSecs !== '' ? Math.max(0, Math.floor(Number(syncIntervalSecs))) : undefined,
-      lnurlDomain: lnurlDomain !== '' ? lnurlDomain : undefined,
-      preferSparkOverLightning,
-    };
-    saveSettings(updated);
+    if (isDevMode) {
+      const updated: UserSettings = {
+        ...(feeType === 'fixed'
+          ? { depositMaxFee: { type: 'fixed', amount: Math.floor(n) } }
+          : { depositMaxFee: { type: 'rate', satPerVbyte: n } }),
+        syncIntervalSecs: syncIntervalSecs !== '' ? Math.max(0, Math.floor(Number(syncIntervalSecs))) : undefined,
+        lnurlDomain: lnurlDomain !== '' ? lnurlDomain : undefined,
+        preferSparkOverLightning,
+      };
+      saveSettings(updated);
+    }
     // Persist SDK user settings (currently only sparkPrivateModeEnabled)
     try {
       await wallet.setUserSettings({ sparkPrivateModeEnabled });
@@ -123,83 +130,91 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
             </div>
 
             <div className="flex-1 max-w-4xl mx-auto w-full p-4 space-y-4">
-              <div className="card-no-border p-4">
-                <FormGroup>
-                  <label className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">
-                    Max Deposit Claim fee
-                  </label>
-                  <div className="flex gap-2 items-center">
-                    <select
-                      value={feeType}
-                      onChange={(e) => setFeeType(e.currentTarget.value as 'fixed' | 'rate')}
-                      className="min-w-[170px] bg-transparent border border-[rgb(var(--card-border))] rounded-md px-2 py-2 text-[rgb(var(--text-white))] text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary-blue))]"
-                      aria-label="Max fee type"
-                    >
-                      <option className="bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))]" value="fixed">Fixed (sats)</option>
-                      <option className="bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))]" value="rate">Rate (sat/vB)</option>
-                    </select>
-                    <div className="flex-1">
-                      <FormInput
-                        id="deposit-fee-default"
-                        type="number"
-                        min={0}
-                        value={feeValue}
-                        onChange={(e) => setFeeValue(e.target.value)}
-                        placeholder={feeType === 'fixed' ? 'Max fee in sats' : 'Max fee in sat/vB'}
-                      />
+              {isDevMode && (
+                <div className="card-no-border p-4">
+                  <FormGroup>
+                    <label className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">
+                      Max Deposit Claim fee
+                    </label>
+                    <div className="flex gap-2 items-center">
+                      <select
+                        value={feeType}
+                        onChange={(e) => setFeeType(e.currentTarget.value as 'fixed' | 'rate')}
+                        className="min-w-[170px] bg-transparent border border-[rgb(var(--card-border))] rounded-md px-2 py-2 text-[rgb(var(--text-white))] text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary-blue))]"
+                        aria-label="Max fee type"
+                      >
+                        <option className="bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))]" value="fixed">Fixed (sats)</option>
+                        <option className="bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))]" value="rate">Rate (sat/vB)</option>
+                      </select>
+                      <div className="flex-1">
+                        <FormInput
+                          id="deposit-fee-default"
+                          type="number"
+                          min={0}
+                          value={feeValue}
+                          onChange={(e) => setFeeValue(e.target.value)}
+                          placeholder={feeType === 'fixed' ? 'Max fee in sats' : 'Max fee in sat/vB'}
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <FormError error={error} />
-                </FormGroup>
-              </div>
+                    <FormError error={error} />
+                  </FormGroup>
+                </div>
+              )}
 
-              <div className="card-no-border p-4">
-                <FormGroup>
-                  <label htmlFor="sync-interval" className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">Sync interval (seconds)</label>
-                  <FormInput
-                    id="sync-interval"
-                    type="number"
-                    min={0}
-                    value={syncIntervalSecs}
-                    onChange={(e) => setSyncIntervalSecs(e.target.value)}
-                    placeholder="e.g. 30"
-                  />
-                </FormGroup>
-              </div>
-
-              <div className="card-no-border p-4">
-                <FormGroup>
-                  <label htmlFor="lnurl-domain" className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">LNURL domain</label>
-                  <FormInput
-                    id="lnurl-domain"
-                    type="text"
-                    value={lnurlDomain}
-                    onChange={(e) => setLnurlDomain(e.target.value)}
-                    placeholder="example.com"
-                  />
-                </FormGroup>
-              </div>
-
-              <div className="card-no-border p-4">
-                <FormGroup>
-                  <label className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">Prefer Spark</label>
-                  <label className="inline-flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="form-checkbox"
-                      checked={preferSparkOverLightning}
-                      onChange={(e) => setPreferSparkOverLightning(e.currentTarget.checked)}
+              {isDevMode && (
+                <div className="card-no-border p-4">
+                  <FormGroup>
+                    <label htmlFor="sync-interval" className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">Sync interval (seconds)</label>
+                    <FormInput
+                      id="sync-interval"
+                      type="number"
+                      min={0}
+                      value={syncIntervalSecs}
+                      onChange={(e) => setSyncIntervalSecs(e.target.value)}
+                      placeholder="e.g. 30"
                     />
-                    <span className="text-[rgb(var(--text-white))] opacity-90">Prefer Spark address over Lightning invoice (when available)</span>
-                  </label>
-                </FormGroup>
-              </div>
+                  </FormGroup>
+                </div>
+              )}
+
+              {isDevMode && (
+                <div className="card-no-border p-4">
+                  <FormGroup>
+                    <label htmlFor="lnurl-domain" className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">LNURL domain</label>
+                    <FormInput
+                      id="lnurl-domain"
+                      type="text"
+                      value={lnurlDomain}
+                      onChange={(e) => setLnurlDomain(e.target.value)}
+                      placeholder="example.com"
+                    />
+                  </FormGroup>
+                </div>
+              )}
+
+              {isDevMode && (
+                <div className="card-no-border p-4">
+                  <FormGroup>
+                    <label className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">Prefer Spark</label>
+                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="form-checkbox"
+                        checked={preferSparkOverLightning}
+                        onChange={(e) => setPreferSparkOverLightning(e.currentTarget.checked)}
+                      />
+                      <span className="text-[rgb(var(--text-white))] opacity-90">Prefer Spark address over Lightning invoice (when available)</span>
+                    </label>
+                  </FormGroup>
+                </div>
+              )}
 
               <div className="card-no-border p-4">
                 <FormGroup>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="block text-sm text-[rgb(var(--text-white))] opacity-80">Spark Private Mode</span>
+                    <span className="block text-sm text-[rgb(var(--text-white))] opacity-80">Private Mode</span>
                     {isLoadingUserSettings && (
                       <LoadingSpinner size="small" />
                     )}
@@ -212,7 +227,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
                       disabled={isLoadingUserSettings}
                       onChange={(e) => setSparkPrivateModeEnabled(e.currentTarget.checked)}
                     />
-                    <span className="text-[rgb(var(--text-white))] opacity-90">Enable private mode for Spark</span>
+                    <span className="text-[rgb(var(--text-white))] opacity-90">Don't expose my address in public explorers</span>
                   </label>
                 </FormGroup>
               </div>
