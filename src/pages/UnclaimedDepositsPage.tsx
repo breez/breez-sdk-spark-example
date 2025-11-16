@@ -51,7 +51,7 @@ const UnclaimedDepositsPage: React.FC<UnclaimedDepositsPageProps> = ({ onBack, o
     (async () => {
       try {
         listenerId = await wallet.addEventListener((event: SdkEvent) => {
-          if (event.type === 'synced' || event.type === 'claimDepositsSucceeded' || event.type === 'claimDepositsFailed') {
+          if (event.type === 'synced' || event.type === 'claimedDeposits' || event.type === 'unclaimedDeposits') {
             void load();
           }
         });

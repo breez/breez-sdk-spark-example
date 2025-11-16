@@ -104,7 +104,7 @@ const AppContent: React.FC = () => {
         `${event.payment.amount} sats were ${direction}`
       );
       refreshWalletData(false);
-    } else if (event.type === 'claimDepositsSucceeded') {
+    } else if (event.type === 'claimedDeposits') {
       console.log('Claim deposits succeeded event received');
       if (currentScreen !== 'unclaimedDeposits') {
         showToast(
@@ -115,7 +115,7 @@ const AppContent: React.FC = () => {
       }
       refreshWalletData(false);
       fetchUnclaimedDeposits();
-    } else if (event.type === 'claimDepositsFailed') {
+    } else if (event.type === 'unclaimedDeposits') {
       console.log('Claim deposits failed event received');
       if (currentScreen !== 'unclaimedDeposits') {
         showToast(
