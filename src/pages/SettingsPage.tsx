@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Transition } from '@headlessui/react';
-import { PrimaryButton, FormGroup, FormInput, FormError } from '../components/ui';
+import { PrimaryButton, FormGroup, FormInput, FormError, LoadingSpinner } from '../components/ui';
 import { getSettings, saveSettings, UserSettings } from '../services/settings';
 import type { Config } from '@breeztech/breez-sdk-spark';
 import { useWallet } from '@/contexts/WalletContext';
@@ -22,6 +22,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
   const [preferSparkOverLightning, setPreferSparkOverLightning] = useState<boolean>(false);
   // SDK user settings
   const [sparkPrivateModeEnabled, setSparkPrivateModeEnabled] = useState<boolean>(false);
+  const [isLoadingUserSettings, setIsLoadingUserSettings] = useState<boolean>(true);
 
   useEffect(() => {
     const s = getSettings();
@@ -53,10 +54,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
     // Load user settings from SDK (spark private mode)
     (async () => {
       try {
+        setIsLoadingUserSettings(true);
         const us = await wallet.getUserSettings();
         setSparkPrivateModeEnabled(!!us.sparkPrivateModeEnabled);
       } catch (e) {
         console.warn('Failed to load user settings from SDK:', e);
+      } finally {
+        setIsLoadingUserSettings(false);
       }
     })();
   }, [config, wallet]);
@@ -194,12 +198,18 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
 
               <div className="card-no-border p-4">
                 <FormGroup>
-                  <label className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">Spark Private Mode</label>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="block text-sm text-[rgb(var(--text-white))] opacity-80">Spark Private Mode</span>
+                    {isLoadingUserSettings && (
+                      <LoadingSpinner size="small" />
+                    )}
+                  </div>
                   <label className="inline-flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       className="form-checkbox"
                       checked={sparkPrivateModeEnabled}
+                      disabled={isLoadingUserSettings}
                       onChange={(e) => setSparkPrivateModeEnabled(e.currentTarget.checked)}
                     />
                     <span className="text-[rgb(var(--text-white))] opacity-90">Enable private mode for Spark</span>
