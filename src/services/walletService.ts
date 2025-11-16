@@ -24,6 +24,8 @@ import {
   LnurlPayResponse,
   DepositInfo,
   Fee,
+  UserSettings,
+  UpdateUserSettingsRequest,
 } from '@breeztech/breez-sdk-spark';
 import type { WalletAPI } from './WalletAPI';
 
@@ -113,6 +115,17 @@ export const claimDeposit = async (txid: string, vout: number, maxFee: Fee): Pro
 export const refundDeposit = async (txid: string, vout: number, destinationAddress: string, fee: Fee): Promise<void> => {
   if (!sdk) throw new Error('SDK not initialized');
   await sdk.refundDeposit({ txid, vout, destinationAddress, fee });
+};
+
+// User Settings
+export const getUserSettings = async (): Promise<UserSettings> => {
+  if (!sdk) throw new Error('SDK not initialized');
+  return await sdk.getUserSettings();
+};
+
+export const setUserSettings = async (settings: UpdateUserSettingsRequest): Promise<void> => {
+  if (!sdk) throw new Error('SDK not initialized');
+  await sdk.updateUserSettings(settings);
 };
 // Event handling
 export const addEventListener = async (
@@ -297,4 +310,7 @@ export const walletApi: WalletAPI = {
   checkLightningAddressAvailable,
   registerLightningAddress,
   deleteLightningAddress,
+  // User settings
+  getUserSettings,
+  setUserSettings,
 };

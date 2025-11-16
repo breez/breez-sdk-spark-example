@@ -17,6 +17,8 @@ import type {
   LnurlPayResponse,
   DepositInfo,
   Fee,
+  UserSettings,
+  UpdateUserSettingsRequest,
 } from '@breeztech/breez-sdk-spark';
 
 export interface WalletAPI {
@@ -54,4 +56,8 @@ export interface WalletAPI {
   checkLightningAddressAvailable: (username: string) => Promise<boolean>;
   registerLightningAddress: (username: string, description: string) => Promise<void>;
   deleteLightningAddress: () => Promise<void>;
+
+  // User settings
+  getUserSettings: () => Promise<UserSettings>;
+  setUserSettings: (settings: UpdateUserSettingsRequest) => Promise<void>;
 }

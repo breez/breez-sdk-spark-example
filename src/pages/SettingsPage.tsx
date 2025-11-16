@@ -3,6 +3,7 @@ import { Transition } from '@headlessui/react';
 import { PrimaryButton, FormGroup, FormInput, FormError } from '../components/ui';
 import { getSettings, saveSettings, UserSettings } from '../services/settings';
 import type { Config } from '@breeztech/breez-sdk-spark';
+import { useWallet } from '@/contexts/WalletContext';
 
 interface SettingsPageProps {
   onBack: () => void;
@@ -10,6 +11,7 @@ interface SettingsPageProps {
 }
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
+  const wallet = useWallet();
   const [isOpen, setIsOpen] = useState(true);
   const [feeType, setFeeType] = useState<'fixed' | 'rate'>('fixed');
   const [feeValue, setFeeValue] = useState<string>('1');
@@ -18,6 +20,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
   const [syncIntervalSecs, setSyncIntervalSecs] = useState<string>('');
   const [lnurlDomain, setLnurlDomain] = useState<string>('');
   const [preferSparkOverLightning, setPreferSparkOverLightning] = useState<boolean>(false);
+  // SDK user settings
+  const [sparkPrivateModeEnabled, setSparkPrivateModeEnabled] = useState<boolean>(false);
 
   useEffect(() => {
     const s = getSettings();
@@ -46,14 +50,23 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
         ? s.preferSparkOverLightning
         : (typeof cfg.preferSparkOverLightning === 'boolean' ? cfg.preferSparkOverLightning : false)
     );
-  }, [config]);
+    // Load user settings from SDK (spark private mode)
+    (async () => {
+      try {
+        const us = await wallet.getUserSettings();
+        setSparkPrivateModeEnabled(!!us.sparkPrivateModeEnabled);
+      } catch (e) {
+        console.warn('Failed to load user settings from SDK:', e);
+      }
+    })();
+  }, [config, wallet]);
 
   const handleClose = () => {
     setIsOpen(false);
     setTimeout(onBack, 220);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const n = Number(feeValue);
     if (Number.isNaN(n) || n < 0) {
       setError('Please enter a valid fee');
@@ -69,6 +82,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
       preferSparkOverLightning,
     };
     saveSettings(updated);
+    // Persist SDK user settings (currently only sparkPrivateModeEnabled)
+    try {
+      await wallet.setUserSettings({ sparkPrivateModeEnabled });
+    } catch (e) {
+      console.warn('Failed to update SDK user settings:', e);
+    }
     // Reload to apply new config values on next connect
     window.location.reload();
   };
@@ -169,6 +188,21 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
                       onChange={(e) => setPreferSparkOverLightning(e.currentTarget.checked)}
                     />
                     <span className="text-[rgb(var(--text-white))] opacity-90">Prefer Spark address over Lightning invoice (when available)</span>
+                  </label>
+                </FormGroup>
+              </div>
+
+              <div className="card-no-border p-4">
+                <FormGroup>
+                  <label className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">Spark Private Mode</label>
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="form-checkbox"
+                      checked={sparkPrivateModeEnabled}
+                      onChange={(e) => setSparkPrivateModeEnabled(e.currentTarget.checked)}
+                    />
+                    <span className="text-[rgb(var(--text-white))] opacity-90">Enable private mode for Spark</span>
                   </label>
                 </FormGroup>
               </div>

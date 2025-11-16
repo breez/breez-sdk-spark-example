@@ -232,6 +232,7 @@ const AppContent: React.FC = () => {
       const network = (overrideNetwork ?? (urlParams.get('network') ?? 'mainnet')) as Network;
       const config: Config = defaultConfig(network);
       config.apiKey = breezApiKey;
+      config.privateEnabledDefault = false;
 
       // Apply persisted user settings to config
       try {
