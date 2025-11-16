@@ -227,7 +227,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
                       disabled={isLoadingUserSettings}
                       onChange={(e) => setSparkPrivateModeEnabled(e.currentTarget.checked)}
                     />
-                    <span className="text-[rgb(var(--text-white))] opacity-90">Don't expose my address in public explorers</span>
+                    <span className="text-[rgb(var(--text-white))] opacity-90">Hide my address from public explorers (not suitable for zaps)</span>
                   </label>
                 </FormGroup>
               </div>
