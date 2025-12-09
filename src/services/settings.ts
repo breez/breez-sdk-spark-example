@@ -1,7 +1,7 @@
-import { Fee } from "@breeztech/breez-sdk-spark/web";
+import { MaxFee } from "@breeztech/breez-sdk-spark/web";
 
 export interface UserSettings {
-  depositMaxFee: Fee;
+  depositMaxFee: MaxFee;
   syncIntervalSecs?: number;
   lnurlDomain?: string;
   preferSparkOverLightning?: boolean;
@@ -20,14 +20,19 @@ export function getSettings(): UserSettings {
     const parsed = JSON.parse(raw) as Partial<UserSettings>;
     // Merge with defaults defensively
     const depositMaxFee = parsed?.depositMaxFee ?? defaultSettings.depositMaxFee;
-    if (depositMaxFee && depositMaxFee.type === 'fixed' && typeof depositMaxFee.amount !== 'number') {
-      return defaultSettings;
-    }
-    if (depositMaxFee && depositMaxFee.type === 'rate' && typeof depositMaxFee.satPerVbyte !== 'number') {
-      return defaultSettings;
+    if (depositMaxFee) {
+      if (depositMaxFee.type === 'fixed' && typeof (depositMaxFee as any).amount !== 'number') {
+        return defaultSettings;
+      }
+      if (depositMaxFee.type === 'rate' && typeof (depositMaxFee as any).satPerVbyte !== 'number') {
+        return defaultSettings;
+      }
+      if (depositMaxFee.type === 'networkRecommended' && typeof (depositMaxFee as any).leewaySatPerVbyte !== 'number') {
+        return defaultSettings;
+      }
     }
     const out: UserSettings = {
-      depositMaxFee: depositMaxFee as Fee,
+      depositMaxFee: depositMaxFee as MaxFee,
       syncIntervalSecs: typeof parsed.syncIntervalSecs === 'number' ? parsed.syncIntervalSecs : undefined,
       lnurlDomain: typeof parsed.lnurlDomain === 'string' ? parsed.lnurlDomain : undefined,
       preferSparkOverLightning: typeof parsed.preferSparkOverLightning === 'boolean' ? parsed.preferSparkOverLightning : undefined,

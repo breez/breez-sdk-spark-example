@@ -14,7 +14,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
   const wallet = useWallet();
   const [isOpen, setIsOpen] = useState(true);
   const [isDevMode, setIsDevMode] = useState<boolean>(false);
-  const [feeType, setFeeType] = useState<'fixed' | 'rate'>('fixed');
+  const [feeType, setFeeType] = useState<'fixed' | 'rate' | 'networkRecommended'>('fixed');
   const [feeValue, setFeeValue] = useState<string>('1');
   const [error, setError] = useState<string | null>(null);
   // New settings fields
@@ -34,9 +34,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
     if (s.depositMaxFee.type === 'fixed') {
       setFeeType('fixed');
       setFeeValue(String(s.depositMaxFee.amount));
-    } else {
+    } else if (s.depositMaxFee.type === 'rate') {
       setFeeType('rate');
       setFeeValue(String(s.depositMaxFee.satPerVbyte));
+    } else if (s.depositMaxFee.type === 'networkRecommended') {
+      setFeeType('networkRecommended');
+      setFeeValue(String(s.depositMaxFee.leewaySatPerVbyte));
     }
 
     // Defaults for new fields: prefer saved settings, otherwise fall back to config
@@ -86,7 +89,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
       const updated: UserSettings = {
         ...(feeType === 'fixed'
           ? { depositMaxFee: { type: 'fixed', amount: Math.floor(n) } }
-          : { depositMaxFee: { type: 'rate', satPerVbyte: n } }),
+          : feeType === 'rate'
+            ? { depositMaxFee: { type: 'rate', satPerVbyte: n } }
+            : { depositMaxFee: { type: 'networkRecommended', leewaySatPerVbyte: Math.max(0, Math.floor(n)) } }
+        ),
         syncIntervalSecs: syncIntervalSecs !== '' ? Math.max(0, Math.floor(Number(syncIntervalSecs))) : undefined,
         lnurlDomain: lnurlDomain !== '' ? lnurlDomain : undefined,
         preferSparkOverLightning,
@@ -133,18 +139,20 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
               {isDevMode && (
                 <div className="card-no-border p-4">
                   <FormGroup>
-                    <label className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-1">
-                      Max Deposit Claim fee
-                    </label>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="block text-sm text-[rgb(var(--text-white))] opacity-80">Max Deposit Claim Fee</span>
+                      <span className="text-xs text-[rgb(var(--text-white))] opacity-60">(fixed, rate, or network recommended leeway)</span>
+                    </div>
                     <div className="flex gap-2 items-center">
                       <select
                         value={feeType}
-                        onChange={(e) => setFeeType(e.currentTarget.value as 'fixed' | 'rate')}
+                        onChange={(e) => setFeeType(e.currentTarget.value as 'fixed' | 'rate' | 'networkRecommended')}
                         className="min-w-[170px] bg-transparent border border-[rgb(var(--card-border))] rounded-md px-2 py-2 text-[rgb(var(--text-white))] text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary-blue))]"
                         aria-label="Max fee type"
                       >
                         <option className="bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))]" value="fixed">Fixed (sats)</option>
                         <option className="bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))]" value="rate">Rate (sat/vB)</option>
+                        <option className="bg-[rgb(var(--card-bg))] text-[rgb(var(--text-white))]" value="networkRecommended">Network recommended (leeway sat/vB)</option>
                       </select>
                       <div className="flex-1">
                         <FormInput
@@ -153,7 +161,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
                           min={0}
                           value={feeValue}
                           onChange={(e) => setFeeValue(e.target.value)}
-                          placeholder={feeType === 'fixed' ? 'Max fee in sats' : 'Max fee in sat/vB'}
+                          placeholder={
+                            feeType === 'fixed'
+                              ? 'Max fee in sats'
+                              : feeType === 'rate'
+                                ? 'Max fee in sat/vB'
+                                : 'Leeway from network fee (sat/vB)'
+                          }
                         />
                       </div>
                     </div>
