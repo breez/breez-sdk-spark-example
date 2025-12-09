@@ -7,9 +7,10 @@ interface SideMenuProps {
   onClose: () => void;
   onLogout: () => void;
   onOpenSettings: () => void;
+  onOpenBackup: () => void;
 }
 
-const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onLogout, onOpenSettings }) => {
+const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onLogout, onOpenSettings, onOpenBackup }) => {
   const [leftOffset, setLeftOffset] = useState<number | null>(null);
 
   useEffect(() => {
@@ -79,6 +80,12 @@ const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onLogout, onOpenSe
             </div>
 
             <nav className="space-y-2">
+              <button
+                className="w-full text-left px-3 py-2 rounded hover:bg-[rgb(var(--card-border))] text-[rgb(var(--text-white))]"
+                onClick={() => { onOpenBackup(); onClose(); }}
+              >
+                Backup
+              </button>
               <button
                 className="w-full text-left px-3 py-2 rounded hover:bg-[rgb(var(--card-border))] text-[rgb(var(--text-white))]"
                 onClick={() => { onOpenSettings(); onClose(); }}

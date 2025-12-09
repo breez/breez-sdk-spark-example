@@ -27,6 +27,7 @@ interface WalletPageProps {
   hasUnclaimedDeposits: boolean;
   onOpenUnclaimedDeposits: () => void;
   onOpenSettings: () => void;
+  onOpenBackup: () => void;
 }
 
 const WalletPage: React.FC<WalletPageProps> = ({
@@ -40,7 +41,8 @@ const WalletPage: React.FC<WalletPageProps> = ({
   onChangeNetwork,
   hasUnclaimedDeposits,
   onOpenUnclaimedDeposits,
-  onOpenSettings
+  onOpenSettings,
+  onOpenBackup
 }) => {
   const wallet = useWallet();
   const [scrollProgress, setScrollProgress] = useState<number>(0);
@@ -206,6 +208,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
         onClose={() => setIsMenuOpen(false)}
         onLogout={onLogout}
         onOpenSettings={onOpenSettings}
+        onOpenBackup={onOpenBackup}
       />
     </div>
   );
