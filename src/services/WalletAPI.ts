@@ -60,4 +60,7 @@ export interface WalletAPI {
   // User settings
   getUserSettings: () => Promise<UserSettings>;
   setUserSettings: (settings: UpdateUserSettingsRequest) => Promise<void>;
+
+  // Logs
+  getSdkLogs: () => string;
 }

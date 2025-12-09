@@ -109,6 +109,24 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
     window.location.reload();
   };
 
+  const handleDownloadLogs = () => {
+    try {
+      const content = wallet.getSdkLogs();
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const ts = new Date().toISOString().replace(/[:]/g, '-');
+      a.href = url;
+      a.download = `sdk-logs-${ts}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.warn('Failed to download logs:', e);
+    }
+  };
+
   return (
     <div className="absolute inset-0 z-50 overflow-hidden">
       <Transition show={isOpen} appear as="div" className="absolute inset-0">
@@ -173,6 +191,21 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
                     </div>
 
                     <FormError error={error} />
+                  </FormGroup>
+                </div>
+              )}
+
+              {isDevMode && (
+                <div className="card-no-border p-4">
+                  <FormGroup>
+                    <label className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-2">SDK Logs</label>
+                    <button
+                      className="px-3 py-2 text-sm border border-[rgb(var(--card-border))] rounded text-[rgb(var(--text-white))] hover:bg-[rgb(var(--card-border))]"
+                      type="button"
+                      onClick={handleDownloadLogs}
+                    >
+                      Download SDK Logs
+                    </button>
                   </FormGroup>
                 </div>
               )}

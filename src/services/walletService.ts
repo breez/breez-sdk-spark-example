@@ -31,12 +31,25 @@ import type { WalletAPI } from './WalletAPI';
 
 class WebLogger {
   log = (logEntry: LogEntry) => {
-    console.log(`[${logEntry.level}]: ${logEntry.line}`)
+    const ts = new Date().toISOString();
+    const formatted = `${ts} [${logEntry.level}]: ${logEntry.line}`;
+    console.log(formatted);
+    appendLog(formatted);
   }
 }
 // Private SDK instance - not exposed outside this module
 let sdk: BreezSdk | null = null;
 let logger: WebLogger | null = null;
+// In-memory log buffer (ring buffer)
+const MAX_LOG_LINES = 100000;
+const sdkLogs: string[] = [];
+
+function appendLog(line: string) {
+  sdkLogs.push(line);
+  if (sdkLogs.length > MAX_LOG_LINES) {
+    sdkLogs.splice(0, sdkLogs.length - MAX_LOG_LINES);
+  }
+}
 
 export const initWallet = async (mnemonic: string, config: Config): Promise<void> => {
   // If already connected, do nothing
@@ -126,6 +139,10 @@ export const getUserSettings = async (): Promise<UserSettings> => {
 export const setUserSettings = async (settings: UpdateUserSettingsRequest): Promise<void> => {
   if (!sdk) throw new Error('SDK not initialized');
   await sdk.updateUserSettings(settings);
+};
+// Logs accessors
+export const getSdkLogs = (): string => {
+  return sdkLogs.join('\n');
 };
 // Event handling
 export const addEventListener = async (
@@ -313,4 +330,6 @@ export const walletApi: WalletAPI = {
   // User settings
   getUserSettings,
   setUserSettings,
+  // Logs
+  getSdkLogs,
 };
