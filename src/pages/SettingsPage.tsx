@@ -195,20 +195,20 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack, config }) => {
                 </div>
               )}
 
-              {isDevMode && (
-                <div className="card-no-border p-4">
-                  <FormGroup>
-                    <label className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-2">SDK Logs</label>
-                    <button
-                      className="px-3 py-2 text-sm border border-[rgb(var(--card-border))] rounded text-[rgb(var(--text-white))] hover:bg-[rgb(var(--card-border))]"
-                      type="button"
-                      onClick={handleDownloadLogs}
-                    >
-                      Download SDK Logs
-                    </button>
-                  </FormGroup>
-                </div>
-              )}
+
+              <div className="card-no-border p-4">
+                <FormGroup>
+                  <label className="block text-sm text-[rgb(var(--text-white))] opacity-80 mb-2">SDK Logs</label>
+                  <button
+                    className="px-3 py-2 text-sm border border-[rgb(var(--card-border))] rounded text-[rgb(var(--text-white))] hover:bg-[rgb(var(--card-border))]"
+                    type="button"
+                    onClick={handleDownloadLogs}
+                  >
+                    Download SDK Logs
+                  </button>
+                </FormGroup>
+              </div>
+
 
               {isDevMode && (
                 <div className="card-no-border p-4">
