@@ -17,9 +17,6 @@ export default defineConfig({
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin',
     },
-    fs: {
-      allow: ['/Users/roeierez/breez/rust-spark/packages/wasm', '/Users/roeierez/breez/brez-wasm-wallet'],
-    },
   },
   resolve: {
     alias: {
