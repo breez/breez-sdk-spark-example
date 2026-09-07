@@ -19,6 +19,7 @@ import SaveContactDialog from '../features/send/components/SaveContactDialog';
 import BuyBitcoinDialog from '../features/buy/BuyBitcoinDialog';
 import { getBuyProviderSettings, filterProvidersByNetwork, filterProvidersByPlatform } from '../services/settings';
 import { useCashAppInstalled } from '../hooks/useCashAppInstalled';
+import { UnilateralExitBanner } from '../features/unilateral-exit/UnilateralExitBanner';
 import { useStatusBarColor } from '../hooks/useStatusBarColor';
 import { STATUS_BAR_WALLET_GLASS } from '../utils/statusBarManager';
 import { onDeepLink } from '../utils/deepLink';
@@ -35,6 +36,7 @@ interface WalletPageProps {
   hasRejectedDeposits: boolean;
   onOpenGetRefund: (source?: 'menu' | 'icon') => void;
   onOpenSettings: () => void;
+  onOpenUnilateralExit: () => void;
   onBuyBitcoin: (provider: BuyBitcoinProvider) => Promise<void>;
   network?: Network;
   onDepositChanged?: () => void;
@@ -50,6 +52,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
   hasRejectedDeposits,
   onOpenGetRefund,
   onOpenSettings,
+  onOpenUnilateralExit,
   onBuyBitcoin,
   network,
   onDepositChanged,
@@ -262,6 +265,9 @@ const WalletPage: React.FC<WalletPageProps> = ({
           hasRejectedDeposits={hasRejectedDeposits}
           onOpenGetRefund={() => onOpenGetRefund('icon')}
         />
+        <div className="px-4 pb-2">
+          <UnilateralExitBanner onOpen={onOpenUnilateralExit} />
+        </div>
       </div>
 
       {/* Scrollable transaction list */}

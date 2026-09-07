@@ -16,7 +16,7 @@ import {
   type RegisterResponse,
   type Seed,
 } from '@breeztech/breez-sdk-spark';
-import { buildConnectConfig } from '@/hooks/buildConnectConfig';
+import { buildConnectConfig } from '@/services/sdkConnect';
 import { sdkReady } from './sdkReady';
 import { logger, LogCategory } from './logger';
 import { buildBrowserPasskeyClient, recordMigratedSharedCredential, recordMigrationCredentialPair, getActivePasskeyCredentialIdBytes, adoptSessionPasskeyClient, setMigrationSharedCredentialId, getMigrationSharedCredentialIdBytes, bytesToBase64 } from './passkeyService';

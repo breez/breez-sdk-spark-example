@@ -4,7 +4,7 @@ import { PinGate } from '../components/PinEntry';
 import { getSettings, saveSettings, UserSettings, hasBuyProviderSettings, isDevMode as isDevModeEnabled, setDevMode, buildDepositMaxFee, depositMaxFeeDrafts, depositMaxFeeValue, DepositMaxFeeType } from '../services/settings';
 import type { Config, Network } from '@breeztech/breez-sdk-spark';
 import { useWallet } from '@/contexts/WalletContext';
-import { CurrencyIcon, ChevronRightIcon, DownloadIcon, KeyIcon, LockIcon, ShieldCheckIcon, TrashIcon, ExternalLinkIcon } from '../components/Icons';
+import { CurrencyIcon, ChevronRightIcon, DownloadIcon, KeyIcon, LifebuoyIcon, LockIcon, ShieldCheckIcon, TrashIcon, ExternalLinkIcon } from '../components/Icons';
 import { ACCOUNT_DELETION_GUIDE_URL } from '@/services/accountDeletion';
 import { openExternalUrl } from '@/utils/externalLink';
 import { isAppLockSupported, isPinEnabled } from '@/services/appLock';
@@ -23,6 +23,7 @@ interface SettingsPageProps {
   onOpenPasskeySettings: () => void;
   onOpenSecurity: () => void;
   onOpenBackup: () => void;
+  onOpenUnilateralExit: () => void;
 }
 
 const SettingsPage: React.FC<SettingsPageProps> = ({
@@ -33,6 +34,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
   onOpenPasskeySettings,
   onOpenSecurity,
   onOpenBackup,
+  onOpenUnilateralExit,
 }) => {
   const wallet = useWallet();
   const [appVersion, setAppVersion] = useState<string | null>(null);
@@ -249,6 +251,20 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
               </div>
               <ChevronRightIcon size="md" />
             </button>
+            {isDevMode && (
+              <button
+                className="flex items-center justify-between w-full px-4 py-3 mt-2 text-sm font-medium border border-spark-warn-border rounded-xl text-spark-warn-text hover:bg-white/5 transition-colors"
+                type="button"
+                onClick={onOpenUnilateralExit}
+                data-testid="settings-unilateral-exit"
+              >
+                <div className="flex items-center gap-3">
+                  <LifebuoyIcon size="md" />
+                  <span>Unilateral Exit</span>
+                </div>
+                <ChevronRightIcon size="md" />
+              </button>
+            )}
           </div>
 
           {/* Display */}

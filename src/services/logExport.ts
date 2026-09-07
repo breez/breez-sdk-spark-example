@@ -176,7 +176,7 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
 
 // Write the zip to the app cache directory and hand its URI to the
 // native system share sheet. Used on iOS + Android via Capacitor.
-const shareFileNative = async (blob: Blob, filename: string): Promise<void> => {
+const shareFileNative = async (blob: Blob, filename: string, title: string): Promise<void> => {
   const base64 = await blobToBase64(blob);
   const { uri } = await Filesystem.writeFile({
     path: filename,
@@ -184,17 +184,17 @@ const shareFileNative = async (blob: Blob, filename: string): Promise<void> => {
     directory: Directory.Cache,
   });
   await Share.share({
-    title: 'Glow Logs',
+    title,
     url: uri,
-    dialogTitle: 'Share logs',
+    dialogTitle: title,
   });
 };
 
-export const shareOrDownloadLogs = async (): Promise<void> => {
-  const blob = await getAllLogsAsZip();
-  const timestamp = Math.floor(Date.now() / 1000);
-  const filename = `${timestamp}_glow_logs.zip`;
-
+export const shareOrDownloadZip = async (
+  blob: Blob,
+  filename: string,
+  title: string,
+): Promise<void> => {
   // Native platforms (iOS + Android): write to cache and open the system
   // share sheet via @capacitor/share. This is the preferred path because
   // Android WebView's navigator.share({ files }) is unreliable, and the
@@ -202,11 +202,11 @@ export const shareOrDownloadLogs = async (): Promise<void> => {
   // is easier to reason about than two.
   if (Capacitor.isNativePlatform()) {
     try {
-      await shareFileNative(blob, filename);
+      await shareFileNative(blob, filename, title);
       return;
     } catch (e) {
       if ((e as Error).name === 'AbortError') return;
-      logger.warn(LogCategory.UI, 'Native log share failed, falling back to browser path', {
+      logger.warn(LogCategory.UI, 'Native share failed, falling back to browser path', {
         error: e instanceof Error ? e.message : String(e),
       });
       // Fall through to the browser-style navigator.share / download path.
@@ -217,7 +217,7 @@ export const shareOrDownloadLogs = async (): Promise<void> => {
     const file = new File([blob], filename, { type: 'application/zip' });
     if (navigator.canShare({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: 'Glow Logs' });
+        await navigator.share({ files: [file], title });
         return;
       } catch (e) {
         if ((e as Error).name === 'AbortError') return;
@@ -237,4 +237,10 @@ export const shareOrDownloadLogs = async (): Promise<void> => {
     a.remove();
     URL.revokeObjectURL(url);
   }, 1000);
+};
+
+export const shareOrDownloadLogs = async (): Promise<void> => {
+  const blob = await getAllLogsAsZip();
+  const timestamp = Math.floor(Date.now() / 1000);
+  await shareOrDownloadZip(blob, `${timestamp}_glow_logs.zip`, 'Glow Logs');
 };

@@ -1,0 +1,121 @@
+import { createChainClient, type ChainClient } from '@/services/chain';
+import { logger, LogCategory } from '@/services/logger';
+import { advanceUnilateralExit, clearPlan, loadPlan, savePlan } from './driver';
+import type { ExitSdk, UnilateralExitPlan, WalletKey } from './driver';
+
+const POLL_SECS_MAINNET = 30;
+const POLL_SECS_REGTEST = 5;
+
+/** Regtest moves as fast as blocks are mined by hand, so it polls far more often. */
+export function pollIntervalMs(network: string): number {
+  const override = Number(import.meta.env.VITE_UNILATERAL_EXIT_POLL_SECS);
+  if (Number.isFinite(override) && override > 0) return override * 1_000;
+  return (network === 'regtest' ? POLL_SECS_REGTEST : POLL_SECS_MAINNET) * 1_000;
+}
+
+export interface UnilateralExitEngineState {
+  plan: UnilateralExitPlan | null;
+  tipHeight: number | null;
+  isAdvancing: boolean;
+}
+
+type Listener = (state: UnilateralExitEngineState) => void;
+
+let state: UnilateralExitEngineState = { plan: null, tipHeight: null, isAdvancing: false };
+let wallet: WalletKey | null = null;
+let chain: ChainClient | null = null;
+let sdk: ExitSdk | null = null;
+let timer: ReturnType<typeof setInterval> | null = null;
+const listeners = new Set<Listener>();
+
+const emit = (next: Partial<UnilateralExitEngineState>): void => {
+  state = { ...state, ...next };
+  listeners.forEach(listener => listener(state));
+};
+
+const startPolling = (): void => {
+  if (timer !== null || !wallet) return;
+  timer = setInterval(() => void advanceNow(), pollIntervalMs(wallet.network));
+};
+
+const stopPolling = (): void => {
+  if (timer === null) return;
+  clearInterval(timer);
+  timer = null;
+};
+
+export const getUnilateralExitState = (): UnilateralExitEngineState => state;
+
+export function subscribeUnilateralExit(listener: Listener): () => void {
+  listeners.add(listener);
+  listener(state);
+  return () => listeners.delete(listener);
+}
+
+export async function advanceNow(): Promise<void> {
+  if (!wallet || !chain || !state.plan || state.isAdvancing) return;
+  if (state.plan.phase !== 'active') {
+    stopPolling();
+    return;
+  }
+
+  emit({ isAdvancing: true });
+  try {
+    const { plan, tipHeight } = await advanceUnilateralExit(
+      state.plan,
+      chain,
+      sdk ?? undefined,
+      wallet.identityPubkey,
+    );
+    savePlan(wallet, plan);
+    emit({ plan, tipHeight, isAdvancing: false });
+    if (plan.phase !== 'active') stopPolling();
+  } catch (e) {
+    logger.warn(LogCategory.SDK, 'Recovery engine pass failed', {
+      error: e instanceof Error ? e.message : String(e),
+    });
+    emit({ isAdvancing: false });
+  }
+}
+
+/**
+ * Without `driver` a pass only re-sends what it already holds: it cannot read
+ * the exit back, rebuild it, or learn that it has finished.
+ */
+export function startUnilateralExitEngine(
+  target: WalletKey,
+  client: ChainClient = createChainClient(target.network),
+  driver?: ExitSdk | null,
+): void {
+  wallet = target;
+  chain = client;
+  sdk = driver ?? null;
+  emit({ plan: loadPlan(target) });
+  if (!state.plan) return;
+
+  void advanceNow();
+  startPolling();
+}
+
+export function stopUnilateralExitEngine(): void {
+  stopPolling();
+  wallet = null;
+  chain = null;
+  sdk = null;
+  emit({ plan: null, tipHeight: null, isAdvancing: false });
+}
+
+/** Stores the plan for `target` and, if the engine is running for it, starts driving it. */
+export function setUnilateralExitPlan(target: WalletKey, plan: UnilateralExitPlan): void {
+  savePlan(target, plan);
+  if (wallet?.identityPubkey !== target.identityPubkey || wallet.network !== target.network) return;
+  emit({ plan });
+  startPolling();
+  void advanceNow();
+}
+
+export function dismissUnilateralExitPlan(): void {
+  if (!wallet) return;
+  clearPlan(wallet);
+  emit({ plan: null });
+}

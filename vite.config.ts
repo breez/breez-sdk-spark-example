@@ -5,6 +5,19 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import pkg from './package.json' with { type: 'json' }
 
 // https://vitejs.dev/config/
+// A locally-run Spark cluster is reached over plain http on localhost, which
+// the shipped `connect-src 'self' https: wss:` refuses. Widening it only in the
+// dev server keeps the production policy (index.html + vercel.json) untouched.
+const allowLocalClusterCsp = () => ({
+  name: 'allow-local-cluster-csp',
+  apply: 'serve' as const,
+  transformIndexHtml: (html: string) =>
+    html.replace(
+      /(<meta http-equiv="Content-Security-Policy"[^>]*connect-src )([^;]*)/,
+      '$1$2 http://localhost:* http://127.0.0.1:*',
+    ),
+});
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
@@ -16,7 +29,8 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       wasm(),
-      nodePolyfills()
+      nodePolyfills(),
+      allowLocalClusterCsp(),
     ],
     server: {
       host: env.VITE_SERVER_HOST || 'localhost',
