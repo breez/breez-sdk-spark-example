@@ -66,7 +66,7 @@ describe('dev mode', () => {
 describe('buildConnectConfig', () => {
   it('connects with private mode enabled by default', async () => {
     vi.stubEnv('VITE_BREEZ_API_KEY', 'test-key');
-    const { buildConnectConfig } = await import('../hooks/buildConnectConfig');
+    const { buildConnectConfig } = await import('./sdkConnect');
     expect(buildConnectConfig('mainnet').privateEnabledDefault).toBe(true);
     vi.unstubAllEnvs();
   });

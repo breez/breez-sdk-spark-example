@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="690" viewBox="0 0 640 690" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#6B7280"/>
+    </marker>
+  </defs>
+
+  <g stroke="#6B7280" stroke-width="1.6" fill="none" marker-end="url(#a)">
+    <path d="M320 74 V104"/>
+    <path d="M320 158 V188"/>
+    <path d="M320 242 V272"/>
+    <path d="M320 326 V356"/>
+    <path d="M320 410 V434"/>
+    <path d="M230 470 H150 V560"/>
+    <path d="M410 470 H430 V560"/>
+    <path d="M320 506 V536 H596 V47 H494"/>
+    <path d="M150 614 V646 H16 V399 H146"/>
+  </g>
+
+  <g fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5">
+    <rect x="150" y="20" width="340" height="54" rx="8"/>
+    <rect x="150" y="188" width="340" height="54" rx="8"/>
+    <rect x="150" y="356" width="340" height="54" rx="8"/>
+  </g>
+  <rect x="150" y="104" width="340" height="54" rx="8" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
+  <rect x="150" y="272" width="340" height="54" rx="8" fill="#F3F4F6" stroke="#6B7280" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="30" y="560" width="240" height="54" rx="8" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
+  <rect x="310" y="560" width="240" height="54" rx="8" fill="#D1FAE5" stroke="#059669" stroke-width="1.5"/>
+  <path d="M320 434 L410 470 L320 506 L230 470 z" fill="#F3F4F6" stroke="#6B7280" stroke-width="1.5"/>
+
+  <g font-size="15" fill="#111827" text-anchor="middle">
+    <text x="320" y="42" font-weight="600">prepareUnilateralExit</text>
+    <text x="320" y="62" font-size="13" fill="#374151">which leaves, the fee, how much to fund</text>
+
+    <text x="320" y="126" font-weight="600">Fund a UTXO you control</text>
+    <text x="320" y="146" font-size="13" fill="#374151">native SegWit, at least the quoted amount</text>
+
+    <text x="320" y="210" font-weight="600">unilateralExit</text>
+    <text x="320" y="230" font-size="13" fill="#374151">returns the signed transactions</text>
+
+    <text x="320" y="294" font-weight="600">Store the response</text>
+    <text x="320" y="314" font-size="13" fill="#374151">it is the only record of the exit</text>
+
+    <text x="320" y="378" font-weight="600">checkUnilateralExit</text>
+    <text x="320" y="398" font-size="13" fill="#374151">every few seconds, for days</text>
+
+    <text x="320" y="475" font-weight="600" font-size="14">verdict</text>
+
+    <text x="150" y="582" font-weight="600">Broadcast what is ready</text>
+    <text x="150" y="602" font-size="13" fill="#374151">pairs as a package, sweep alone</text>
+
+    <text x="430" y="582" font-weight="600">Done</text>
+    <text x="430" y="602" font-size="13" fill="#374151">the money has arrived</text>
+  </g>
+
+  <g fill="#F3F4F6" stroke="#D1D5DB" stroke-width="1">
+    <rect x="158" y="500" width="42" height="19" rx="4"/>
+    <rect x="404" y="500" width="46" height="19" rx="4"/>
+    <rect x="536" y="524" width="44" height="19" rx="4"/>
+    <rect x="24" y="362" width="118" height="19" rx="4"/>
+  </g>
+  <g font-size="13" fill="#111827" font-weight="600" text-anchor="middle">
+    <text x="179" y="514">valid</text>
+    <text x="427" y="514">done</text>
+    <text x="558" y="538">redo</text>
+    <text x="83" y="376" font-weight="400">then check again</text>
+  </g>
+</svg>

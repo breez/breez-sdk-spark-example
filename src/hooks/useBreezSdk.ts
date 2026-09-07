@@ -1,23 +1,14 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { flushSync } from 'react-dom';
-import type {
-  BreezSdk,
-  Config,
-  GetInfoResponse,
-  Payment,
-  SdkEvent,
-  DepositInfo,
-  LogEntry,
-  Seed,
-} from '@breeztech/breez-sdk-spark';
-import { connect, initLogging } from '@breeztech/breez-sdk-spark';
-import { sdkReady } from '@/services/sdkReady';
 import { Capacitor } from '@capacitor/core';
 import type { PluginListenerHandle } from '@capacitor/core';
+import { initLogging } from '@breeztech/breez-sdk-spark';
+import type { BreezSdk, Config, DepositInfo, GetInfoResponse, LogEntry, Payment, SdkEvent, Seed } from '@breeztech/breez-sdk-spark';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { flushSync } from 'react-dom';
+import { sdkReady } from '@/services/sdkReady';
 import { App } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { useLatest } from './useLatest';
-import { buildConnectConfig } from './buildConnectConfig';
+import { buildConnectConfig, connectSdk } from '../services/sdkConnect';
 import { logger, LogCategory, logSdkMessage } from '../services/logger';
 import { formatError } from '../utils/formatError';
 import { isStandalonePwa, openExternalUrl } from '../utils/externalLink';
@@ -450,12 +441,6 @@ export function useBreezSdk(
       setIsSyncing(restore);
       setError(null);
 
-      if (!import.meta.env.VITE_BREEZ_API_KEY) {
-        showToast('error', 'Missing API Key', 'Please add VITE_BREEZ_API_KEY to your .env file');
-        setIsLoading(false);
-        return;
-      }
-
       void initSdkLogging();
       logger.info(LogCategory.PERF, '[onboarding] connect.begin', { restore, source });
 
@@ -463,16 +448,20 @@ export function useBreezSdk(
       // first guaranteed SDK use (buildConnectConfig -> defaultConfig, then
       // connect), so wait for the module here. Usually already resolved.
       await sdkReady();
-      const cfg = buildConnectConfig();
+      let cfg: Config;
+      try {
+        cfg = buildConnectConfig();
+      } catch (e) {
+        showToast('error', 'Missing API Key', formatError(e));
+        setIsLoading(false);
+        return;
+      }
       setConfig(cfg);
 
-      // connect() = Spark auth + initial wallet sync (no Nostr; the label
+      // connectSdk() = Spark auth + initial wallet sync (no Nostr; the label
       // publish was already kicked off, fire-and-forget, inside register()).
-      connectedSdk = await logger.time('[onboarding] sdk.connect', () => connect({
-        config: cfg,
-        seed,
-        storageDir: 'spark-wallet-example',
-      }));
+      connectedSdk = await logger.time('[onboarding] sdk.connect', () =>
+        connectSdk({ config: cfg, seed, storageDir: 'spark-wallet-example' }));
       setSdk(connectedSdk);
 
       logger.sdkInitialized();
@@ -784,7 +773,7 @@ export function useBreezSdk(
       const cfg = buildConnectConfig();
       setConfig(cfg);
 
-      connectedSdk = await connect({
+      connectedSdk = await connectSdk({
         config: cfg,
         seed: wallet.seed,
         storageDir: 'spark-wallet-example',
