@@ -28,6 +28,13 @@ SegWit. The quote tells you the amount.
 the exit; keep the latest. Lose it and you cannot finish, even though the money
 is still recoverable.
 
+**Let them keep the exit state off the device.** `exportUnilateralExitState`
+returns the leaf data an exit is quoted and built from. It is the one thing the
+operators cannot serve again once they stop answering, and it dies with the
+device unless the user holds a copy. `importUnilateralExitState` reads it back
+into a restored wallet, reporting how many leaves it took and how many it
+skipped as another wallet's.
+
 **Broadcast only what is ready.** Each transaction carries a `status`. Send the
 ones that say `ready` and leave the rest; a later check will say when their turn
 comes. Sending one twice is harmless, so you need not remember what you sent.
@@ -54,5 +61,6 @@ rate. Offer that at any point, not only when something has gone wrong.
 | `driver.ts` | what an exit is, what it is worth, and one pass over it: check, rebuild if needed, send what is ready |
 | `engine.ts` | runs passes for as long as the app is open |
 | `funding.ts` | the key and address the fees are paid from |
-| `exitState.ts` | a backup of the leaf data an exit needs |
+| `exitState.ts` | the rolling on-device copy of the leaf data an exit needs |
+| `backup.ts` | that copy as a file the user keeps, and reads back |
 | `hooks/`, `steps/`, `TrackerView.tsx` | the wizard and the tracker |

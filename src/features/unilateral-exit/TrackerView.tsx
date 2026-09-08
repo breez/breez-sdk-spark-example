@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { exportUnilateralExitPackage } from './exportPackage';
+import React, { useMemo } from 'react';
+import { BackupCard } from './BackupCard';
 import { AlertCard } from '@/components/AlertCard';
 import { CheckCircleIcon, ClockIcon } from '@/components/Icons';
 import { SatAmount } from '@/components/SatAmount';
@@ -102,8 +102,6 @@ export const TrackerView: React.FC<{
   onRebuild: () => void;
   onDone: () => void;
 }> = ({ plan, tipHeight, isAdvancing, onRebuild, onDone }) => {
-  const [isExporting, setIsExporting] = useState(false);
-
   const { transactions } = plan.exit;
   const progress = useMemo(() => planProgress(plan), [plan]);
   const refusal = Object.values(plan.refusals)[0];
@@ -115,11 +113,6 @@ export const TrackerView: React.FC<{
     () => (tipHeight === null ? null : blocksToFinish(transactions, tipHeight)),
     [transactions, tipHeight],
   );
-
-  const handleExport = () => {
-    setIsExporting(true);
-    void exportUnilateralExitPackage(plan).finally(() => setIsExporting(false));
-  };
 
   if (progress.isComplete) {
     const delivered = willReceiveSat(plan);
@@ -221,17 +214,7 @@ export const TrackerView: React.FC<{
         </AlertCard>
       )}
 
-      <AlertCard variant="warning" title="Back these up">
-        <p className="text-sm">
-          Only this device holds the transactions that move these funds. Clearing this site&apos;s data
-          would leave them unreachable.
-        </p>
-        <div className="mt-3">
-          <SecondaryButton onClick={handleExport} disabled={isExporting} className="w-full">
-            {isExporting ? 'Preparing...' : 'Save a copy'}
-          </SecondaryButton>
-        </div>
-      </AlertCard>
+      <BackupCard frozen={plan.exitStateSnapshot} />
 
       {plan.phase === 'active' && (
         <SecondaryButton

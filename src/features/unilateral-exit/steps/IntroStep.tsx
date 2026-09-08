@@ -2,6 +2,7 @@ import React from 'react';
 import { PrimaryButton } from '@/components/ui';
 import { AlertCard } from '@/components/AlertCard';
 import { LifebuoyIcon } from '@/components/Icons';
+import { BackupCard } from '../BackupCard';
 
 const requirements = [
   'Bitcoin from another wallet, to pay the mining fees this takes',
@@ -43,6 +44,8 @@ export const IntroStep: React.FC<{ onContinue: () => void }> = ({ onContinue }) 
         ))}
       </ul>
     </div>
+
+    <BackupCard />
 
     <PrimaryButton onClick={onContinue} className="w-full" data-testid="unilateral-exit-start">
       Start unilateral exit
