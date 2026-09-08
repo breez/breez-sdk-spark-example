@@ -6,11 +6,12 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 # The SDK's proto crates run `protoc` from their build scripts, and the base
-# image has no compiler. rust-spark lists it as a system dependency for the
-# same reason.
-if ! command -v protoc >/dev/null 2>&1; then
+# image has no compiler. libprotobuf-dev carries the well-known types the SDK's
+# protos import (timestamp, duration, empty, descriptor); protoc finds them at
+# /usr/include on its own, so it is required even though only protoc is called.
+if [ ! -f /usr/include/google/protobuf/timestamp.proto ]; then
   sudo apt-get update
-  sudo apt-get install -y --no-install-recommends protobuf-compiler
+  sudo apt-get install -y --no-install-recommends protobuf-compiler libprotobuf-dev
 fi
 
 npm ci
