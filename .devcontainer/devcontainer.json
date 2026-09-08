@@ -16,22 +16,15 @@
   // The stack is ten containers. The 2-core default thrashes.
   "hostRequirements": { "cpus": 4, "memory": "16gb", "storage": "32gb" },
 
-  "forwardPorts": [5173, 8080, 8081, 8082, 8997, 8998, 3001, 3002],
+  "forwardPorts": [5173, 3001],
 
-  // The app is loaded from 5173 but talks to the operators, the indexer and the
-  // mempool from the browser, cross-origin. A private forwarded port answers
-  // those with a GitHub login page rather than data, so the ports the page
-  // fetches from are public. Regtest coins are worthless and the chain is
-  // disposable, but the URLs are reachable by anyone who has them.
+  // The page reaches the operators, the indexer and the mempool through the dev
+  // server on 5173, so it never makes a cross-origin request and no port has to
+  // be public. Public ports are also an org policy setting, which this way the
+  // Codespace does not depend on.
   "portsAttributes": {
     "5173": { "label": "Glow", "visibility": "private", "onAutoForward": "notify" },
-    "8080": { "label": "Operator 1", "visibility": "public" },
-    "8081": { "label": "Operator 2", "visibility": "public" },
-    "8082": { "label": "Operator 3", "visibility": "public" },
-    "8997": { "label": "Faucet", "visibility": "public" },
-    "8998": { "label": "Mempool API", "visibility": "public" },
-    "3001": { "label": "Explorer", "visibility": "public" },
-    "3002": { "label": "Indexer", "visibility": "public" }
+    "3001": { "label": "Explorer", "visibility": "private", "onAutoForward": "silent" }
   },
 
   // Everything expensive happens here so a prebuild absorbs it: the npm install

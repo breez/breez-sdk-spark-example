@@ -15,13 +15,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '..');
 const inRepo = (...p) => resolve(repo, ...p);
 
-// In a Codespace the browser is on github.dev, not on this machine, so every
-// URL the page is handed has to be the forwarded one. GitHub sets both of these
-// in the container; locally neither is set and the URLs stay as they were.
-const forwarded = process.env.CODESPACE_NAME
-  ? port =>
-      `https://${process.env.CODESPACE_NAME}-${port}.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`
-  : port => `http://localhost:${port}`;
+// The page reaches every service through the dev server rather than at its own
+// port, so the browser never leaves its origin. Locally that saves a round of
+// CORS; in a Codespace it is the difference between working and not, since a
+// cross-origin fetch to a forwarded port needs that port to be public.
+const proxied = name => `/regtest/${name}`;
 
 const source = process.argv[2] ?? '/tmp/spark-regtest.json';
 if (!existsSync(source)) {
@@ -110,7 +108,7 @@ const sparkConfig = {
     id: op.id,
     identifier: op.identifier,
     identityPublicKey: op.identityPublicKey,
-    address: forwarded(listenPort(i)),
+    address: proxied(`op${i}`),
   })),
   sspConfig: cluster.sspConfig,
   expectedWithdrawBondSats: cluster.expectedWithdrawBondSats,
@@ -125,8 +123,15 @@ const managed = {
   BITCOIND_RPC_URL: cluster.bitcoind.rpcUrl.replace(/\/$/, ''),
   BITCOIND_RPC_USER: cluster.bitcoind.rpcUser,
   BITCOIND_RPC_PASSWORD: cluster.bitcoind.rpcPassword,
-  VITE_MEMPOOL_BASE_URL: `${forwarded(MEMPOOL_API_PORT)}/api`,
-  VITE_ESPLORA_BASE_URL: forwarded(ELECTRS_HTTP_PORT),
+  VITE_MEMPOOL_BASE_URL: `${proxied('mempool')}/api`,
+  VITE_ESPLORA_BASE_URL: proxied('esplora'),
+  REGTEST_PROXY_TARGETS: JSON.stringify({
+    ...Object.fromEntries(
+      operators.map((_, i) => [proxied(`op${i}`), `http://127.0.0.1:${listenPort(i)}`]),
+    ),
+    [proxied('mempool')]: `http://127.0.0.1:${MEMPOOL_API_PORT}`,
+    [proxied('esplora')]: `http://127.0.0.1:${ELECTRS_HTTP_PORT}`,
+  }),
 };
 
 const envPath = inRepo('.env.local');

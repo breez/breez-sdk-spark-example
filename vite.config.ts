@@ -18,6 +18,20 @@ const allowLocalClusterCsp = () => ({
     ),
 });
 
+// Every regtest service the page talks to is proxied through the dev server, so
+// the browser only ever makes same-origin requests. That is what lets a
+// Codespace keep its forwarded ports private: a cross-origin fetch to a private
+// port is answered with a login page, which the browser reports as a CORS error.
+const regtestProxy = (raw?: string) => {
+  if (!raw) return undefined;
+  return Object.fromEntries(
+    Object.entries(JSON.parse(raw) as Record<string, string>).map(([path, target]) => [
+      path,
+      { target, changeOrigin: true, rewrite: (url: string) => url.slice(path.length) || '/' },
+    ]),
+  );
+};
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
@@ -34,6 +48,7 @@ export default defineConfig(({ mode }) => {
     ],
     server: {
       host: env.VITE_SERVER_HOST || 'localhost',
+      proxy: regtestProxy(env.REGTEST_PROXY_TARGETS),
       allowedHosts: env.VITE_SERVER_ALLOWED_HOSTS
         ? env.VITE_SERVER_ALLOWED_HOSTS.split(',')
         : [],

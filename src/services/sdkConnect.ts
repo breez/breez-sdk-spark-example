@@ -37,11 +37,27 @@ export async function loadRuntimeClusterConfig(url = '/cluster-config.json'): Pr
   }
 }
 
+/**
+ * Resolves the same-origin operator paths the local-regtest wiring writes. The
+ * SDK opens a whole URL, and keeping the stored form origin-free is what lets
+ * one config work at localhost and behind a Codespace's forwarded host alike.
+ */
+function withResolvedOperators(config: SparkConfig): SparkConfig {
+  return {
+    ...config,
+    signingOperators: config.signingOperators?.map(operator =>
+      operator.address?.startsWith('/')
+        ? { ...operator, address: `${window.location.origin}${operator.address}` }
+        : operator,
+    ),
+  };
+}
+
 function localCluster(): SparkConfig | null {
   const raw = import.meta.env.VITE_SPARK_LOCAL_CONFIG;
-  if (!raw) return runtimeCluster;
+  if (!raw) return runtimeCluster && withResolvedOperators(runtimeCluster);
   try {
-    return JSON.parse(raw) as SparkConfig;
+    return withResolvedOperators(JSON.parse(raw) as SparkConfig);
   } catch (e) {
     logger.warn(LogCategory.SDK, 'Ignoring unparseable local cluster config', {
       error: formatError(e),

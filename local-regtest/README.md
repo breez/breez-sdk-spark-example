@@ -21,11 +21,9 @@ Mining is not optional for a unilateral exit. Every step of one waits on
 timelocks measured in blocks, and on regtest no blocks are produced unless
 somebody asks for them.
 
-The ports the page talks to (the operators, the indexer, the mempool) are
-forwarded **publicly**: the browser calls them cross-origin, and a private
-forwarded port answers that with a login page rather than data. The coins are
-worthless and the chain is thrown away, but anyone holding the URL can reach
-them while the Codespace is running.
+Only the app's own port is forwarded, and privately: the page reaches the
+operators, the indexer and the mempool through the dev server, so every request
+it makes is same-origin. Nobody but you can reach your chain.
 
 ## Start
 
