@@ -5,6 +5,14 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# The SDK's proto crates run `protoc` from their build scripts, and the base
+# image has no compiler. rust-spark lists it as a system dependency for the
+# same reason.
+if ! command -v protoc >/dev/null 2>&1; then
+  sudo apt-get update
+  sudo apt-get install -y --no-install-recommends protobuf-compiler
+fi
+
 npm ci
 
 # The cluster binary stands the operators up from the SDK's own test fixtures.
