@@ -50,6 +50,11 @@ test('a unilateral exit, screen by screen', async ({ page }) => {
   // The rescue path: a wallet restored onto a new device holds no leaf data,
   // and once the operators stop answering only this file can supply it. The
   // file restored below is the one the app just wrote, not a rebuilt copy.
+  // Both actions live under Advanced, which starts closed.
+  await page.getByText('Advanced').click();
+  await expect(page.getByTestId('unilateral-exit-backup-save')).toBeVisible();
+  await snap(page, 'advanced');
+
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     page.getByTestId('unilateral-exit-backup-save').click(),
@@ -125,10 +130,13 @@ test('a unilateral exit, screen by screen', async ({ page }) => {
     landed => landed,
     { timeoutMs: 120_000, everyMs: 4_000, what: 'the refunds to confirm' },
   );
-  // The chain has them; the tracker learns it on its next pass.
-  await expect(page.getByTestId('unilateral-exit-stages')).toContainText(/safe on-chain[^0-9]*600 000/, {
-    timeout: 30_000,
-  });
+  // The chain has them; the tracker learns it on its next pass. The sweep is
+  // the only step left, so the count lands one short of the total.
+  const steps = (await storedPlan(page))?.exit.transactions.length ?? 0;
+  await expect(page.getByTestId('unilateral-exit-stages')).toContainText(
+    `Processed transactions${steps - 1}/${steps}`,
+    { timeout: 30_000 },
+  );
   await snap(page, 'tracker-refunds-confirmed');
 
   const complete = page.getByTestId('unilateral-exit-complete');

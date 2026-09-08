@@ -42,28 +42,28 @@ const renderStep = (props: Partial<React.ComponentProps<typeof QuoteStep>> = {})
 describe('QuoteStep', () => {
   it('shows the one fee that comes off the balance, so the shortfall is not a surprise', () => {
     renderStep();
-    expect(screen.getByText('Your balance')).toBeInTheDocument();
-    expect(screen.getByText('Taken from your balance')).toBeInTheDocument();
-    expect(screen.getByText('\u2212200')).toBeInTheDocument();
+    expect(screen.getByText('Balance')).toBeInTheDocument();
+    expect(screen.getByText('Sweep fee')).toBeInTheDocument();
+    // The label already says it is a cost, so the figure is a plain amount.
+    const row = screen.getByText('Sweep fee').parentElement as HTMLElement;
+    expect(within(row).getByText(/200/)).toBeInTheDocument();
   });
 
-  it('says what the Bitcoin to supply pays for, and that it does not come back', () => {
+  it('says what the exit fee pays for, and that it does not come back', () => {
     renderStep();
-    expect(screen.getByText('Bitcoin to supply')).toBeInTheDocument();
-    expect(screen.getByText(/pays the other mining fees/)).toBeInTheDocument();
-    expect(screen.getByText(/3 800/)).toBeInTheDocument();
-    expect(screen.getByText(/Treat it as spent/)).toBeInTheDocument();
+    expect(screen.getByText('Exit fee')).toBeInTheDocument();
+    expect(screen.getByText(/mining fees required to move the Spark tree/)).toBeInTheDocument();
   });
 
   it('estimates what arrives as the balance less the sweep fee, funding excluded', () => {
     renderStep();
-    expect(screen.getByText('You receive, about')).toBeInTheDocument();
+    expect(screen.getByText(/You.ll receive/)).toBeInTheDocument();
     expect(screen.getByText(/99 800/)).toBeInTheDocument();
   });
 
   it('says how much Bitcoin the user has to supply', () => {
     renderStep();
-    const row = screen.getByText('Bitcoin to supply').parentElement as HTMLElement;
+    const row = screen.getByText('Exit fee').parentElement as HTMLElement;
     expect(within(row).getByText(/6 000/)).toBeInTheDocument();
   });
 

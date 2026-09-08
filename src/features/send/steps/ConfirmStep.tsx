@@ -1,12 +1,10 @@
 import React from 'react';
-import { PrimaryButton, SecondaryButton, FormError } from '../../../components/ui';
+import { CopyableRow, PrimaryButton, SecondaryButton, FormError } from '../../../components/ui';
 import { FeeBreakdownCard, SimpleFeeBreakdown } from '../../../components/FeeBreakdownCard';
-import { SpinnerIcon, CopyFilledIcon, CheckIcon } from '../../../components/Icons';
+import { SpinnerIcon } from '../../../components/Icons';
 import { SatAmount } from '../../../components/SatAmount';
 import { formatTokenAmount } from '../../../utils/tokenFormatting';
 import { truncateAddress } from '../../../utils/crossChainFormat';
-import { copyToClipboard } from '../../../utils/clipboard';
-import { logger, LogCategory } from '../../../services/logger';
 import { useStableBalance } from '../../../contexts/StableBalanceContext';
 import { useBalanceValidation } from '../hooks/useBalanceValidation';
 import { toSats } from '../../../types/sats';
@@ -16,44 +14,6 @@ export interface SendDestination {
   label: string;
   value: string;
 }
-
-/** Middle-truncated so both ends stay checkable against the source, and the
- *  copy button hands back the untruncated value. */
-const DestinationRow: React.FC<SendDestination> = ({ label, value }) => {
-  const [copied, setCopied] = React.useState(false);
-  const handleCopy = () => {
-    copyToClipboard(value)
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      })
-      .catch(err => {
-        logger.error(LogCategory.UI, 'Failed to copy destination to clipboard', {
-          error: err instanceof Error ? err.message : String(err),
-        });
-      });
-  };
-
-  return (
-    <div className="flex items-center gap-2 p-3 bg-spark-dark border border-spark-border rounded-xl">
-      <div className="min-w-0 flex-1">
-        <p className="text-xs text-spark-text-muted mb-0.5">{label}</p>
-        <p className="text-sm font-mono text-spark-text-secondary truncate" title={value} data-testid="send-destination">
-          {truncateAddress(value, 32)}
-        </p>
-      </div>
-      <button
-        onClick={handleCopy}
-        className="shrink-0 p-1.5 rounded-md hover:bg-white/5 transition-colors"
-        aria-label={`Copy ${label}`}
-      >
-        {copied
-          ? <CheckIcon size="sm" className="text-spark-success" />
-          : <CopyFilledIcon size="sm" className="text-spark-text-secondary" />}
-      </button>
-    </div>
-  );
-};
 
 export interface ConfirmStepProps {
   amountSats: bigint | null;
@@ -116,7 +76,14 @@ const ConfirmStep: React.FC<ConfirmStepProps> = ({ amountSats, feesSat, feesIncl
         </div>
       </div>
 
-      {destination && <DestinationRow {...destination} />}
+      {destination && (
+        <CopyableRow
+          label={destination.label}
+          value={destination.value}
+          display={truncateAddress(destination.value, 32)}
+          data-testid="send-destination"
+        />
+      )}
 
       {/* Sats breakdown */}
       <SimpleFeeBreakdown amount={feesIncluded ? amount - fee : amount} fee={fee} amountLabel={feesIncluded ? 'Recipient gets' : 'Amount'} />
