@@ -1,5 +1,17 @@
-import { deriveFundingKey } from './funding';
-import { describe, expect, it } from 'vitest';
+import { deriveFundingKey, MnemonicNeedsPasskeyError, MnemonicUnavailableError, readWalletMnemonic } from './funding';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { signInPinnedToActiveCredential } from '@/services/passkeyService';
+
+vi.mock('@/services/secureStorage', () => ({
+  deviceOnlyStorage: { isSupported: () => false, hasStoredSeed: async () => false },
+  secureStorage: { isSupported: () => false, hasStoredSeed: async () => false },
+}));
+
+vi.mock('@/services/passkeyService', () => ({
+  isPasskeyMode: () => localStorage.getItem('passkeyLabel') !== null,
+  getPasskeyLabel: () => localStorage.getItem('passkeyLabel'),
+  signInPinnedToActiveCredential: vi.fn(),
+}));
 
 const VECTOR_MNEMONIC =
   'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
@@ -55,5 +67,48 @@ describe('deriveFundingKey', () => {
 
   it('rejects a mnemonic that is not valid', () => {
     expect(() => deriveFundingKey('not a real mnemonic at all', 'mainnet', 0)).toThrow();
+  });
+});
+
+describe('readWalletMnemonic', () => {
+  const signIn = vi.mocked(signInPinnedToActiveCredential);
+
+  beforeEach(() => {
+    localStorage.clear();
+    signIn.mockReset();
+  });
+
+  afterEach(() => localStorage.clear());
+
+  it('uses the phrase this device already holds', async () => {
+    localStorage.setItem('walletMnemonic', VECTOR_MNEMONIC);
+    await expect(readWalletMnemonic()).resolves.toBe(VECTOR_MNEMONIC);
+    expect(signIn).not.toHaveBeenCalled();
+  });
+
+  it('says the phrase is gone when nothing can produce it', async () => {
+    await expect(readWalletMnemonic({ interactive: true })).rejects.toThrow(MnemonicUnavailableError);
+  });
+
+  it('derives it through the passkey when the user is there to sign in', async () => {
+    localStorage.setItem('passkeyLabel', 'Default');
+    signIn.mockResolvedValue({
+      wallet: { seed: { type: 'mnemonic', mnemonic: VECTOR_MNEMONIC }, label: 'Default' },
+    } as never);
+    await expect(readWalletMnemonic({ interactive: true })).resolves.toBe(VECTOR_MNEMONIC);
+    expect(signIn).toHaveBeenCalledWith('Default');
+  });
+
+  it('never asks for a passkey on a background pass', async () => {
+    localStorage.setItem('passkeyLabel', 'Default');
+    await expect(readWalletMnemonic()).rejects.toThrow(MnemonicNeedsPasskeyError);
+    expect(signIn).not.toHaveBeenCalled();
+  });
+
+  it('prefers the stored phrase over a passkey ceremony', async () => {
+    localStorage.setItem('passkeyLabel', 'Default');
+    localStorage.setItem('walletMnemonic', VECTOR_MNEMONIC);
+    await expect(readWalletMnemonic({ interactive: true })).resolves.toBe(VECTOR_MNEMONIC);
+    expect(signIn).not.toHaveBeenCalled();
   });
 });

@@ -952,6 +952,11 @@ export function isPasskeyMode(): boolean {
   return localStorage.getItem(PASSKEY_LABEL_KEY) !== null;
 }
 
+/** The wallet this device signs in to, or null when not in passkey mode. */
+export function getPasskeyLabel(): string | null {
+  return localStorage.getItem(PASSKEY_LABEL_KEY);
+}
+
 export function setPasskeyMode(label?: string, rpId?: string): void {
   localStorage.setItem(PASSKEY_LABEL_KEY, label ?? 'Default');
   localStorage.setItem(PASSKEY_REGISTERED_KEY, '1');

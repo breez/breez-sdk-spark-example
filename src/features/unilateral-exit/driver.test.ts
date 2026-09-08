@@ -378,6 +378,22 @@ describe('advanceUnilateralExit', () => {
     expect(next.exit.sweepFeeSat).toBe(180);
   });
 
+  it('waits for the user rather than prompting for a passkey in the background', async () => {
+    // A wallet that keeps no phrase on the device: the rebuild needs a
+    // ceremony, which only a button press can ask for.
+    localStorage.removeItem('walletMnemonic');
+    localStorage.setItem('passkeyLabel', 'Default');
+    const { plan: next } = await advanceUnilateralExit(
+      plan([tx({ txid: 'a' })]),
+      chain(),
+      checking(checked([{ txid: 'a' }]), redo),
+      '02abc',
+    );
+    expect(next.phase).toBe('redo');
+    expect(next.lastCheckError).toBeUndefined();
+    localStorage.removeItem('passkeyLabel');
+  });
+
   it('leaves the exit for the user to rebuild when it cannot do it unattended', async () => {
     const driver = sdk({
       checkUnilateralExit: async () => ({ exit: checked([{ txid: 'a' }]), verdict: redo }),

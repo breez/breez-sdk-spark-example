@@ -10,7 +10,7 @@ import type { ChainClient } from '@/services/chain';
 import { logger, LogCategory } from '@/services/logger';
 import { outputTotalSat } from '@/utils/rawTx';
 import { loadExitState, restoreExitState } from './exitState';
-import { deriveFundingKey, readWalletMnemonic } from './funding';
+import { deriveFundingKey, MnemonicNeedsPasskeyError, readWalletMnemonic } from './funding';
 
 /**
  * `complete` is the sdk's `done` verdict. `redo` is its `redo`: the chain no
@@ -255,6 +255,10 @@ export async function checkExit(plan: UnilateralExitPlan, sdk: ExitSdk): Promise
  * Builds the exit again over whatever the chain now holds, keeping its leaves,
  * destination, fee rate and funding. Null when there is nothing left to build,
  * which leaves the stored exit as it was.
+ *
+ * Runs from a background pass, so it never asks for the recovery phrase: a
+ * wallet that keeps none on the device throws, and the tracker offers the
+ * rebuild as a button the user presses.
  */
 export async function rebuildExit(
   plan: UnilateralExitPlan,
@@ -337,6 +341,9 @@ export async function advanceUnilateralExit(
     try {
       next = (await rebuildExit(next, sdk, identityPubkey)) ?? next;
     } catch (e) {
+      // Waiting on the user to sign in is the designed path, not a fault: the
+      // exit stays in `redo` and the tracker offers the rebuild as a button.
+      if (e instanceof MnemonicNeedsPasskeyError) return { plan: next, tipHeight };
       const error = e instanceof Error ? e.message : String(e);
       logger.warn(LogCategory.SDK, `Failed to rebuild the exit: ${error}`);
       next = { ...next, lastCheckError: error };
