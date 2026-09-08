@@ -35,6 +35,13 @@
   "postAttachCommand": "bash .devcontainer/start.sh",
 
   "customizations": {
+    // The SDK build in prepare.sh clones a second repository, which a Codespace
+    // may only do once the person creating it grants this.
+    "codespaces": {
+      "repositories": {
+        "breez/spark-sdk": { "permissions": { "contents": "read" } }
+      }
+    },
     "vscode": {
       "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
     }

@@ -9,6 +9,7 @@ if curl -sf -m 2 http://127.0.0.1:8997/ >/dev/null 2>&1; then
   echo "Regtest already running."
 else
   echo "Starting the regtest environment. First run takes a few minutes."
+  bash .devcontainer/sdk.sh
   bash .devcontainer/images.sh
   npm run regtest:up
 fi

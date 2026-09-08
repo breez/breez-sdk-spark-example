@@ -10,6 +10,10 @@ For trying the app without a checkout, Docker or a toolchain: on GitHub, open
 app for you, then prints the link to open. Each person gets their own chain, so
 mining blocks does not disturb anyone else.
 
+Creating one asks you to grant it read access to the SDK repository: the exit
+screens call SDK methods no published version has, so the Codespace builds the
+package from source rather than taking it from npm.
+
 Two commands are worth knowing, in the Codespace's terminal:
 
 ```
@@ -126,6 +130,10 @@ Expect a little less than you started with: mining fees came out on the way.
 - **An exit step never confirms**: mine more blocks. Timelocks are counted in
   blocks, and regtest only has the ones you make.
 - **`regtest:up` fails**: the cluster's output is in `cluster.log`.
+- **No Unilateral Exit in Settings**: it is behind dev mode. Tap the version
+  label at the bottom of Settings five times.
+- **`checkUnilateralExit is not a function`**: the npm SDK is still in place.
+  Run `bash .devcontainer/sdk.sh` to rebuild and reinstall it.
 - **`pull access denied for spark-migrations`**: the operators run from images
   built from the SDK's test fixtures, and nothing publishes them. Build them
   with `bash .devcontainer/images.sh`, or run the SDK's `make itest` once.

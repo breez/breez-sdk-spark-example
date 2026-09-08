@@ -16,6 +16,8 @@ fi
 
 npm ci
 
+bash .devcontainer/sdk.sh
+
 # The cluster binary stands the operators up from the SDK's own test fixtures.
 # Building it here means `regtest:up` has nothing left to compile.
 cargo build --release --manifest-path local-regtest/cluster/Cargo.toml
