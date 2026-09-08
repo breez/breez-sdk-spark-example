@@ -230,7 +230,7 @@ export function useUnilateralExitFlow(network: string): UnilateralExitFlow {
     if (!walletKey) return;
     setUnlockError(null);
     try {
-      const mnemonic = await readWalletMnemonic();
+      const mnemonic = await readWalletMnemonic({ interactive: true });
       mnemonicRef.current = mnemonic;
       const index = plan?.fundingAddressIndex ?? readFundingIndex(walletKey);
       setFundingKey(deriveFundingKey(mnemonic, network, index));

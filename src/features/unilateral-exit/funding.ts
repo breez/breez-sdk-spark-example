@@ -78,31 +78,58 @@ export class MnemonicUnavailableError extends Error {
   }
 }
 
-export async function readWalletMnemonic(): Promise<string> {
-  if (deviceOnlyStorage.isSupported() && (await deviceOnlyStorage.hasStoredSeed())) {
+/**
+ * Thrown when the phrase exists but only a passkey ceremony can produce it, and
+ * the caller is not in a position to ask for one.
+ */
+export class MnemonicNeedsPasskeyError extends Error {
+  constructor() {
+    super('Signing in with your passkey is needed to continue this exit');
+    this.name = 'MnemonicNeedsPasskeyError';
+  }
+}
+
+const stored = async (): Promise<string | null> => {
+  for (const [store, where] of [
+    [deviceOnlyStorage, 'device-only storage'],
+    [secureStorage, 'biometric storage'],
+  ] as const) {
+    if (!store.isSupported() || !(await store.hasStoredSeed())) continue;
     try {
-      const seed = await deviceOnlyStorage.retrieveSeed();
+      const seed = await store.retrieveSeed();
       if (seed.type === 'mnemonic') return seed.mnemonic;
     } catch (e) {
-      logger.warn(LogCategory.AUTH, 'Failed to read seed from device-only storage', {
+      logger.warn(LogCategory.AUTH, `Failed to read seed from ${where}`, {
         error: e instanceof Error ? e.message : String(e),
       });
     }
   }
+  return localStorage.getItem('walletMnemonic');
+};
 
-  if (secureStorage.isSupported() && (await secureStorage.hasStoredSeed())) {
-    try {
-      const seed = await secureStorage.retrieveSeed();
-      if (seed.type === 'mnemonic') return seed.mnemonic;
-    } catch (e) {
-      logger.warn(LogCategory.AUTH, 'Failed to read seed from biometric storage', {
-        error: e instanceof Error ? e.message : String(e),
-      });
-    }
-  }
+/**
+ * The phrase the funding key is derived from.
+ *
+ * A web passkey wallet keeps no copy of it, so there it is re-derived through a
+ * passkey ceremony. That needs a user gesture, which `interactive` says the
+ * caller has: a background pass does not, and gets
+ * {@link MnemonicNeedsPasskeyError} instead of an authentication prompt the
+ * user did not ask for.
+ */
+export async function readWalletMnemonic({ interactive = false } = {}): Promise<string> {
+  const cached = await stored();
+  if (cached) return cached;
 
-  const legacy = localStorage.getItem('walletMnemonic');
-  if (legacy) return legacy;
+  // Loaded here rather than imported: the passkey module reads
+  // `import.meta.env` as it loads, which only a bundled browser build has, and
+  // the exit's key derivation is reused outside one.
+  const { getPasskeyLabel, isPasskeyMode, signInPinnedToActiveCredential } = await import(
+    '@/services/passkeyService'
+  );
+  if (!isPasskeyMode()) throw new MnemonicUnavailableError();
+  if (!interactive) throw new MnemonicNeedsPasskeyError();
 
-  throw new MnemonicUnavailableError();
+  const { wallet } = await signInPinnedToActiveCredential(getPasskeyLabel() ?? undefined);
+  if (wallet.seed.type !== 'mnemonic') throw new MnemonicUnavailableError();
+  return wallet.seed.mnemonic;
 }
