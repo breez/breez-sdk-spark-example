@@ -37,6 +37,9 @@ try {
 }
 run('docker', [
   'run', '-d', '--name', 'spark-grpcweb',
+  // Docker Desktop resolves this name for free; plain Linux (a Codespace, CI)
+  // does not, and envoy's upstreams are all addressed by it.
+  '--add-host', 'host.docker.internal:host-gateway',
   '-p', '8080:8080', '-p', '8081:8081', '-p', '8082:8082', '-p', '9901:9901',
   '-v', `${resolve(here, 'envoy.yaml')}:/etc/envoy/envoy.yaml:ro`,
   'envoyproxy/envoy:v1.31-latest', '-c', '/etc/envoy/envoy.yaml',

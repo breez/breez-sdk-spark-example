@@ -13,9 +13,33 @@ import { logger, LogCategory } from './logger';
 import { formatError } from '../utils/formatError';
 import { USDB_TOKEN_IDENTIFIER, USDB_TICKER } from '../constants/stableBalance';
 
+/**
+ * A cluster config fetched at runtime, for a hosted regtest whose operator keys
+ * are generated when the cluster starts and so cannot be known at build time.
+ * Populated by `loadRuntimeClusterConfig` before anything renders; the built-in
+ * env var still wins for a locally-wired cluster.
+ */
+let runtimeCluster: SparkConfig | null = null;
+
+/**
+ * Reads the cluster config a hosted regtest serves alongside the app. Absent
+ * (a normal build, or the file is not served) leaves the env var in charge, so
+ * this is safe to call unconditionally at startup.
+ */
+export async function loadRuntimeClusterConfig(url = '/cluster-config.json'): Promise<void> {
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return;
+    runtimeCluster = (await res.json()) as SparkConfig;
+    logger.info(LogCategory.SDK, 'Using the cluster config served with the app');
+  } catch {
+    // No hosted cluster: the env var, or no local cluster at all.
+  }
+}
+
 function localCluster(): SparkConfig | null {
   const raw = import.meta.env.VITE_SPARK_LOCAL_CONFIG;
-  if (!raw) return null;
+  if (!raw) return runtimeCluster;
   try {
     return JSON.parse(raw) as SparkConfig;
   } catch (e) {

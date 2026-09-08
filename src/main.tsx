@@ -14,6 +14,7 @@ import { installUserAgentStrippingFetch } from '@/utils/stripUserAgentFetch';
 import { startDeepLinks } from '@/utils/deepLink';
 import { logStartupDeviceInfo } from '@/utils/deviceInfo';
 import { startSdkInit } from '@/services/sdkReady';
+import { loadRuntimeClusterConfig } from '@/services/sdkConnect';
 import { prfAvailability } from '@/services/passkeyService';
 
 // Strip the SDK's custom User-Agent from outgoing requests before the SDK
@@ -416,6 +417,11 @@ async function init() {
         getKnownCredentialIdsBase64().catch(() => undefined);
       });
     }
+
+    // A hosted regtest serves its cluster config next to the app, and its
+    // operator keys are only known once that cluster starts. Read it before
+    // anything can build a connect config from it. A no-op everywhere else.
+    await loadRuntimeClusterConfig();
 
     // Render the app - splash stays visible until App signals it's ready
     // The splash is torn down below, so an uncaught render throw would

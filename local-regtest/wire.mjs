@@ -15,6 +15,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '..');
 const inRepo = (...p) => resolve(repo, ...p);
 
+// In a Codespace the browser is on github.dev, not on this machine, so every
+// URL the page is handed has to be the forwarded one. GitHub sets both of these
+// in the container; locally neither is set and the URLs stay as they were.
+const forwarded = process.env.CODESPACE_NAME
+  ? port =>
+      `https://${process.env.CODESPACE_NAME}-${port}.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`
+  : port => `http://localhost:${port}`;
+
 const source = process.argv[2] ?? '/tmp/spark-regtest.json';
 if (!existsSync(source)) {
   console.error(`No cluster config at ${source}. Start the cluster first: npm run regtest:up`);
@@ -102,7 +110,7 @@ const sparkConfig = {
     id: op.id,
     identifier: op.identifier,
     identityPublicKey: op.identityPublicKey,
-    address: `http://localhost:${listenPort(i)}`,
+    address: forwarded(listenPort(i)),
   })),
   sspConfig: cluster.sspConfig,
   expectedWithdrawBondSats: cluster.expectedWithdrawBondSats,
@@ -117,8 +125,8 @@ const managed = {
   BITCOIND_RPC_URL: cluster.bitcoind.rpcUrl.replace(/\/$/, ''),
   BITCOIND_RPC_USER: cluster.bitcoind.rpcUser,
   BITCOIND_RPC_PASSWORD: cluster.bitcoind.rpcPassword,
-  VITE_MEMPOOL_BASE_URL: `http://localhost:${process.env.MEMPOOL_API_PORT ?? 8998}/api`,
-  VITE_ESPLORA_BASE_URL: `http://localhost:${ELECTRS_HTTP_PORT}`,
+  VITE_MEMPOOL_BASE_URL: `${forwarded(MEMPOOL_API_PORT)}/api`,
+  VITE_ESPLORA_BASE_URL: forwarded(ELECTRS_HTTP_PORT),
 };
 
 const envPath = inRepo('.env.local');
