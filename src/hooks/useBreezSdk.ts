@@ -23,7 +23,7 @@ import { formatError } from '../utils/formatError';
 import { isStandalonePwa, openExternalUrl } from '../utils/externalLink';
 import { INSTANT_CLAIM_SUBMITTED_TOAST, forgetAnnouncedClaims, splitClaimedDeposits, takeUnannouncedClaims } from '../utils/depositClaimQuote';
 import { isDepositRejected, clearRejectedDeposits } from '../services/depositState';
-import { setCachedStableTicker, clearNetworkOverride, clearStableRestorePrompted, ensureSparkPrivateMode, isDevMode, type BuyBitcoinProvider } from '../services/settings';
+import { setCachedStableTicker, clearNetworkOverride, clearStableRestorePrompted, ensureSparkPrivateMode, type BuyBitcoinProvider } from '../services/settings';
 import { wipeAllLocalData } from '../services/accountDeletion';
 import { hideSplash } from '../main';
 import {
@@ -86,17 +86,12 @@ async function initSdkLogging() {
   // (the connect path surfaces the real error to the user).
   try {
     await sdkReady();
-    // Capped at INFO by default: the SDK's own default keeps DEBUG on for
-    // its crates, and those lines dump request and response payloads into
-    // logs that are shareable from Settings and from the pre-auth passkey
-    // screen. Dev mode lifts the cap for the visit, so verbose logs can
-    // still be collected from a released build (`?dev=true`) when a report
-    // needs them. Undefined restores the SDK default.
-    const verbose = import.meta.env.DEV || isDevMode();
-    initLogging(
-      { log: (entry: LogEntry) => logSdkMessage(entry.level, entry.line) },
-      verbose ? undefined : 'info',
-    );
+    // No filter, so the SDK default applies: DEBUG for its own crates.
+    // Support cases turn on payment-level lines that only exist at DEBUG,
+    // and a released build cannot be asked to raise the level after the
+    // fact because `initLogging` binds the filter once per page load.
+    // Secret-shaped values are scrubbed on the way into the buffer.
+    initLogging({ log: (entry: LogEntry) => logSdkMessage(entry.level, entry.line) });
   } catch {
     /* SDK unavailable; skip the log bridge. */
   }
