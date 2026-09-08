@@ -128,6 +128,9 @@ Expect a little less than you started with: mining fees came out on the way.
 - **An exit step never confirms**: mine more blocks. Timelocks are counted in
   blocks, and regtest only has the ones you make.
 - **`regtest:up` fails**: the cluster's output is in `cluster.log`.
+- **`pull access denied for spark-migrations`**: the operators run from images
+  built from the SDK's test fixtures, and nothing publishes them. Build them
+  with `bash .devcontainer/images.sh`, or run the SDK's `make itest` once.
 - **Ports changed**: every `regtest:up` picks new ones, so restart `npm run dev`
   after it.
 
