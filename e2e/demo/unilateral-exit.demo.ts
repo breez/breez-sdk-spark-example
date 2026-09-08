@@ -46,6 +46,22 @@ test('a unilateral exit, screen by screen', async ({ page }) => {
 
   await expect(page.getByTestId('unilateral-exit-start')).toBeVisible();
   await snap(page, 'intro');
+
+  // The rescue path: a wallet restored onto a new device holds no leaf data,
+  // and once the operators stop answering only this file can supply it. The
+  // file restored below is the one the app just wrote, not a rebuilt copy.
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByTestId('unilateral-exit-backup-save').click(),
+  ]);
+  const backup = `${FRAMES}/../unilateral-exit-backup.zip`;
+  await download.saveAs(backup);
+  await snap(page, 'backup-saved');
+
+  await page.getByTestId('unilateral-exit-backup-file').setInputFiles(backup);
+  await expect(page.getByTestId('unilateral-exit-backup-result')).toBeVisible({ timeout: 30_000 });
+  await snap(page, 'backup-restored');
+
   await page.getByTestId('unilateral-exit-start').click();
 
   await page.getByPlaceholder('bc1q...').fill(destination);

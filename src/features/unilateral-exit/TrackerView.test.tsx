@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { TrackerView } from './TrackerView';
+
+// The backup card reads the connected wallet; the tracker itself works off the
+// plan it is handed.
+vi.mock('@/contexts/WalletContext', () => ({
+  useWallet: () => ({ exportUnilateralExitState: async () => ({ exitState: '{}' }) }),
+}));
 import type { UnilateralExitPlan } from './driver';
 import { blocked, confirmed, locked, plan, tx } from './testFixtures';
 
@@ -154,9 +160,9 @@ describe('TrackerView', () => {
     expect(screen.getByText(/You can close this/)).toBeInTheDocument();
   });
 
-  it('urges an off-device copy, since only this device holds the signed set', () => {
+  it('urges an off-device copy, since only this device holds what an exit needs', () => {
     renderTracker(plan([tx({ txid: 'a' })]));
-    expect(screen.getByText('Back these up')).toBeInTheDocument();
-    expect(screen.getByText('Save a copy')).toBeInTheDocument();
+    expect(screen.getByText('Back this up')).toBeInTheDocument();
+    expect(screen.getByTestId('unilateral-exit-backup-save')).toBeInTheDocument();
   });
 });
