@@ -1,54 +1,49 @@
-import React from 'react';
-import { PrimaryButton } from '@/components/ui';
-import { AlertCard } from '@/components/AlertCard';
-import { LifebuoyIcon } from '@/components/Icons';
-import { BackupCard } from '../BackupCard';
+import React, { useState } from 'react';
+import { CollapsibleSection, PrimaryButton } from '@/components/ui';
+import { SimpleAlert } from '@/components/AlertCard';
+import { BackupActions } from '../BackupCard';
 
 const requirements = [
-  'Bitcoin from another wallet, to pay the mining fees this takes',
-  'An on-chain address you control, for the funds to land on',
-  'Days of waiting: on-chain timelocks pace every step',
+  'Pay exit fees using another on-chain wallet',
+  'A bitcoin destination address for the receiving funds',
+  'Days of waiting for the process to complete due to on-chain timelocks',
 ];
 
-export const IntroStep: React.FC<{ onContinue: () => void }> = ({ onContinue }) => (
-  <div className="space-y-6">
-    <div className="text-center">
-      <div className="w-16 h-16 rounded-2xl bg-spark-primary/20 flex items-center justify-center mx-auto mb-4">
-        <LifebuoyIcon size="xl" className="text-spark-primary" />
+export const IntroStep: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
+  const [advanced, setAdvanced] = useState(false);
+
+  return (
+    <div className="space-y-6">
+      <SimpleAlert variant="warning" hideIcon>
+        Move your balance on-chain without Spark operators. Use this only if Spark stops
+        operating. This is a last-resort action.
+      </SimpleAlert>
+
+      <div className="bg-spark-dark border border-spark-border rounded-2xl p-4">
+        <h3 className="font-display font-semibold text-spark-text-primary text-sm mb-3">
+          What you need
+        </h3>
+        <ul className="space-y-3">
+          {requirements.map(item => (
+            <li key={item} className="text-spark-text-secondary text-sm flex gap-3">
+              <span className="text-spark-primary shrink-0">-</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
       </div>
-      <h2 className="font-display font-semibold text-spark-text-primary text-lg mb-2">
-        Unilateral exit
-      </h2>
-      <p className="text-spark-text-muted text-sm">
-        This moves your balance to Bitcoin without help from the Spark operators. It exists for the
-        case where they stop responding and a normal withdrawal is not possible.
-      </p>
+
+      <CollapsibleSection
+        label="Advanced"
+        isVisible={advanced}
+        onToggle={() => setAdvanced(v => !v)}
+      >
+        <BackupActions />
+      </CollapsibleSection>
+
+      <PrimaryButton onClick={onContinue} className="w-full" data-testid="unilateral-exit-start">
+        Continue
+      </PrimaryButton>
     </div>
-
-    <AlertCard variant="warning" title="Use this only as a last resort">
-      <p className="text-sm">
-        A normal withdrawal is faster and much cheaper. Try that first if Spark is working.
-      </p>
-    </AlertCard>
-
-    <div className="bg-spark-dark border border-spark-border rounded-2xl p-4">
-      <h3 className="font-display font-semibold text-spark-text-primary text-sm mb-3">
-        What you need
-      </h3>
-      <ul className="space-y-2">
-        {requirements.map(item => (
-          <li key={item} className="text-spark-text-secondary text-sm flex gap-2">
-            <span className="text-spark-primary">-</span>
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-
-    <BackupCard />
-
-    <PrimaryButton onClick={onContinue} className="w-full" data-testid="unilateral-exit-start">
-      Start unilateral exit
-    </PrimaryButton>
-  </div>
-);
+  );
+};

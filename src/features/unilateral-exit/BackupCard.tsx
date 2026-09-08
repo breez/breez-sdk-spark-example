@@ -1,21 +1,40 @@
 import React, { useRef, useState } from 'react';
-import { AlertCard } from '@/components/AlertCard';
-import { SecondaryButton } from '@/components/ui';
+import { ChevronRightIcon } from '@/components/Icons';
 import { useWallet } from '@/contexts/WalletContext';
 import { logger, LogCategory } from '@/services/logger';
 import { exportUnilateralExitBackup, importUnilateralExitBackup } from './backup';
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
+export const ExitActionRow: React.FC<{
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  testId: string;
+}> = ({ label, onClick, disabled = false, testId }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className="flex items-center justify-between w-full px-1 py-3 text-sm font-medium text-spark-text-secondary hover:text-spark-text-primary transition-colors disabled:opacity-50"
+    data-testid={testId}
+  >
+    <span>{label}</span>
+    <ChevronRightIcon size="md" />
+  </button>
+);
+
 /**
  * Saving and restoring the data an exit needs. Offered wherever an exit can be
  * started, not only once one is running: the file exists for the case where the
  * operators have stopped answering and nothing else can supply it.
  *
+ * Rendered as plain rows so it can sit inside the Advanced section, which is
+ * where both entry points keep it.
+ *
  * `frozen` is an in-flight exit's own copy, saved in preference to a fresh
  * export.
  */
-export const BackupCard: React.FC<{ frozen?: string }> = ({ frozen }) => {
+export const BackupActions: React.FC<{ frozen?: string; children?: React.ReactNode }> = ({ frozen, children }) => {
   const wallet = useWallet();
   const [busy, setBusy] = useState<'saving' | 'restoring' | null>(null);
   const [result, setResult] = useState<string | null>(null);
@@ -58,46 +77,39 @@ export const BackupCard: React.FC<{ frozen?: string }> = ({ frozen }) => {
   };
 
   return (
-    <AlertCard variant="warning" title="Back this up">
-      <p className="text-sm">
-        Only this device holds the data that moves these funds on-chain. Once the operators stop
-        answering, nothing else can supply it, so keep a copy off this device alongside your
-        recovery phrase.
-      </p>
-
-      {result && <p className="text-sm mt-2 text-spark-text-primary" data-testid="unilateral-exit-backup-result">{result}</p>}
-      {error && <p className="text-sm mt-2 text-spark-error" data-testid="unilateral-exit-backup-error">{error}</p>}
-
-      <div className="mt-3 space-y-2">
-        <SecondaryButton
+    <div>
+      <div className="divide-y divide-spark-border">
+        <ExitActionRow
+          label="Save exit data"
           onClick={() => void save()}
           disabled={busy !== null}
-          className="w-full"
-          data-testid="unilateral-exit-backup-save"
-        >
-          {busy === 'saving' ? 'Preparing...' : 'Save a copy'}
-        </SecondaryButton>
-        <SecondaryButton
+          testId="unilateral-exit-backup-save"
+        />
+        <ExitActionRow
+          label="Restore exit data"
           onClick={() => picker.current?.click()}
           disabled={busy !== null}
-          className="w-full"
-          data-testid="unilateral-exit-backup-restore"
-        >
-          {busy === 'restoring' ? 'Restoring...' : 'Restore from a backup'}
-        </SecondaryButton>
-        <input
-          ref={picker}
-          type="file"
-          accept=".zip,.json,application/zip,application/json"
-          className="hidden"
-          data-testid="unilateral-exit-backup-file"
-          onChange={event => {
-            const file = event.target.files?.[0];
-            event.target.value = '';
-            if (file) void restore(file);
-          }}
+          testId="unilateral-exit-backup-restore"
         />
+        {children}
       </div>
-    </AlertCard>
+
+      {busy && <p className="text-sm text-spark-text-muted px-1">{busy === 'saving' ? 'Preparing...' : 'Restoring...'}</p>}
+      {result && <p className="text-sm text-spark-text-primary px-1" data-testid="unilateral-exit-backup-result">{result}</p>}
+      {error && <p className="text-sm text-spark-error px-1" data-testid="unilateral-exit-backup-error">{error}</p>}
+
+      <input
+        ref={picker}
+        type="file"
+        accept=".zip,.json,application/zip,application/json"
+        className="hidden"
+        data-testid="unilateral-exit-backup-file"
+        onChange={event => {
+          const file = event.target.files?.[0];
+          event.target.value = '';
+          if (file) void restore(file);
+        }}
+      />
+    </div>
   );
 };

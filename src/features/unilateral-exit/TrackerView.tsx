@@ -1,27 +1,30 @@
-import React, { useMemo } from 'react';
-import { BackupCard } from './BackupCard';
+import React, { useMemo, useState } from 'react';
+import { BackupActions, ExitActionRow } from './BackupCard';
 import { AlertCard } from '@/components/AlertCard';
-import { CheckCircleIcon, ClockIcon } from '@/components/Icons';
+import { CheckIcon } from '@/components/Icons';
 import { SatAmount } from '@/components/SatAmount';
-import { PrimaryButton, SecondaryButton } from '@/components/ui';
+import { CollapsibleSection, CopyableRow, PrimaryButton } from '@/components/ui';
+import { truncateAddress } from '@/utils/crossChainFormat';
 import { blocksToFinish, exitStages, nextAction, planProgress, willReceiveSat } from './driver';
 import type { NextAction, PlanProgress, UnilateralExitPlan } from './driver';
-import { formatBlockWait } from '@/utils/blockTime';
+import { formatDaysLeft } from '@/utils/blockTime';
+import { formatWithSpaces } from '@/utils/formatNumber';
 
-const Stage: React.FC<{ label: string; sats: number; dot: string; dim?: boolean }> = ({
-  label,
-  sats,
-  dot,
-  dim,
-}) => (
-  <div className="flex items-center gap-3 py-1.5">
-    <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
-    <span className="flex-1 text-spark-text-secondary text-sm">{label}</span>
-    <SatAmount
-      sats={sats}
-      className={`text-sm ${dim ? 'text-spark-text-muted' : 'text-spark-text-primary'}`}
-    />
+/** One labelled figure. No icon and no marker: the label is the whole story. */
+const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <div className="flex items-center justify-between gap-3">
+    <span className="text-spark-text-secondary text-sm shrink-0">{label}</span>
+    <span className="text-sm text-spark-text-primary text-right">{children}</span>
   </div>
+);
+
+/** `x/y`, tight: a spaced slash reads as two separate figures. */
+const Ratio: React.FC<{ done: React.ReactNode; total: React.ReactNode }> = ({ done, total }) => (
+  <span className="font-mono [word-spacing:-0.4em]">
+    {done}
+    <span className="text-spark-text-muted">/</span>
+    <span className="text-spark-text-secondary">{total}</span>
+  </span>
 );
 
 const ExitSummary: React.FC<{
@@ -33,63 +36,53 @@ const ExitSummary: React.FC<{
 }> = ({ plan, blocksLeft, next, isAdvancing, progress }) => {
   const stages = exitStages(plan);
   const total = stages.inSpark + stages.onChain + stages.delivered;
-  const feesSat = Math.max(0, plan.exit.recoverableValueSat - stages.willReceive);
+
+  const status = isAdvancing
+    ? 'Checking the blockchain...'
+    : next === null
+      ? 'Waiting for confirmations'
+      : next.blocks > 0
+        ? 'Waiting for timelock'
+        : `Sending ${next.transactions === 1 ? 'the next step' : `${next.transactions} steps`}`;
 
   return (
-    <div className="bg-spark-dark border border-spark-border rounded-2xl p-5 space-y-4">
-      <div className="text-center">
-        <h2 className="font-display font-semibold text-spark-text-primary text-lg">
-          {plan.phase === 'redo' ? 'This exit needs rebuilding' : 'Moving your funds out'}
-        </h2>
-        <p className="text-spark-text-muted text-sm mt-1" data-testid="unilateral-exit-eta">
-          {blocksLeft === null ? 'almost there' : `about ${formatBlockWait(blocksLeft).replace('~', '')} left`}
-          {' · '}
-          {progress.confirmed} of {progress.total} steps done
+    <div className="space-y-6">
+      <div className="text-center py-4">
+        <p className="text-spark-text-muted text-sm mb-2">
+          {plan.phase === 'redo' ? 'This exit needs rebuilding' : 'Processing'}
         </p>
-      </div>
-
-      {/* Steps, not money: refunds land in a few late jumps, so a money bar sits
-          at zero for most of an exit and reads as stuck. The amounts below say
-          where the money is. */}
-      <div className="flex h-2 rounded-full overflow-hidden bg-spark-border">
-        <div
-          className="bg-spark-electric transition-all duration-500"
-          style={{ width: progress.total > 0 ? `${(progress.confirmed / progress.total) * 100}%` : '0%' }}
+        <SatAmount
+          sats={stages.willReceive}
+          className="text-4xl font-bold text-spark-text-primary"
         />
       </div>
 
-      {total > 0 && (
-        <div data-testid="unilateral-exit-stages">
-          <Stage label="At your address" sats={stages.delivered} dot="bg-spark-success" dim={stages.delivered === 0} />
-          <Stage label="Out of Spark, safe on-chain" sats={stages.onChain} dot="bg-spark-electric" dim={stages.onChain === 0} />
-          <Stage label="Still in Spark" sats={stages.inSpark} dot="bg-spark-border" dim={stages.inSpark === 0} />
-        </div>
-      )}
-
-      <div className="border-t border-spark-border pt-3">
-        <div className="flex items-baseline gap-3">
-          <span className="flex-1 text-spark-text-secondary text-sm">
-            {stages.delivered > 0 ? 'Received' : "You'll receive"}
+      <div
+        className="bg-spark-dark border border-spark-border rounded-2xl p-4 space-y-3"
+        data-testid="unilateral-exit-stages"
+      >
+        <Row label="Days left">
+          <span data-testid="unilateral-exit-eta">
+            {blocksLeft === null ? 'almost there' : formatDaysLeft(blocksLeft)}
           </span>
-          <SatAmount sats={stages.willReceive} className="text-xl text-spark-text-primary" />
-        </div>
-        <p className="text-spark-text-muted text-xs mt-1">
-          about, from <SatAmount sats={plan.exit.recoverableValueSat} /> less{' '}
-          <SatAmount sats={feesSat} /> for the final sweep. A step the operators&apos; watchtower
-          sends instead pays its own fee from your balance too, so the final figure can come in
-          under this.
-        </p>
-      </div>
-
-      <div className="flex items-center gap-2.5 bg-spark-dark/60 border border-spark-border rounded-xl px-3 py-2.5">
-        <ClockIcon size="md" className="shrink-0 text-spark-electric" />
-        <span className="text-spark-text-primary text-sm font-medium">
-          {isAdvancing
-            ? 'Checking the blockchain...'
-            : next === null
-              ? 'Waiting on confirmations'
-              : `Next ${next.transactions === 1 ? 'step' : `${next.transactions} steps`} ${formatBlockWait(next.blocks)}`}
-        </span>
+        </Row>
+        <div className="border-t border-spark-border/50" />
+        <Row label="Processed transactions">
+          <Ratio done={progress.confirmed} total={progress.total} />
+        </Row>
+        <div className="border-t border-spark-border/50" />
+        <Row label="Processed sats">
+          {/* Only what reached the destination: anything mid-flight is not the
+              user's to spend yet. */}
+          <Ratio
+            done={formatWithSpaces(stages.delivered)}
+            total={formatWithSpaces(total)}
+          />
+        </Row>
+        <div className="border-t border-spark-border/50" />
+        <Row label="Current status">
+          <span data-testid="unilateral-exit-status">{status}</span>
+        </Row>
       </div>
     </div>
   );
@@ -103,6 +96,7 @@ export const TrackerView: React.FC<{
   onDone: () => void;
 }> = ({ plan, tipHeight, isAdvancing, onRebuild, onDone }) => {
   const { transactions } = plan.exit;
+  const [advanced, setAdvanced] = useState(false);
   const progress = useMemo(() => planProgress(plan), [plan]);
   const refusal = Object.values(plan.refusals)[0];
   const next = useMemo(
@@ -116,51 +110,27 @@ export const TrackerView: React.FC<{
 
   if (progress.isComplete) {
     const delivered = willReceiveSat(plan);
-    const balance = plan.exit.recoverableValueSat;
     return (
       <div className="space-y-6">
         <div className="text-center py-4">
           <div className="w-16 h-16 rounded-full bg-spark-success/20 flex items-center justify-center mx-auto mb-4">
-            <CheckCircleIcon size="xl" className="text-spark-success" />
+            <CheckIcon size="lg" className="text-spark-success" />
           </div>
-          <h2
-            className="font-display font-semibold text-spark-text-primary text-lg mb-2"
-            data-testid="unilateral-exit-complete"
-          >
-            Unilateral exit complete
-          </h2>
-          <p className="text-spark-text-muted text-sm">
-            <SatAmount sats={delivered} /> reached your address.
+          <p className="text-spark-text-muted text-sm mb-1" data-testid="unilateral-exit-complete">
+            Received
           </p>
+          <SatAmount
+            sats={delivered}
+            className="text-4xl font-bold text-spark-text-primary"
+          />
         </div>
 
-        {/* The gap between the balance and what arrived is the first thing
-            anyone asks about, in either direction. */}
-        <div className="bg-spark-dark border border-spark-border rounded-2xl p-4 space-y-2 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-spark-text-secondary">You had</span>
-            <SatAmount sats={balance} className="text-spark-text-primary" />
-          </div>
-          {delivered < balance ? (
-            <div className="flex items-center justify-between">
-              <span className="text-spark-text-secondary">Mining fees</span>
-              <span className="text-spark-text-primary">
-                &minus;<SatAmount sats={balance - delivered} />
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between">
-              <span className="text-spark-text-secondary">Unused funding returned</span>
-              <span className="text-spark-text-primary">
-                +<SatAmount sats={delivered - balance} />
-              </span>
-            </div>
-          )}
-          <div className="flex items-center justify-between border-t border-spark-border pt-2">
-            <span className="text-spark-text-secondary">Reached your address</span>
-            <SatAmount sats={delivered} className="text-spark-text-primary" />
-          </div>
-        </div>
+        <CopyableRow
+          label="Sent to"
+          value={plan.destination}
+          display={truncateAddress(plan.destination, 32)}
+          data-testid="unilateral-exit-complete-destination"
+        />
 
         <PrimaryButton onClick={onDone} className="w-full">
           Done
@@ -214,22 +184,21 @@ export const TrackerView: React.FC<{
         </AlertCard>
       )}
 
-      <BackupCard frozen={plan.exitStateSnapshot} />
-
-      {plan.phase === 'active' && (
-        <SecondaryButton
-          onClick={onRebuild}
-          className="w-full"
-          data-testid="unilateral-exit-bump-fee"
-        >
-          Not confirming? Rebuild at a higher fee
-        </SecondaryButton>
-      )}
-
-      <p className="text-spark-text-muted text-xs text-center px-4">
-        You can close this. Glow picks the exit back up whenever you open it, and sends whatever
-        became ready while you were away.
-      </p>
+      <CollapsibleSection
+        label="Advanced"
+        isVisible={advanced}
+        onToggle={() => setAdvanced(v => !v)}
+      >
+        <BackupActions frozen={plan.exitStateSnapshot}>
+          {plan.phase === 'active' && (
+            <ExitActionRow
+              label="Rebuild at a higher fee"
+              onClick={onRebuild}
+              testId="unilateral-exit-bump-fee"
+            />
+          )}
+        </BackupActions>
+      </CollapsibleSection>
     </div>
   );
 };

@@ -239,6 +239,53 @@ export const CollapsibleCodeField: React.FC<{
 // TEXT COMPONENTS
 // ============================================
 
+/**
+ * An address (or any long value) as one compact row: caption above, the value
+ * middle-truncated below, and a copy button. Both ends of the value stay
+ * readable so it can be checked against the source, and the copy hands back
+ * the untruncated string.
+ */
+export const CopyableRow: React.FC<{
+  label: string;
+  value: string;
+  display?: string;
+  'data-testid'?: string;
+}> = ({ label, value, display, 'data-testid': testId }) => {
+  const [copied, setCopied] = React.useState(false);
+  const handleCopy = () => {
+    copyToClipboard(value)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(err => {
+        logger.error(LogCategory.UI, 'Failed to copy to clipboard', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+  };
+
+  return (
+    <div className="flex items-center gap-2 p-3 bg-spark-dark border border-spark-border rounded-xl">
+      <div className="min-w-0 flex-1">
+        <p className="text-xs text-spark-text-muted mb-0.5">{label}</p>
+        <p className="text-sm font-mono text-spark-text-secondary truncate" title={value} data-testid={testId}>
+          {display ?? value}
+        </p>
+      </div>
+      <button
+        onClick={handleCopy}
+        className="shrink-0 p-1.5 rounded-md hover:bg-white/5 transition-colors"
+        aria-label={`Copy ${label}`}
+      >
+        {copied
+          ? <CheckIcon size="sm" className="text-spark-success" />
+          : <CopyFilledIcon size="sm" className="text-spark-text-secondary" />}
+      </button>
+    </div>
+  );
+};
+
 export const CopyableText: React.FC<{
   text: string;
   truncate?: boolean;

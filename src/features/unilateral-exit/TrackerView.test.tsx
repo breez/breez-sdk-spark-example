@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { TrackerView } from './TrackerView';
 
 // The backup card reads the connected wallet; the tracker itself works off the
@@ -14,12 +14,6 @@ import { blocked, confirmed, locked, plan, tx } from './testFixtures';
 const sweepHex =
   '0200000001' + '00'.repeat(32) + '00000000' + '00' + 'ffffffff' +
   '01' + '2c1a090000000000' + '160014' + 'ab'.repeat(20) + '00000000';
-
-// one input, one 600 882 sat output: more than the balance, since the sweep
-// also collected the funding's change.
-const generousSweepHex =
-  '0200000001' + '00'.repeat(32) + '00000000' + '00' + 'ffffffff' +
-  '01' + '322b090000000000' + '160014' + 'ab'.repeat(20) + '00000000';
 
 const twoLeaves = (transactions: Parameters<typeof plan>[0], over: Parameters<typeof plan>[1] = {}) =>
   plan(transactions, {
@@ -42,7 +36,7 @@ const renderTracker = (p: UnilateralExitPlan, tipHeight: number | null = 1000, o
   render(<TrackerView plan={p} tipHeight={tipHeight} isAdvancing={false} onRebuild={onRebuild} onDone={vi.fn()} />);
 
 describe('what the exit is worth right now', () => {
-  it('shows the money in stages rather than a step count', () => {
+  it('counts only the sats that reached the destination, against the whole balance', () => {
     renderTracker(
       twoLeaves([
         tx({ txid: 'r1', kind: 'refund', nodeId: 'leaf-1', status: confirmed(900) }),
@@ -50,26 +44,27 @@ describe('what the exit is worth right now', () => {
       ]),
     );
     const stages = screen.getByTestId('unilateral-exit-stages');
-    expect(stages).toHaveTextContent('At your address');
-    expect(stages).toHaveTextContent('180 000');
-    expect(stages).toHaveTextContent('420 000');
+    expect(stages).toHaveTextContent('Processed sats');
+    // Nothing is spendable until the sweep lands, so the numerator is still 0.
+    expect(stages).toHaveTextContent('0/600 000');
   });
 
   it('leads with what will arrive: the balance less the sweep fee', () => {
     renderTracker(twoLeaves([tx({ txid: 'a' })]));
-    expect(screen.getByText("You'll receive")).toBeInTheDocument();
+    expect(screen.getByText('Processing')).toBeInTheDocument();
     expect(screen.getByText(/599 785/)).toBeInTheDocument();
-    expect(screen.getByText(/for the final sweep/)).toBeInTheDocument();
   });
 
-  it('counts the steps done alongside the time left', () => {
+  it('counts the transactions done against the total', () => {
     renderTracker(
       plan([tx({ txid: 'a', status: confirmed(900) }), tx({ txid: 'r', kind: 'refund', status: locked(3000) })]),
     );
-    expect(screen.getByTestId('unilateral-exit-eta')).toHaveTextContent('1 of 2 steps done');
+    const stages = screen.getByTestId('unilateral-exit-stages');
+    expect(stages).toHaveTextContent('Processed transactions');
+    expect(stages).toHaveTextContent('1/2');
   });
 
-  it('says how many steps the next wait releases', () => {
+  it('names what the exit is waiting on', () => {
     renderTracker(
       plan([
         tx({ txid: 'r1', kind: 'refund', status: locked(1144) }),
@@ -77,17 +72,17 @@ describe('what the exit is worth right now', () => {
         tx({ txid: 's', kind: 'sweep', status: locked(9000) }),
       ]),
     );
-    expect(screen.getByText(/Next 2 steps/)).toBeInTheDocument();
+    expect(screen.getByTestId('unilateral-exit-status')).toHaveTextContent('Waiting for timelock');
   });
 
-  it('estimates the whole wait, not just the next step', () => {
+  it('estimates the whole wait, not just the next step, and marks it approximate', () => {
     renderTracker(
       plan([
         tx({ txid: 'a', status: confirmed(1000) }),
         tx({ txid: 'r', kind: 'refund', dependsOn: ['a'], csvTimelockBlocks: 2000, status: locked(3000) }),
       ]),
     );
-    expect(screen.getByTestId('unilateral-exit-eta')).toHaveTextContent('about 14 d left');
+    expect(screen.getByTestId('unilateral-exit-eta')).toHaveTextContent('~14');
   });
 
   it('says it is rebuilding rather than moving when the chain diverged', () => {
@@ -97,24 +92,20 @@ describe('what the exit is worth right now', () => {
 });
 
 describe('once the exit is complete', () => {
-  it('reports what the sweep actually paid out, and the fee as the gap to the balance', () => {
+  it('reports what the sweep actually paid out, not what the balance was', () => {
     renderTracker(
       twoLeaves([tx({ txid: 's', kind: 'sweep', txHex: sweepHex, status: confirmed(1000) })], { phase: 'complete' }),
     );
-    expect(screen.getByText('Unilateral exit complete')).toBeInTheDocument();
+    expect(screen.getByTestId('unilateral-exit-complete')).toHaveTextContent('Received');
     expect(screen.getAllByText(/596 524/).length).toBeGreaterThan(0);
-    expect(screen.getByText('Mining fees')).toBeInTheDocument();
-    // 600 000 - 596 524
-    expect(screen.getByText(/3 476/)).toBeInTheDocument();
+    expect(screen.queryByText(/600 000/)).not.toBeInTheDocument();
   });
 
-  it('explains more arriving than the balance as funding coming back', () => {
+  it('names the address the money went to', () => {
     renderTracker(
-      twoLeaves([tx({ txid: 's', kind: 'sweep', txHex: generousSweepHex, status: confirmed(3000) })], { phase: 'complete' }),
+      twoLeaves([tx({ txid: 's', kind: 'sweep', txHex: sweepHex, status: confirmed(1000) })], { phase: 'complete' }),
     );
-    expect(screen.getByText('Unused funding returned')).toBeInTheDocument();
-    expect(screen.getByText('882')).toBeInTheDocument();
-    expect(screen.queryByText('Mining fees')).not.toBeInTheDocument();
+    expect(screen.getByTestId('unilateral-exit-complete-destination')).toHaveTextContent('bc1qdest');
   });
 });
 
@@ -130,6 +121,9 @@ describe('TrackerView', () => {
   it('offers a fee bump while the exit is still running', () => {
     const onRebuild = vi.fn();
     renderTracker(plan([tx({ txid: 'a' })]), 1000, onRebuild);
+    // Kept out of the way under Advanced: an exit that is simply slow is not a
+    // reason to put a rebuild in front of everyone.
+    fireEvent.click(screen.getByText('Advanced'));
     screen.getByTestId('unilateral-exit-bump-fee').click();
     expect(onRebuild).toHaveBeenCalled();
   });
@@ -155,14 +149,11 @@ describe('TrackerView', () => {
     expect(screen.getByText('Cannot read the exit right now')).toBeInTheDocument();
   });
 
-  it('tells the user the exit survives closing the app', () => {
+  it('keeps an off-device copy reachable, since only this device holds what an exit needs', () => {
     renderTracker(plan([tx({ txid: 'a' })]));
-    expect(screen.getByText(/You can close this/)).toBeInTheDocument();
-  });
-
-  it('urges an off-device copy, since only this device holds what an exit needs', () => {
-    renderTracker(plan([tx({ txid: 'a' })]));
-    expect(screen.getByText('Back this up')).toBeInTheDocument();
+    expect(screen.queryByTestId('unilateral-exit-backup-save')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('Advanced'));
+    expect(screen.getByText('Save exit data')).toBeInTheDocument();
     expect(screen.getByTestId('unilateral-exit-backup-save')).toBeInTheDocument();
   });
 });

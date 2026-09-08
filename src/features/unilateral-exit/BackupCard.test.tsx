@@ -1,7 +1,7 @@
 import JSZip from 'jszip';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { BackupCard } from './BackupCard';
+import { BackupActions } from './BackupCard';
 
 const importUnilateralExitState = vi.fn();
 const exportUnilateralExitState = vi.fn(async () => ({ exitState: '{"leaves":[]}' }));
@@ -26,11 +26,11 @@ const backupFile = async (): Promise<File> => {
 };
 
 const restore = async (file: File) => {
-  render(<BackupCard />);
+  render(<BackupActions />);
   fireEvent.change(screen.getByTestId('unilateral-exit-backup-file'), { target: { files: [file] } });
 };
 
-describe('BackupCard', () => {
+describe('BackupActions', () => {
   it('says what was restored, so an empty import is not silent', async () => {
     importUnilateralExitState.mockResolvedValue(imported({ importedLeaves: 3 }));
     await restore(await backupFile());
@@ -63,7 +63,7 @@ describe('BackupCard', () => {
   });
 
   it('saves a copy', async () => {
-    render(<BackupCard />);
+    render(<BackupActions />);
     fireEvent.click(screen.getByTestId('unilateral-exit-backup-save'));
     await waitFor(() => expect(exportUnilateralExitState).toHaveBeenCalled());
   });
