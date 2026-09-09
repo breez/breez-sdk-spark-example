@@ -8,7 +8,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 REPO=breez/spark-sdk
-REV=07eb8d5861996746778acaea68d45c1235299ef5
+REV=5f8dbf170568222beda763dfd631ade50b80dc4b
 
 installed=node_modules/@breeztech/breez-sdk-spark
 if [ "$(cat "$installed/.built-rev" 2>/dev/null)" = "$REV" ]; then
