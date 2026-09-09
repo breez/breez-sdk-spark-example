@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { TrackerView } from './TrackerView';
 
 // The backup card reads the connected wallet; the tracker itself works off the
@@ -30,6 +30,36 @@ const twoLeaves = (transactions: Parameters<typeof plan>[0], over: Parameters<ty
 
 const renderTracker = (p: UnilateralExitPlan, tipHeight: number | null = 1000, onRebuild = vi.fn()) =>
   render(<TrackerView plan={p} tipHeight={tipHeight} isAdvancing={false} onRebuild={onRebuild} />);
+
+describe('the status line while a check runs', () => {
+  const advancing = () =>
+    render(
+      <TrackerView plan={twoLeaves([tx({ txid: 'r', kind: 'refund' })])} tipHeight={1000} isAdvancing onRebuild={vi.fn()} />,
+    );
+
+  it('says nothing about checking while the pass is quick', () => {
+    vi.useFakeTimers();
+    try {
+      advancing();
+      // A pass that returns this fast used to flip the line and flip it back.
+      act(() => { vi.advanceTimersByTime(200); });
+      expect(screen.getByTestId('unilateral-exit-status')).not.toHaveTextContent('Checking');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('explains itself once a pass is slow enough to notice', () => {
+    vi.useFakeTimers();
+    try {
+      advancing();
+      act(() => { vi.advanceTimersByTime(1_000); });
+      expect(screen.getByTestId('unilateral-exit-status')).toHaveTextContent('Checking');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
 
 describe('what the exit is worth right now', () => {
   it('counts only the sats that reached the destination, against the whole balance', () => {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { BackupActions, ExitActionRow } from './BackupCard';
 import { AlertCard } from '@/components/AlertCard';
 import { SatAmount } from '@/components/SatAmount';
@@ -25,6 +25,28 @@ const Ratio: React.FC<{ done: React.ReactNode; total: React.ReactNode }> = ({ do
   </span>
 );
 
+/**
+ * True once `active` has held for `delayMs`. A chain check that returns almost
+ * at once never trips it, so the status line does not flicker on every poll.
+ */
+const useHeldFor = (active: boolean, delayMs: number): boolean => {
+  const [held, setHeld] = useState(false);
+  useEffect(() => {
+    if (!active) return;
+    const timer = setTimeout(() => setHeld(true), delayMs);
+    // Reset on the way out rather than in the body, which would set state
+    // synchronously during the effect and cascade a render.
+    return () => {
+      clearTimeout(timer);
+      setHeld(false);
+    };
+  }, [active, delayMs]);
+  return held;
+};
+
+/** Long enough that a fast pass stays invisible, short enough to explain a slow one. */
+const CHECKING_VISIBLE_AFTER_MS = 600;
+
 const ExitSummary: React.FC<{
   plan: UnilateralExitPlan;
   blocksLeft: number | null;
@@ -35,7 +57,8 @@ const ExitSummary: React.FC<{
   const stages = exitStages(plan);
   const total = stages.inSpark + stages.onChain + stages.delivered;
 
-  const status = isAdvancing
+  const isChecking = useHeldFor(isAdvancing, CHECKING_VISIBLE_AFTER_MS);
+  const status = isChecking
     ? 'Checking the blockchain...'
     : next === null
       ? 'Waiting for confirmations'
