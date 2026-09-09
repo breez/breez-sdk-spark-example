@@ -19,7 +19,6 @@ export type UnilateralExitPhase =
   | 'quote'
   | 'unlock'
   | 'fund'
-  | 'confirm'
   | 'building'
   | 'tracker';
 
@@ -29,7 +28,6 @@ const BACK: Partial<Record<UnilateralExitPhase, UnilateralExitPhase>> = {
   quote: 'fee',
   unlock: 'quote',
   fund: 'quote',
-  confirm: 'fund',
 };
 
 export type FeeChoice = 'slow' | 'medium' | 'fast';
@@ -298,7 +296,7 @@ export function useUnilateralExitFlow(network: string): UnilateralExitFlow {
     } catch (e) {
       logger.error(LogCategory.SDK, 'Failed to build unilateral exit', { error: message(e) });
       setBuildError(message(e));
-      setPhase('confirm');
+      setPhase('fund');
     } finally {
       release();
     }

@@ -9,7 +9,6 @@ import { DestinationStep } from '@/features/unilateral-exit/steps/DestinationSte
 import { FeeStep } from '@/features/unilateral-exit/steps/FeeStep';
 import { QuoteStep } from '@/features/unilateral-exit/steps/QuoteStep';
 import { FundStep } from '@/features/unilateral-exit/steps/FundStep';
-import { ConfirmStep } from '@/features/unilateral-exit/steps/ConfirmStep';
 import { TrackerView } from '@/features/unilateral-exit/TrackerView';
 
 interface UnilateralExitPageProps {
@@ -88,17 +87,11 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
       case 'fund':
         return (
           <PrimaryButton
-            onClick={() => flow.goTo('confirm')}
+            onClick={() => void flow.build()}
             disabled={!flow.funding?.isFunded}
             className="w-full"
-            data-testid="unilateral-exit-fund-continue"
+            data-testid="unilateral-exit-build"
           >
-            Exit Spark
-          </PrimaryButton>
-        );
-      case 'confirm':
-        return (
-          <PrimaryButton onClick={() => void flow.build()} className="w-full" data-testid="unilateral-exit-build">
             Exit Spark
           </PrimaryButton>
         );
@@ -144,18 +137,9 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
           )}
 
           {flow.phase === 'fund' && flow.funding && (
-            <FundStep {...flow.funding} />
+            <FundStep {...flow.funding} error={flow.buildError} />
           )}
 
-          {flow.phase === 'confirm' && flow.quote.quote && flow.funding && (
-            <ConfirmStep
-              quote={flow.quote.quote}
-              sweepFeeSat={flow.quote.sweepFeeSat}
-              willReceiveSat={flow.quote.willReceiveSat}
-              fundedSat={flow.funding.fundedSat}
-              error={flow.buildError}
-            />
-          )}
 
           {flow.phase === 'building' && (
             <div className="py-16 flex flex-col items-center justify-center gap-4">

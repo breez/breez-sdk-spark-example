@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { FundStep } from './FundStep';
 
@@ -9,14 +9,18 @@ const props = {
   isFunded: false,
   hasPendingDeposit: false,
   isResuming: false,
-  onBack: vi.fn(),
-  onContinue: vi.fn(),
+  error: null,
 };
 
 describe('FundStep', () => {
   it('names the amount a fresh exit needs', () => {
     render(<FundStep {...props} />);
     expect(screen.getAllByText(/5 898/).length).toBeGreaterThan(0);
+  });
+
+  it('reports a failed build, since the button that starts it is here', () => {
+    render(<FundStep {...props} error="signing failed" />);
+    expect(screen.getByText(/signing failed/)).toBeInTheDocument();
   });
 
   it('does not quote a fresh exit price to an exit already under way', () => {

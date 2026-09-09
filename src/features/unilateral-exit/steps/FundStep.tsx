@@ -1,17 +1,18 @@
 import React from 'react';
-import { CopyableRow } from '@/components/ui';
+import { CopyableRow, ErrorMessageBox } from '@/components/ui';
 import { SatAmount } from '@/components/SatAmount';
 import { CheckIcon, ClockIcon } from '@/components/Icons';
 import { truncateAddress } from '@/utils/crossChainFormat';
 import type { FundingFields } from '../hooks/useUnilateralExitFlow';
 
-export const FundStep: React.FC<FundingFields> = ({
+export const FundStep: React.FC<FundingFields & { error: string | null }> = ({
   address,
   requiredSat,
   fundedSat,
   isFunded,
   hasPendingDeposit,
   isResuming,
+  error,
 }) => (
   <div className="space-y-6">
     <div className="text-center py-4">
@@ -45,6 +46,8 @@ export const FundStep: React.FC<FundingFields> = ({
             : 'Waiting for your deposit'}
       </p>
     </div>
+
+    {error && <ErrorMessageBox title="Could not build the exit" error={error} />}
 
     {(isResuming || !isFunded) && (
       <p className="text-spark-text-muted text-xs">

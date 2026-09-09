@@ -30,6 +30,16 @@ export const storedPlan = async (page: Page): Promise<UnilateralExitPlan | null>
     return key ? (JSON.parse(localStorage.getItem(key) as string) as UnilateralExitPlan) : null;
   });
 
+/**
+ * The finished exits the engine recorded. The plan slot is handed back when an
+ * exit lands, so what it delivered is read from here afterwards.
+ */
+export const storedArchive = async (page: Page): Promise<{ deliveredSat: number }[]> =>
+  page.evaluate(() => {
+    const key = Object.keys(localStorage).find(k => k.startsWith('unilateral-exit-archive:'));
+    return key ? (JSON.parse(localStorage.getItem(key) as string) as { deliveredSat: number }[]) : [];
+  });
+
 /** Every node transaction is on-chain, which is what starts the refund clocks. */
 export const nodesConfirmed = async (page: Page): Promise<boolean> => {
   const plan = await storedPlan(page);
@@ -89,11 +99,10 @@ export const driveWizardToTracker = async (
   await sendToAddress(funding, 0.0002);
   await mineBlocks(1);
 
-  const fundContinue = page.getByTestId('unilateral-exit-fund-continue');
-  await expect(fundContinue).toBeEnabled({ timeout: TIMEOUTS.BALANCE_SYNC });
-  await fundContinue.click();
-
-  await page.getByTestId('unilateral-exit-build').click();
+  // The funding step commits the exit: there is no summary screen between.
+  const build = page.getByTestId('unilateral-exit-build');
+  await expect(build).toBeEnabled({ timeout: TIMEOUTS.BALANCE_SYNC });
+  await build.click();
   await expect(page.getByTestId('unilateral-exit-tracker')).toBeVisible({
     timeout: TIMEOUTS.PAYMENT,
   });

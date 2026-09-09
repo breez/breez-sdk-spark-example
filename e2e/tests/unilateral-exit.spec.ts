@@ -20,6 +20,7 @@ import {
   nodesConfirmed,
   openUnilateralExit,
   openWallet,
+  storedArchive,
   storedPlan,
 } from '../utils/exitWizard';
 
@@ -248,22 +249,23 @@ test.describe('Unilateral exit', () => {
     // than the balance, and a tracker figure that disagreed with what landed.
     await test.step('what the app promised matches what arrived', async () => {
       const balance = await addressBalanceSats(destination);
-      const plan = (await storedPlan(page))!;
 
       // The figure is the balance less the sweep's fee, funding treated as spent.
       // That makes it a floor: the sweep also collects the change its fee-paying
       // children left, and then more arrives than was promised. Under it, never
       // over.
-      const funded = plan.exit.fundingInputs.reduce((sum, input) => sum + input.value, 0);
+      const funded = built!.exit.fundingInputs.reduce((sum, input) => sum + input.value, 0);
       expect(balance).toBeGreaterThanOrEqual(promised);
       expect(balance).toBeLessThanOrEqual(promised + funded);
 
-      // Once the sweep is in a block the figure is read straight off it.
-      expect(willReceiveSat(plan)).toBe(balance);
+      // The exit is archived with what actually landed, which is the figure the
+      // wallet list then shows.
+      const [archived] = await storedArchive(page);
+      expect(archived?.deliveredSat).toBe(balance);
 
       // The exit cost something, so it is not silently a no-op. Against balance
       // plus funding, since the funding can arrive too.
-      expect(balance).toBeLessThan(plan.exit.recoverableValueSat + funded);
+      expect(balance).toBeLessThan(built!.exit.recoverableValueSat + funded);
     });
   });
 
