@@ -16,7 +16,9 @@ export const ExitActionRow: React.FC<{
   <button
     onClick={onClick}
     disabled={disabled}
-    className="flex items-center gap-3 w-full px-1 py-3 text-sm font-medium text-spark-text-secondary hover:text-spark-text-primary transition-colors disabled:opacity-50"
+    // The settings page's Export Database control: these are actions, and as
+    // divided rows they read as a list of settings instead.
+    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium border border-spark-border rounded-xl text-spark-text-secondary hover:text-spark-text-primary hover:bg-white/5 transition-colors disabled:opacity-50"
     data-testid={testId}
   >
     {icon}
@@ -29,8 +31,8 @@ export const ExitActionRow: React.FC<{
  * started, not only once one is running: the file exists for the case where the
  * operators have stopped answering and nothing else can supply it.
  *
- * Rendered as plain rows so it can sit inside the Advanced section, which is
- * where both entry points keep it.
+ * Rendered bare so it can sit inside the Advanced section, which is where
+ * both entry points keep it.
  *
  * `frozen` is an in-flight exit's own copy, saved in preference to a fresh
  * export.
@@ -79,7 +81,7 @@ export const BackupActions: React.FC<{ frozen?: string; children?: React.ReactNo
 
   return (
     <div>
-      <div className="divide-y divide-spark-border">
+      <div className="flex flex-col gap-2">
         <ExitActionRow
           label="Save exit data"
           icon={<DownloadIcon size="md" />}
@@ -97,9 +99,9 @@ export const BackupActions: React.FC<{ frozen?: string; children?: React.ReactNo
         {children}
       </div>
 
-      {busy && <p className="text-sm text-spark-text-muted px-1">{busy === 'saving' ? 'Preparing...' : 'Restoring...'}</p>}
-      {result && <p className="text-sm text-spark-text-primary px-1" data-testid="unilateral-exit-backup-result">{result}</p>}
-      {error && <p className="text-sm text-spark-error px-1" data-testid="unilateral-exit-backup-error">{error}</p>}
+      {busy && <p className="text-sm text-spark-text-muted mt-2">{busy === 'saving' ? 'Preparing...' : 'Restoring...'}</p>}
+      {result && <p className="text-sm text-spark-text-primary mt-2" data-testid="unilateral-exit-backup-result">{result}</p>}
+      {error && <p className="text-sm text-spark-error mt-2" data-testid="unilateral-exit-backup-error">{error}</p>}
 
       <input
         ref={picker}

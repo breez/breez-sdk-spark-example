@@ -178,6 +178,7 @@ export const TrackerView: React.FC<{
         label="Advanced"
         isVisible={advanced}
         onToggle={() => setAdvanced(v => !v)}
+        bare
       >
         <BackupActions frozen={plan.exitStateSnapshot}>
           {plan.phase === 'active' && (

@@ -31,6 +31,7 @@ export const IntroStep: React.FC = () => {
         label="Advanced"
         isVisible={advanced}
         onToggle={() => setAdvanced(v => !v)}
+        bare
       >
         <BackupActions />
       </CollapsibleSection>
