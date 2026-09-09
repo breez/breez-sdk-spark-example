@@ -11,9 +11,11 @@ interface QrScannerDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onScan: (data: string) => void;
+  /** Raise it past a sheet it was opened from, which would otherwise cover it. */
+  zIndex?: number;
 }
 
-const QrScannerDialog: React.FC<QrScannerDialogProps> = ({ isOpen, onClose, onScan }) => {
+const QrScannerDialog: React.FC<QrScannerDialogProps> = ({ isOpen, onClose, onScan, zIndex }) => {
   // Status / nav bar tints are handled by the shared BottomSheetContainer
   // since this dialog is mounted with fullHeight — isFullScreen is true
   // for the whole open lifetime, so both bars get the spark-surface push.
@@ -101,7 +103,7 @@ const QrScannerDialog: React.FC<QrScannerDialogProps> = ({ isOpen, onClose, onSc
   };
 
   return (
-    <BottomSheetContainer isOpen={isOpen} onClose={handleClose} fullHeight maxWidth="full">
+    <BottomSheetContainer isOpen={isOpen} onClose={handleClose} fullHeight maxWidth="full" zIndex={zIndex}>
       {/* Respect the notch / home indicator safe areas. Without this
           the camera feed extends under the Dynamic Island on iOS and
           the gallery / camera-flip buttons can land behind the

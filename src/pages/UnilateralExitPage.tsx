@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import SlideInPage from '@/components/layout/SlideInPage';
-import { ErrorMessageBox, LoadingSpinner, PrimaryButton } from '@/components/ui';
+import {
+  BottomSheetCard,
+  BottomSheetContainer,
+  DialogHeader,
+  ErrorMessageBox,
+  LoadingSpinner,
+  PrimaryButton,
+} from '@/components/ui';
 import { PinGate } from '@/components/PinEntry';
+import QrScannerDialog from '@/components/QrScannerDialog';
 import { isPinEnabled } from '@/services/appLock';
 import { canContinueFromQuote, useUnilateralExitFlow } from '@/features/unilateral-exit/hooks/useUnilateralExitFlow';
 import { IntroStep } from '@/features/unilateral-exit/steps/IntroStep';
@@ -25,6 +33,7 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
   // is, the step passes straight through.
   const { unlock } = flow;
   const [gate, setGate] = useState<'pin' | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
   useEffect(() => {
     if (flow.phase !== 'unlock') return;
     let cancelled = false;
@@ -47,14 +56,14 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
 
   // One call to action per step, in the bar the rest of the app puts it in.
   // A step with nothing to press, such as the pin gate or the build, has none.
-  const footer = (() => {
+  const introFooter = (
+    <PrimaryButton onClick={() => flow.goTo('destination')} className="w-full" data-testid="unilateral-exit-start">
+      Continue
+    </PrimaryButton>
+  );
+
+  const stepAction = (() => {
     switch (flow.phase) {
-      case 'intro':
-        return (
-          <PrimaryButton onClick={() => flow.goTo('destination')} className="w-full" data-testid="unilateral-exit-start">
-            Continue
-          </PrimaryButton>
-        );
       case 'destination':
         return (
           <PrimaryButton
@@ -101,66 +110,91 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
   })();
 
   return (
-    <SlideInPage
-      title="Unilateral Exit"
-      closeStyle="back"
-      onClose={onBack}
-      onHeaderBack={flow.canGoBack ? flow.back : undefined}
-      slideFrom="left"
-      footer={footer}
-    >
-      <div className="p-4">
-        <div className="max-w-xl mx-auto w-full">
-          {flow.phase === 'intro' && <IntroStep />}
-
-          {flow.phase === 'destination' && (
-            <DestinationStep {...flow.destination} />
-          )}
-
-          {flow.phase === 'fee' && (
-            <FeeStep {...flow.fee} />
-          )}
-
-          {flow.phase === 'quote' && (
-            <QuoteStep {...flow.quote} />
-          )}
-
-          {flow.phase === 'unlock' && (
-            <div className="space-y-6">
-              {gate === 'pin' && (
-                <PinGate reason="Unilateral exit" onUnlocked={() => void flow.unlock()} />
-              )}
-              {flow.unlockError && (
-                <ErrorMessageBox title="Cannot reach your recovery phrase" error={flow.unlockError} />
-              )}
-            </div>
-          )}
-
-          {flow.phase === 'fund' && flow.funding && (
-            <FundStep {...flow.funding} error={flow.buildError} />
-          )}
-
-
-          {flow.phase === 'building' && (
-            <div className="py-16 flex flex-col items-center justify-center gap-4">
-              <LoadingSpinner text="Building and signing the exit..." />
-              <p className="text-spark-text-muted text-xs text-center">
-                Keep this window open until it finishes.
-              </p>
-            </div>
-          )}
-
-          {flow.phase === 'tracker' && flow.engine.plan && (
-            <TrackerView
-              plan={flow.engine.plan}
-              tipHeight={flow.engine.tipHeight}
-              isAdvancing={flow.engine.isAdvancing}
-              onRebuild={flow.rebuild}
-            />
-          )}
+    <>
+      <SlideInPage title="Unilateral Exit" onClose={onBack} slideFrom="left" footer={introFooter}>
+        <div className="p-4">
+          <div className="max-w-xl mx-auto w-full">
+            <IntroStep />
+          </div>
         </div>
-      </div>
-    </SlideInPage>
+      </SlideInPage>
+
+      {/* Above SlideInPage's z-60 wrapper: the sheet portals to #root as its
+          sibling, so at the default z-50 it opens behind the page. */}
+      <BottomSheetContainer isOpen={flow.phase !== 'intro'} onClose={onBack} zIndex={70} showBackdrop>
+        <BottomSheetCard>
+          <DialogHeader
+            // Names the flow, not the step: each step already labels its own
+            // field, and the send sheet titles itself the same way.
+            title="Unilateral Exit"
+            onClose={onBack}
+            onBack={flow.canGoBack ? flow.back : undefined}
+          />
+
+          <div className="space-y-6">
+            {flow.phase === 'destination' && (
+              <DestinationStep
+                {...flow.destination}
+                onSubmit={() => void flow.submitDestination()}
+                onScanQr={() => setIsScanning(true)}
+              />
+            )}
+
+            {flow.phase === 'fee' && <FeeStep {...flow.fee} />}
+
+            {flow.phase === 'quote' && <QuoteStep {...flow.quote} />}
+
+            {flow.phase === 'unlock' && (
+              <>
+                {gate === 'pin' && (
+                  <PinGate reason="Unilateral exit" onUnlocked={() => void flow.unlock()} />
+                )}
+                {flow.unlockError && (
+                  <ErrorMessageBox title="Cannot reach your recovery phrase" error={flow.unlockError} />
+                )}
+              </>
+            )}
+
+            {flow.phase === 'fund' && flow.funding && (
+              <FundStep {...flow.funding} error={flow.buildError} />
+            )}
+
+            {flow.phase === 'building' && (
+              <div className="py-16 flex flex-col items-center justify-center gap-4">
+                <LoadingSpinner text="Building and signing the exit..." />
+                <p className="text-spark-text-muted text-xs text-center">
+                  Keep this window open until it finishes.
+                </p>
+              </div>
+            )}
+
+            {flow.phase === 'tracker' && flow.engine.plan && (
+              <TrackerView
+                plan={flow.engine.plan}
+                tipHeight={flow.engine.tipHeight}
+                isAdvancing={flow.engine.isAdvancing}
+                onRebuild={flow.rebuild}
+              />
+            )}
+
+            {/* The sheet keeps its action in the content: at a partial snap a
+                sticky footer sits below the viewport. */}
+            {stepAction}
+          </div>
+        </BottomSheetCard>
+      </BottomSheetContainer>
+
+      {/* Over the exit sheet, which is itself over the page. */}
+      <QrScannerDialog
+        isOpen={isScanning}
+        zIndex={80}
+        onClose={() => setIsScanning(false)}
+        onScan={scanned => {
+          flow.destination.onChange(scanned.trim());
+          setIsScanning(false);
+        }}
+      />
+    </>
   );
 };
 

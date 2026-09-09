@@ -21,7 +21,7 @@ export const FeeStep: React.FC<FeeFields> = ({ feeRates, feeChoice, onSelect }) 
   return (
     <div className="space-y-6">
       <div>
-        <span className="block text-sm font-medium text-spark-text-secondary mb-2">
+        <span className="block text-sm font-medium text-spark-text-primary mb-2">
           Fee rate
         </span>
         <div className="grid grid-cols-3 gap-2">
