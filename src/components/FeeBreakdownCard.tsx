@@ -11,6 +11,12 @@ export interface FeeBreakdownItem {
   value: number | bigint | string;
   unit?: string;
   highlight?: boolean;
+  /**
+   * Lifts a row without giving it the accent: for the figure a control on the
+   * screen changes, where `highlight` is reserved for the one the user is
+   * actually here for. Ignored on a `highlight` row.
+   */
+  emphasis?: boolean;
   /** Marker set before the amount, e.g. "~" for a figure that is estimated. */
   prefix?: string;
 }
@@ -46,10 +52,10 @@ export const FeeBreakdownCard: React.FC<FeeBreakdownCardProps> = ({
         <React.Fragment key={item.label}>
           {index > 0 && <div className="border-t border-spark-border/50" />}
           <div className="flex justify-between items-center">
-            <span className={`text-sm ${item.highlight ? 'text-spark-text-primary font-semibold' : 'text-spark-text-secondary'}`}>
+            <span className={`text-sm ${item.highlight ? 'text-spark-text-primary font-semibold' : item.emphasis ? 'text-spark-text-primary' : 'text-spark-text-secondary'}`}>
               {item.label}
             </span>
-            <span className={`font-mono text-sm ${item.highlight ? 'font-bold text-spark-primary' : 'text-spark-text-primary'}`}>
+            <span className={`font-mono text-sm ${item.highlight ? 'font-bold text-spark-primary' : item.emphasis ? 'font-semibold text-spark-text-primary' : 'text-spark-text-primary'}`}>
               {item.prefix}
               {useRawStrings || typeof item.value === 'string'
                 ? String(item.value)
