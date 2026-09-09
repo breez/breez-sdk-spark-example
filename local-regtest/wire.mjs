@@ -143,12 +143,28 @@ const bitcoindDataVolume = () =>
     .toString()
     .trim();
 
+// Docker gives host-gateway both an A and an AAAA record, and electrs picks the
+// AAAA, which bitcoind's IPv4-only forwarder never answers. Falls back to the
+// name where the lookup cannot run: hosts without the AAAA resolve it fine.
+const bitcoindHost = () => {
+  try {
+    return execSync(
+      `docker run --rm --add-host=h:host-gateway alpine getent ahostsv4 h | head -1 | cut -d' ' -f1`,
+      { shell: '/bin/bash', stdio: ['ignore', 'pipe', 'ignore'] },
+    )
+      .toString()
+      .trim();
+  } catch {
+    return 'host.docker.internal';
+  }
+};
+
 const rpc = new URL(cluster.bitcoind.rpcUrl);
 const composeEnvPath = inRepo('local-regtest/.env');
 writeFileSync(
   composeEnvPath,
   [
-    `BITCOIND_HOST=host.docker.internal`,
+    `BITCOIND_HOST=${bitcoindHost()}`,
     `BITCOIND_RPC_PORT=${rpc.port}`,
     `BITCOIND_RPC_USER=${cluster.bitcoind.rpcUser}`,
     `BITCOIND_RPC_PASSWORD=${cluster.bitcoind.rpcPassword}`,
