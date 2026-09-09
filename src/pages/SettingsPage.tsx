@@ -497,15 +497,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
           {isDevMode && (
             <div className="bg-spark-dark border border-spark-border rounded-2xl p-4">
               <h3 className="font-display font-semibold text-spark-text-primary mb-1">Unilateral Exit</h3>
-              {/* The warning belongs with the decision to start, so it is here
-                  rather than on the first screen of the flow it introduces. The
-                  second half is the part that decides whether to start at all,
-                  so it carries the warn surface rather than the muted grey. */}
               <p className="text-sm text-spark-text-muted mb-3">
-                Move your balance on-chain without Spark operators.{' '}
-                <span className="text-spark-primary">
-                  Use this only if Spark stops operating. This is a last-resort action.
-                </span>
+                Move your balance on-chain without Spark operators.
               </p>
               <button
                 className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium border border-spark-warn-border rounded-xl text-spark-warn-text hover:bg-white/5 transition-colors"
@@ -519,6 +512,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 </div>
                 <ChevronRightIcon size="md" />
               </button>
+              {/* The warning belongs with the decision to start, so it is here
+                  rather than on the first screen of the flow it introduces.
+                  Under the button, where it reads as the caveat on pressing it
+                  rather than part of the description above. */}
+              <p className="text-xs text-spark-primary mt-2">
+                Use this only if Spark stops operating. This is a last-resort action.
+              </p>
             </div>
           )}
 
