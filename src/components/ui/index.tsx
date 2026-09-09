@@ -136,9 +136,11 @@ export const DialogHeader: React.FC<{
 
 export const PaymentInfoCard: React.FC<{
   children: ReactNode;
+  /** Tighter padding, for a card holding a single row rather than a list. */
+  compact?: boolean;
   className?: string;
-}> = ({ children, className = "" }) => (
-  <div className={`bg-spark-dark/50 border border-spark-border rounded-2xl p-5 space-y-4 ${className}`}>
+}> = ({ children, compact = false, className = "" }) => (
+  <div className={`bg-spark-dark/50 border border-spark-border rounded-2xl ${compact ? 'p-4' : 'p-5'} space-y-4 ${className}`}>
     {children}
   </div>
 );
@@ -181,7 +183,9 @@ export const CollapsibleSection: React.FC<{
   <div className="py-2">
     <button
       onClick={onToggle}
-      className="flex justify-between items-center w-full text-left"
+      // py-2 for a 44px target, pulled back by -my-2 so the row occupies the
+      // height it always did. Same trick as DialogHeader's close control.
+      className="flex justify-between items-center w-full text-left py-2 -my-2"
     >
       <span className="text-spark-text-secondary text-sm">{label}</span>
       <span className="text-spark-primary hover:text-spark-primary-light flex items-center transition-colors p-1">

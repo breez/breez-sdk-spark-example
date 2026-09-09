@@ -70,7 +70,13 @@ const WalletPage: React.FC<WalletPageProps> = ({
   const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
   const [scannerOpenedFromSend, setScannerOpenedFromSend] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [selectedDeposit, setSelectedDeposit] = useState<DepositInfo | null>(null);
+  // The outpoint, not the record: held as a copy the deposit's maturity, fee
+  // error and claim status all freeze at tap time, and the sheet spends its
+  // life offering routes for a state the deposit has already left.
+  const [selectedOutpoint, setSelectedOutpoint] = useState<string | null>(null);
+  const selectedDeposit = selectedOutpoint
+    ? unclaimedDeposits.find(d => `${d.txid}:${d.vout}` === selectedOutpoint) ?? null
+    : null;
   const [paymentInput, setPaymentInput] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isBuyBitcoinOpen, setIsBuyBitcoinOpen] = useState(false);
@@ -127,14 +133,14 @@ const WalletPage: React.FC<WalletPageProps> = ({
       setIsSendDialogOpen(false);
       setIsReceiveDialogOpen(false);
       setSelectedPayment(null);
-      setSelectedDeposit(null);
+      setSelectedOutpoint(null);
       return;
     }
 
     // Check if this is an unclaimed deposit
     if (isUnclaimedDepositPayment(payment) && payment.depositInfo) {
       // Open deposit details dialog
-      setSelectedDeposit(payment.depositInfo);
+      setSelectedOutpoint(`${payment.depositInfo.txid}:${payment.depositInfo.vout}`);
     } else {
       // Open regular payment details
       setSelectedPayment(payment);
@@ -146,11 +152,11 @@ const WalletPage: React.FC<WalletPageProps> = ({
   }, []);
 
   const handleDepositDetailsClose = useCallback(() => {
-    setSelectedDeposit(null);
+    setSelectedOutpoint(null);
   }, []);
 
   const handleDepositChanged = useCallback(async () => {
-    setSelectedDeposit(null);
+    setSelectedOutpoint(null);
     onDepositChanged?.();
     await refreshWalletData(false);
   }, [onDepositChanged, refreshWalletData]);

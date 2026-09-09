@@ -1,8 +1,5 @@
 import type { ClaimDepositQuote, DepositInfo, FetchClaimDepositQuoteResponse, InstantClaimStatus } from '@breeztech/breez-sdk-spark';
 
-/** Rough block interval, for turning a confirmation depth into a wait. */
-const MINUTES_PER_BLOCK = 10;
-
 /**
  * Copy for a submitted early claim. Shared because the SDK raises no event for a
  * manual claim, so the sheet announces that one itself while background sync
@@ -33,13 +30,20 @@ export function isClaimable(option: ClaimDepositQuote, confirmations: number): b
   return blocksToWait(option, confirmations) === 0;
 }
 
-/** Approximate wait for `blocks`, or null when there is nothing left to wait for. */
+/** Rough block interval, for glossing a confirmation count in minutes. */
+const MINUTES_PER_BLOCK = 10;
+
+/**
+ * A wait led by its confirmation count, with the time in parentheses. The count
+ * is exact and drops each time a block lands; the minutes only say what a
+ * confirmation costs. Leading with minutes would read as a countdown that never
+ * counts down, since block arrival is memoryless: twenty minutes into a
+ * two-block wait the expectation is still two blocks, not one minute.
+ */
 export function formatWait(blocks: number): string | null {
   if (blocks <= 0) return null;
-  const minutes = blocks * MINUTES_PER_BLOCK;
-  if (minutes < 60) return `~${minutes} min`;
-  const hours = minutes / 60;
-  return `~${Number.isInteger(hours) ? hours : hours.toFixed(1)} hr`;
+  const plural = blocks === 1 ? '' : 's';
+  return `${blocks} confirmation${plural} (~${blocks * MINUTES_PER_BLOCK} mins)`;
 }
 
 /**
@@ -51,20 +55,21 @@ export function earlyOption(quote: FetchClaimDepositQuoteResponse | null): Claim
   if (!quote?.instant) return null;
   // No point offering a route that unlocks no sooner than simply waiting.
   if (quote.instant.confirmationsRequired >= quote.mature.confirmationsRequired) return null;
+  // Nothing left to skip once the automatic claim is due: the spread would buy
+  // one sync cycle at many times the fee the SDK is about to pay anyway.
+  if (blocksToWait(quote.mature, quote.confirmations) === 0) return null;
   return quote.instant;
 }
 
 /**
- * The option a preference resolves to. Shared so a re-quote can be compared
- * against the same selection the user made, not just against `instant`.
+ * The option the sheet prices. The early route only once it can actually be
+ * claimed: priced before then it would headline the proceeds of a purchase the
+ * user cannot make, against a wait that is what will really happen.
  */
-export function selectOption(
-  quote: FetchClaimDepositQuoteResponse | null,
-  preferEarly: boolean,
-): ClaimDepositQuote | null {
+export function selectOption(quote: FetchClaimDepositQuoteResponse | null): ClaimDepositQuote | null {
   if (!quote) return null;
   const early = earlyOption(quote);
-  return early && preferEarly ? early : quote.mature;
+  return early && isClaimable(early, quote.confirmations) ? early : quote.mature;
 }
 
 /** True while a claim is in flight, during which the SDK refuses a second one. */

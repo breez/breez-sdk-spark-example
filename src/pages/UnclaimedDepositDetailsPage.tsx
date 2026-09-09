@@ -9,14 +9,15 @@ import type {
   InstantClaimStatus,
   MaxFee,
 } from '@breeztech/breez-sdk-spark';
-import { BottomSheetContainer, BottomSheetCard, DialogHeader, FormError, PrimaryButton, SecondaryButton, PaymentInfoCard, CollapsibleCodeField } from '../components/ui';
+import { BottomSheetContainer, BottomSheetCard, DialogHeader, PrimaryButton, SecondaryButton, PaymentInfoCard, CollapsibleCodeField } from '../components/ui';
 import { FeeBreakdownCard } from '../components/FeeBreakdownCard';
 import { SpinnerIcon } from '../components/Icons';
 import { AlertCard } from '../components/AlertCard';
 import { SatAmount } from '../components/SatAmount';
-import { rejectDeposit, removeRejectedDeposit } from '../services/depositState';
+import { forgetClaimFee, readClaimFee, rejectDeposit, rememberClaimFee, removeRejectedDeposit } from '../services/depositState';
 import { explorerTxUrl } from '../utils/explorer';
-import { isPriorityDepositClaimEnabled } from '../services/settings';
+import { getSettings, isPriorityDepositClaimEnabled } from '../services/settings';
+import { formatWithSpaces } from '../utils/formatNumber';
 import {
   CLAIM_SUBMITTED_LINE,
   INSTANT_CLAIM_SUBMITTED_TOAST,
@@ -94,58 +95,95 @@ async function findFreshDeposit(wallet: BreezSdk, deposit: DepositInfo): Promise
 }
 
 /**
+ * True while there is content below the scroller's current position: not merely
+ * whether it can scroll, so the hint disappears once you have reached the end
+ * rather than sitting over the last line of it.
+ */
+function useMoreBelow(ref: React.RefObject<HTMLDivElement | null>, deps: unknown[]) {
+  const [moreBelow, setMoreBelow] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setMoreBelow(el.scrollHeight - el.scrollTop - el.clientHeight > 1);
+    measure();
+    el.addEventListener('scroll', measure, { passive: true });
+    // Catches the sheet resizing; the deps catch the content changing under it.
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener('scroll', measure);
+      observer.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ref, ...deps]);
+  return moreBelow;
+}
+
+/**
  * The sheet body, capped in dvh so the card stays fully on screen: unbounded,
  * the content snap is measured against the URL-bar-hidden viewport, so the card
  * runs past the visible one while its scroller still believes it fits.
  *
- * Its own component because the cap reads the sheet's snap, and that context is
- * provided by BottomSheetContainer. Read in the component that renders the
- * container it would only ever see the default, leaving the cap stuck at 65dvh.
+ * 74dvh is the smallest cap that fits every ordinary state on an iPhone 14 with
+ * nothing clipped. It stays a cap rather than growing for the taller states: the
+ * container measures content once and holds that snap, so a body that grew
+ * afterwards would carry the footer past the bottom of the viewport with it.
  */
 const SheetBody: React.FC<{ children: ReactNode }> = ({ children }) => {
   const isSheetFull = useSheetFullSnap();
   return (
-    <div className="flex flex-col" style={{ maxHeight: isSheetFull ? '85dvh' : '65dvh' }}>
+    <div className="flex flex-col" style={{ maxHeight: isSheetFull ? '85dvh' : '74dvh' }}>
       {children}
     </div>
   );
 };
 
-/** One of the two ways to claim, or a faded placeholder when it is not on offer. */
-const DeliveryOption: React.FC<{
+/** Ties the claim button to the offer it takes without putting it in the label. */
+const INSTANT_OFFER_ID = 'instant-claim-offer';
+
+/**
+ * One delivery speed. A full-width row rather than a half-width tile: the names
+ * are what distinguish the two, so they get the space, and the fees line up in
+ * one column down the right where they can be compared.
+ */
+const SpeedOption: React.FC<{
   label: string;
-  active: boolean;
+  detail: string;
+  feeSats: number;
+  isEstimate: boolean;
+  selected: boolean;
+  /** Priced and named, but not yet claimable: shown so the route is known to be
+   *  coming, disabled because claiming below its floor is refused. */
+  locked?: boolean;
   onSelect: () => void;
-  /** The quote, or null when this route is not on offer for this deposit. */
-  option: ClaimDepositQuote | null;
-  wait: string | null;
-}> = ({ label, active, onSelect, option, wait }) => (
+}> = ({ label, detail, feeSats, isEstimate, selected, locked = false, onSelect }) => (
   <button
     role="radio"
-    aria-checked={active}
-    onClick={option ? onSelect : undefined}
-    // aria-disabled, not disabled: the route being unavailable is the point, and
-    // a disabled control drops out of the group rather than announcing that.
-    aria-disabled={!option}
-    className={`flex-1 p-3 rounded-2xl border text-left transition-all ${
-      !option
-        ? 'bg-spark-dark border-spark-border opacity-40 cursor-not-allowed'
-        : active
+    aria-checked={selected}
+    aria-disabled={locked}
+    onClick={locked ? undefined : onSelect}
+    className={`w-full flex items-center justify-between gap-3 p-3 rounded-2xl border text-left transition-colors ${
+      locked
+        ? 'bg-spark-dark border-spark-border opacity-60 cursor-default'
+        : selected
           ? 'bg-spark-primary/10 border-spark-primary'
           : 'bg-spark-dark border-spark-border hover:border-spark-border-light'
     }`}
   >
-    <div className="font-display font-medium text-spark-text-primary">{label}</div>
-    <div className="text-xs text-spark-text-muted mt-0.5">
-      {option ? (wait ?? 'Now') : 'Not available'}
-    </div>
-    {option && (
-      <div className="text-sm text-spark-text-secondary mt-1">
-        {/* Until a deposit is deep enough to claim at maturity there is nothing
-            for the provider to price, so that figure comes off onchain rates. */}
-        {option.isEstimate && '~'}<SatAmount sats={option.feeSats} />
-      </div>
-    )}
+    <span className="flex items-center gap-3 min-w-0">
+      <span className={`shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+        selected ? 'border-spark-primary' : 'border-spark-border-light'
+      }`}>
+        {selected && <span className="w-2 h-2 rounded-full bg-spark-primary" />}
+      </span>
+      <span className="min-w-0">
+        <span className="block font-display font-medium text-spark-text-primary">{label}</span>
+        <span className="block text-xs text-spark-text-muted mt-0.5">{detail}</span>
+      </span>
+    </span>
+    <span className="shrink-0 text-sm text-spark-text-secondary whitespace-nowrap">
+      {isEstimate && '~'}<SatAmount sats={feeSats} />
+    </span>
   </button>
 );
 
@@ -158,9 +196,9 @@ const UnclaimedDepositDetailsPage: React.FC<UnclaimedDepositDetailsPageProps> = 
   const subscribeToSdkEvents = useSdkEvents();
   const { showToast } = useToast();
 
-  // Parent keys this component on deposit identity, so the prop is stable per
-  // mount and never picks up a later claim outcome. Everything after the first
-  // read comes from handleClaim's retries or from the sync listener below.
+  // Seeded from the record and kept current by handleClaim's retries and by the
+  // sync listener below, either of which can turn a confirming deposit into one
+  // whose automatic claim has already run and been refused.
   const [{ claimError, requiredFeeSats }, setClaim] = useState<ClaimState>(() => deriveClaimState(deposit));
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [feeRaised, setFeeRaised] = useState<boolean>(false);
@@ -174,51 +212,117 @@ const UnclaimedDepositDetailsPage: React.FC<UnclaimedDepositDetailsPageProps> = 
   );
   const [instantError, setInstantError] = useState<string | null>(null);
   const [quote, setQuote] = useState<FetchClaimDepositQuoteResponse | null>(null);
-  const [preferEarly, setPreferEarly] = useState<boolean>(true);
-  const [feeRequoted, setFeeRequoted] = useState(false);
+  // The fee a rejected claim was quoted at, so the re-price can name what moved.
+  const [instantFeeFrom, setInstantFeeFrom] = useState<number | null>(null);
+  // Which delivery speed is selected. Standard by default: it is what happens
+  // anyway, so the paid route is never armed without being asked for.
+  const [instantOn, setInstantOn] = useState<boolean>(false);
   // Read by the sync listener, which must not re-price under a claim already
   // sent: the sheet would restate the fee, and could drop the button, while the
   // user is looking at "Processing...".
   const claimInFlightRef = useRef(false);
+
+  // The prop is re-derived from the unclaimed list on every sync, so it is a new
+  // object each time with the same identity. Effects key on the outpoint and read
+  // the record through the ref, or each sync would re-subscribe and re-quote.
+  const depositRef = useLatest(deposit);
+  const txid = deposit?.txid;
+  const vout = deposit?.vout;
 
   const isConfirming = deposit ? !deposit.isMature : false;
   const isClaimInFlight = isClaimInFlightStatus(instantStatus);
 
   const early = earlyOption(quote);
   const confirmations = quote?.confirmations ?? 0;
-  // Without an early route there is nothing to pick, but waiting is still worth
-  // pricing: the breakdown shows what the automatic claim will cost.
-  const chosen: ClaimDepositQuote | null = selectOption(quote, preferEarly);
-  // Which fee is being priced: the provider's spread, or the onchain claim fee
-  // that the matured path above already calls "Network fee".
-  const chosenIsEarly = Boolean(early) && preferEarly;
-
-  /** Switching route drops the last attempt's failure, which priced a different one. */
-  const chooseRoute = (early_: boolean) => {
-    setPreferEarly(early_);
-    setInstantError(null);
-    setFeeRequoted(false);
-  };
-  // Quoted is not claimable: an option whose floor is above the deposit's
-  // current depth is an offer for N blocks' time, and claiming against it throws.
-  const chosenReady = chosen ? isClaimable(chosen, confirmations) : false;
-  const blocksLeft = chosen ? blocksToWait(chosen, confirmations) : 0;
+  // An offer for N blocks' time is not one the user can take now: claiming
+  // against a floor above the deposit's depth throws.
+  const earlyReady = early !== null && isClaimable(early, confirmations);
+  // The offer worth putting a switch beside, when there is one to take.
+  const offer = early && quote && !isClaimInFlight
+    ? { option: early, premiumSats: early.feeSats - quote.mature.feeSats, locked: !earlyReady }
+    : null;
+  // Which fee is being priced: the provider's spread once the user has asked
+  // for it, or the onchain claim fee the matured path calls "Network fee".
+  // A locked route can never be the chosen one, and a re-price can raise the
+  // floor above the deposit's depth after it was picked, so readiness is read
+  // here rather than trusted from the tap that set it.
+  const chosenIsEarly = offer !== null && !offer.locked && instantOn;
+  // Waiting is still worth pricing without an early route: the breakdown then
+  // shows what the automatic claim will cost.
+  const chosen: ClaimDepositQuote | null = quote
+    ? (chosenIsEarly && early ? early : quote.mature)
+    : null;
+  // A submitted claim is never re-quoted, so the breakdown would otherwise show
+  // the deposit and nothing about what it cost. The receipt is the figure the
+  // user agreed to, which a fresh quote would not be.
+  const receipt = deposit && isClaimInFlight ? readClaimFee(deposit.txid, deposit.vout) : null;
+  /** Choosing a speed, refused mid-flight so the route cannot change under it. */
+  const chooseSpeed = (early: boolean) => { if (!isProcessing) setInstantOn(early); };
+  // Null once the automatic claim is due, which is a different sentence.
+  const matureWait = quote ? formatWait(blocksToWait(quote.mature, confirmations)) : null;
+  // Deep enough that the SDK's own claim is due rather than pending. Without
+  // this the screen reads exactly like a deposit the provider never offered to
+  // front, which is a different thing entirely.
+  const matureDue = quote !== null && blocksToWait(quote.mature, confirmations) === 0;
+  // The automatic claim runs only while the fee stays under the configured
+  // ceiling, so promising it outright is a promise the SDK may refuse. A fixed
+  // ceiling is a sat figure we can compare now; the rate types depend on the
+  // tx at claim time, so those keep the plain sentence.
+  const maxFee = getSettings().depositMaxFee;
+  const overCeiling = quote !== null
+    && maxFee.type === 'fixed'
+    && quote.mature.feeSats > maxFee.amount
+    ? maxFee.amount
+    : null;
+  // Both ways a tap on the claim button ends badly, reported the same way: a
+  // re-price is not gentler news than any other decline, the claim did not
+  // happen either way. The amount goes through SatAmount rather than into the
+  // string, or its grouping space becomes a line break and splits the figure.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const failureRef = useRef<HTMLParagraphElement>(null);
+  // The body is capped, so a failure arriving under the fold is a message the
+  // user never sees. Bring it into the scroller rather than growing the sheet,
+  // which would carry the footer past the bottom of the viewport with it.
+  // Keyed on the state behind the message: the message itself is a node, and a
+  // new one every render would re-fire this on every render.
+  useEffect(() => {
+    if (instantFeeFrom !== null || instantError) {
+      failureRef.current?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [instantFeeFrom, instantError]);
+  const claimFailure: ReactNode = instantFeeFrom !== null
+    ? <>Your claim did not go through: the fee changed from <SatAmount sats={instantFeeFrom} />.</>
+    : instantError;
   // What the deposit is doing, when nothing else on screen already says it. A
-  // ready early route speaks through its own button, so it needs no line, and a
-  // line about waiting would contradict the one being offered.
+  // ready early route speaks through its own button, so it needs no line.
+  // Only draw the scroll fade when something is actually under it: on the states
+  // that fit, an unconditional one dims the last card for no reason.
+  const moreBelow = useMoreBelow(scrollRef, [quote, instantOn, instantFeeFrom, instantError, requiredFeeSats, claimError, isClaimInFlight]);
   const statusLine = isClaimInFlight
     // Says what the toast said, so reopening the sheet mid-settlement reports
     // the claim rather than showing an amount and nothing else.
     ? CLAIM_SUBMITTED_LINE
-    : !isConfirming
-      ? 'This transfer will be claimed automatically.'
-      : chosen
-        ? (blocksLeft > 0
-            ? `Waiting for ${blocksLeft} confirmation${blocksLeft === 1 ? '' : 's'}.`
-            // Nothing left to wait for, and no button on this route: the only
-            // thing left to say is who does the claiming.
-            : chosenIsEarly ? null : 'This transfer will be claimed automatically.')
-        : 'Waiting for 3 confirmations.';
+    // Ahead of the maturity branch on purpose. The warning has to survive the
+    // window between maturity and the sync that refuses the claim, or the sheet
+    // spends it promising the automatic claim the SDK is about to refuse.
+    // Future tense throughout that window: refused is when there is something to
+    // approve, and that state is the approve panel, not this line.
+    : overCeiling !== null
+      ? `The fee is above your ₿${formatWithSpaces(overCeiling)} limit. You will be asked to approve this claim.`
+      : !isConfirming
+        ? 'This transfer will be claimed automatically.'
+        : !quote
+          ? 'Waiting for 3 confirmations.'
+          // The group names both speeds and both waits, so a line under it
+          // repeating either would only say the same thing twice.
+          : offer !== null
+            ? null
+            // No wait quoted here either: with no offer on the table there is
+            // nothing for a countdown to be weighed against. The wait is priced
+            // inside the group, or it is not priced at all.
+            : matureDue
+              ? 'This transfer is being claimed.'
+              : 'This transfer will be claimed automatically.';
 
   const handleClose = () => {
     onBack();
@@ -260,6 +364,8 @@ const UnclaimedDepositDetailsPage: React.FC<UnclaimedDepositDetailsPageProps> = 
 
   /** Stands the sheet down: the deposit is settled or gone, so it has no actions left. */
   const dismissAsSettled = () => {
+    // Settled or gone: the receipt has nothing left to describe.
+    if (deposit) forgetClaimFee(deposit.txid, deposit.vout);
     onChanged?.();
     handleClose();
   };
@@ -297,20 +403,21 @@ const UnclaimedDepositDetailsPage: React.FC<UnclaimedDepositDetailsPageProps> = 
     // loadQuote awaits the SDK before it sets anything, so nothing is written during this render.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadQuote(deposit);
-  }, [deposit, loadQuote]);
+    // Prices once on open; the listener below re-prices from there.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [txid, vout, loadQuote]);
 
   // A quote is a snapshot at one depth. Left alone it goes stale in place: the
   // block that unlocks the early route lands, and the sheet still shows the
   // wait and no button until it is reopened.
   useEffect(() => {
-    if (!deposit || deposit.isMature) return;
-    // TEMPORARY: the same dev gate as the quote above, and it goes with it.
-    if (!isPriorityDepositClaimEnabled()) return;
+    const target = depositRef.current;
+    if (!target) return;
     let cancelled = false;
     const unsubscribe = subscribeToSdkEvents(event => {
       if (event.type !== 'synced' || claimInFlightRef.current) return;
       void (async () => {
-        const found = await findFreshDeposit(wallet, deposit);
+        const found = await findFreshDeposit(wallet, target);
         if (cancelled || claimInFlightRef.current) return;
         if (found.kind === 'gone') {
           // Claimed by background sync. Leaving the sheet up would keep offering
@@ -326,19 +433,26 @@ const UnclaimedDepositDetailsPage: React.FC<UnclaimedDepositDetailsPageProps> = 
         // unread on the record and the approve panel never appears.
         setClaim(deriveClaimState(found.deposit));
         if (isClaimInFlightStatus(found.deposit.instantClaimStatus)) return;
-        await loadQuote(deposit);
+        // Nothing left to price once it matures: the SDK claims it itself, and
+        // the approve panel is priced off the record rather than off a quote.
+        if (found.deposit.isMature) return;
+        // TEMPORARY: the same dev gate as the quote effect above, and it goes
+        // with it. Kept out of the subscribe so a gated sheet still stands down
+        // when the deposit settles.
+        if (!isPriorityDepositClaimEnabled()) return;
+        await loadQuote(found.deposit);
       })();
     });
     return () => {
       cancelled = true;
       unsubscribe();
     };
-  }, [deposit, dismissAsSettledRef, loadQuote, subscribeToSdkEvents, wallet]);
+  }, [txid, vout, depositRef, dismissAsSettledRef, loadQuote, subscribeToSdkEvents, wallet]);
 
   const handleQuotedClaim = async () => {
     if (!deposit || !chosen) return;
     setInstantError(null);
-    setFeeRequoted(false);
+    setInstantFeeFrom(null);
     setIsProcessing(true);
     claimInFlightRef.current = true;
     try {
@@ -351,6 +465,13 @@ const UnclaimedDepositDetailsPage: React.FC<UnclaimedDepositDetailsPageProps> = 
       // nothing else will announce it: the sheet is about to close over it.
       // Marked first, or the next sync reports the same claim as news.
       if (!payment) {
+        // The only record of what this cost: the SDK keeps no fee on a
+        // submitted claim, so without this the sheet cannot price itself when
+        // it is reopened mid-settlement.
+        rememberClaimFee(deposit.txid, deposit.vout, {
+          feeSats: chosen.feeSats,
+          creditAmountSats: chosen.creditAmountSats,
+        });
         markClaimAnnounced(deposit);
         showToast('success', INSTANT_CLAIM_SUBMITTED_TOAST.title, INSTANT_CLAIM_SUBMITTED_TOAST.detail);
       }
@@ -375,11 +496,12 @@ const UnclaimedDepositDetailsPage: React.FC<UnclaimedDepositDetailsPageProps> = 
       }
       // The price moves with depth, so a failure is a reason to re-price rather
       // than to retry against the figure that just failed.
-      const fresh = selectOption(await loadQuote(deposit), preferEarly);
+      const fresh = selectOption(await loadQuote(deposit));
       if (fresh && fresh.feeSats > chosen.feeSats) {
         // A fee that outran the ceiling explains itself: the sheet has already
-        // repriced, so the raw SDK message would only repeat it worse.
-        setFeeRequoted(true);
+        // repriced, so the raw SDK message would only repeat it worse. The old
+        // figure is kept so the line can say which way it moved.
+        setInstantFeeFrom(chosen.feeSats);
         return;
       }
       setInstantError(e instanceof Error ? e.message : 'Failed to claim transfer');
@@ -415,9 +537,13 @@ const UnclaimedDepositDetailsPage: React.FC<UnclaimedDepositDetailsPageProps> = 
       <BottomSheetCard>
         <DialogHeader title="BTC Transfer" onClose={handleClose} />
         <SheetBody>
-          <div className="space-y-4 flex-1 min-h-0 overflow-y-auto overscroll-y-none touch-pan-y">
-          {/* Transaction ID */}
-          <PaymentInfoCard>
+          {/* The scroller sits in its own box so a fade can sit over its bottom
+              edge. Without it a cut lands flush against the footer and reads as
+              a clipped card rather than as more content below. */}
+          <div className="relative flex-1 min-h-0 flex flex-col">
+          <div ref={scrollRef} className="space-y-3 flex-1 min-h-0 overflow-y-auto overscroll-y-none touch-pan-y">
+          {/* Which transfer this is, before anything priced about it. */}
+          <PaymentInfoCard compact>
             <CollapsibleCodeField
               label="Transaction ID"
               value={deposit.txid}
@@ -426,6 +552,7 @@ const UnclaimedDepositDetailsPage: React.FC<UnclaimedDepositDetailsPageProps> = 
               href={explorerTxUrl(deposit.txid)}
             />
           </PaymentInfoCard>
+
 
           {/* Show fee breakdown only when we have a required fee from claim error */}
           {!claimError && requiredFeeSats !== null && (
@@ -456,53 +583,67 @@ const UnclaimedDepositDetailsPage: React.FC<UnclaimedDepositDetailsPageProps> = 
           {/* Confirming or pending automatic claim */}
           {!claimError && requiredFeeSats === null && (
             <>
+              {/* Both speeds, named, in one group. Waiting takes no action, but
+                  it is what the deposit does, and leaving it unnamed left the
+                  paid route as the only thing on screen with a name. */}
+              {offer && quote && (
+                <div id={INSTANT_OFFER_ID} data-testid="delivery-speed" className="space-y-2">
+                  <span className="block text-sm text-spark-text-secondary">Speed</span>
+                  <div role="radiogroup" aria-label="Speed" className="space-y-2">
+                    <SpeedOption
+                      label="Standard delivery"
+                      detail={matureWait ?? 'Claimed automatically'}
+                      feeSats={quote.mature.feeSats}
+                      isEstimate={quote.mature.isEstimate}
+                      selected={!chosenIsEarly}
+                      onSelect={() => chooseSpeed(false)}
+                    />
+                    <SpeedOption
+                      label="Instant delivery"
+                      detail={offer.locked
+                        ? `Unlocks in ${formatWait(blocksToWait(offer.option, confirmations))}`
+                        : 'Arrives in seconds'}
+                      feeSats={offer.option.feeSats}
+                      isEstimate={offer.option.isEstimate}
+                      selected={chosenIsEarly}
+                      locked={offer.locked}
+                      onSelect={() => chooseSpeed(true)}
+                    />
+                  </div>
+                </div>
+              )}
+
               <FeeBreakdownCard
-                items={chosen
+                items={receipt
                   ? [
                       { label: 'Amount', value: depositAmount },
-                      // Same estimate caveat as the option cards above: an
-                      // unpriced maturity fee is marked, not presented as firm.
-                      { label: chosenIsEarly ? 'Priority fee' : 'Network fee', value: chosen.feeSats, prefix: chosen.isEstimate ? '~' : undefined },
+                      { label: 'Delivery fee', value: receipt.feeSats, emphasis: true },
+                      { label: 'You receive', value: receipt.creditAmountSats, highlight: true },
+                    ]
+                  : chosen
+                  ? [
+                      { label: 'Amount', value: depositAmount },
+                      // Same estimate caveat as the row above: an unpriced
+                      // maturity fee is marked, not presented as firm.
+                      // The one row the checkbox above changes, so it is lifted
+                      // without taking the accent that marks what lands.
+                      { label: chosenIsEarly ? 'Delivery fee' : 'Network fee', value: chosen.feeSats, prefix: chosen.isEstimate ? '~' : undefined, emphasis: chosenIsEarly },
                       { label: 'You receive', value: chosen.creditAmountSats, highlight: true },
                     ]
                   : [{ label: 'Amount', value: depositAmount, highlight: true }]}
               />
 
-              {/* Both ways of claiming, priced. The pair always renders: with no
-                  early route the provider declined to front this deposit, and
-                  fading that card says so more plainly than dropping it. */}
-              {quote && !isClaimInFlight && (
-                <div className="flex gap-2" role="radiogroup" aria-label="How to claim">
-                  <DeliveryOption
-                    label="Priority"
-                    active={Boolean(early) && preferEarly}
-                    onSelect={() => chooseRoute(true)}
-                    option={early}
-                    wait={early ? formatWait(blocksToWait(early, confirmations)) : null}
-                  />
-                  <DeliveryOption
-                    label="Standard"
-                    active={!early || !preferEarly}
-                    onSelect={() => chooseRoute(false)}
-                    option={quote.mature}
-                    wait={formatWait(blocksToWait(quote.mature, confirmations))}
-                  />
-                </div>
+              {claimFailure && (
+                <p ref={failureRef} className="text-sm text-spark-primary">{claimFailure}</p>
               )}
 
               {statusLine && (
                 <p className="text-spark-text-muted text-sm text-center">{statusLine}</p>
               )}
 
-              {feeRequoted && (
-                /* The figure is in the breakdown and on the cards above, both
-                   already repriced, so this only needs to say what to do. */
-                <AlertCard variant="warning" title="Fee changed">
-                  <p className="text-sm">Claim again to accept the new fee.</p>
-                </AlertCard>
-              )}
-
-              <FormError error={instantError} />
+              {/* Sits under the figures it refers to, which the failed claim
+                  re-quoted: the new fee is already in the row and the breakdown,
+                  so only the one it moved from is still worth naming. */}
             </>
           )}
 
@@ -515,22 +656,36 @@ const UnclaimedDepositDetailsPage: React.FC<UnclaimedDepositDetailsPageProps> = 
           )}
 
           </div>
+          {moreBelow && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-linear-to-t from-spark-surface to-transparent"
+            />
+          )}
+          </div>
 
           <div className="shrink-0 space-y-4 pt-4">
-            {/* Only the early route is the user's to commit. Waiting is claimed
-                automatically at maturity, so a button for it would race the
-                SDK's own claim to do the same thing a moment sooner. A recorded
-                fee means that automatic claim has already run and been refused,
-                so the approve panel below owns the sheet. */}
-            {isConfirming && !isClaimInFlight && chosenIsEarly && chosenReady && requiredFeeSats === null && (
-              <PrimaryButton onClick={handleQuotedClaim} disabled={isProcessing} className="w-full">
+            {/* Only the early route is the user's to commit: waiting is claimed
+                at maturity by the SDK, so the button is inert under Standard
+                rather than absent, which would leave the group deciding
+                nothing. A recorded fee means that automatic claim has already
+                run and been refused, so the approve panel below owns the sheet. */}
+            {isConfirming && !isClaimInFlight && offer !== null && requiredFeeSats === null && !claimError && (
+              // Described by the group rather than labelled with a price, so the
+              // label stays the plain action and a screen reader still hears it.
+              <PrimaryButton
+                onClick={handleQuotedClaim}
+                disabled={isProcessing || !chosenIsEarly}
+                aria-describedby={INSTANT_OFFER_ID}
+                className="w-full"
+              >
                 {isProcessing ? (
                   <span className="flex items-center justify-center gap-2">
                     <SpinnerIcon size="md" />
                     Processing...
                   </span>
                 ) : (
-                  'Claim now'
+                  'Claim Now'
                 )}
               </PrimaryButton>
             )}
