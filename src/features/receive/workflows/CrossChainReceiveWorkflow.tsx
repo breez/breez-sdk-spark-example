@@ -18,6 +18,7 @@ import { useWallet } from '../../../contexts/WalletContext';
 import { useStableBalance } from '../../../contexts/StableBalanceContext';
 import { useToast } from '../../../contexts/ToastContext';
 import { useCrossChainRouteGroups } from '../../../hooks/useCrossChainRouteGroups';
+import { useSheetFullSnap } from '../../../components/ui/sheets/BottomSheetCardContext';
 import {
   assetDisplayName,
   assetMatchesGroup,
@@ -42,6 +43,7 @@ const CrossChainReceiveWorkflow: React.FC = () => {
   const wallet = useWallet();
   const stableBalance = useStableBalance();
   const { showToast } = useToast();
+  const isSheetFull = useSheetFullSnap();
 
   const [step, setStep] = useState<WorkflowStep>('amount');
   const [usdInput, setUsdInput] = useState('');
@@ -224,15 +226,15 @@ const CrossChainReceiveWorkflow: React.FC = () => {
     showToast('success', 'Amount copied');
   };
 
-  // Fixed height sized to the result step so the bottom sheet opens at that
-  // height and stays constant across steps. A definite height (not min-h) is
-  // required so the asset/chain/provider lists scroll internally and keep their
-  // Back/Continue row pinned instead of growing the sheet past its visible area.
+  // Steps are content-sized: the sheet re-measures and re-snaps per step, so a
+  // short step is not padded out to the tallest one. `pt-6` is the step padding
+  // the other receive tabs use. The selection lists cap themselves against the
+  // viewport (see CrossChainAssetStep) rather than against this container.
   return (
-    <div className="h-[500px] flex flex-col">
+    <div className="pt-6">
       {/* Step 1: Amount */}
       {step === 'amount' && (
-        <div className="pt-6 flex flex-col flex-1">
+        <div>
           <div>
             <label className="block text-sm font-medium text-spark-text-primary mb-2">Amount</label>
             <input
@@ -274,7 +276,7 @@ const CrossChainReceiveWorkflow: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-auto space-y-4 pt-6">
+          <div className="space-y-4 pt-6">
             <FormError error={error} />
             <PrimaryButton onClick={() => fetchRoutes()} className="w-full" disabled={!canContinue} data-testid="cross-chain-receive-continue">
               Continue
@@ -285,7 +287,7 @@ const CrossChainReceiveWorkflow: React.FC = () => {
 
       {/* Loading routes / creating order */}
       {(step === 'loading' || step === 'generating') && (
-        <div className="flex-1 flex flex-col items-center justify-center space-y-3">
+        <div className="flex flex-col items-center justify-center h-40 space-y-3">
           <SpinnerIcon size="lg" className="text-spark-primary animate-spin" />
           <p className="text-sm text-spark-text-secondary">
             {step === 'loading' ? 'Fetching routes...' : 'Creating request...'}
@@ -296,7 +298,6 @@ const CrossChainReceiveWorkflow: React.FC = () => {
       {/* Step 2: Asset selection */}
       {step === 'asset' && (
         <CrossChainAssetStep
-          fill
           assets={uniqueAssets}
           pending={pendingAsset}
           onPendingChange={setPendingAsset}
@@ -309,7 +310,6 @@ const CrossChainReceiveWorkflow: React.FC = () => {
       {/* Step 3: Chain selection */}
       {step === 'chain' && (
         <CrossChainChainStep
-          fill
           chains={chainsForAsset}
           chainGroupKey={chainGroupKey}
           selectedAsset={selectedAsset}
@@ -323,7 +323,7 @@ const CrossChainReceiveWorkflow: React.FC = () => {
 
       {/* Step 4: Provider selection (only when >1 provider) */}
       {step === 'provider' && (
-        <div className="flex flex-col flex-1 min-h-0">
+        <div className="flex flex-col" style={{ maxHeight: isSheetFull ? '85dvh' : '60dvh' }}>
           <div className="mb-4 min-h-0 flex flex-col">
             <label className="block text-sm font-medium text-spark-text-primary mb-2 shrink-0">
               Select Provider for {selectedAsset} ({formatChainName(routesForSelection[0]?.chain ?? '')})
@@ -362,7 +362,7 @@ const CrossChainReceiveWorkflow: React.FC = () => {
 
       {/* Step 5: Result */}
       {step === 'result' && receiveResult && selectedRoute && (
-        <div className="pt-4 pb-2 flex flex-col items-center gap-4">
+        <div className="pb-2 flex flex-col items-center gap-4">
           {/* Amount the sender transfers — the copyable hero (copies the bare
               number). The $ already signals dollars; the coin sits in the subtitle. */}
           <div className="text-center">

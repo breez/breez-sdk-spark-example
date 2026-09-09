@@ -21,9 +21,6 @@ interface CrossChainChainStepProps {
   onBack: () => void;
   onContinue: () => void;
   error?: string | null;
-  /** Fill the parent's height (for a fixed-height container) instead of capping
-   *  against the viewport. Keeps the receive sheet a constant height across steps. */
-  fill?: boolean;
 }
 
 /** Network-selection step shared by the cross-chain send and receive workflows.
@@ -37,7 +34,6 @@ export const CrossChainChainStep: React.FC<CrossChainChainStepProps> = ({
   onBack,
   onContinue,
   error,
-  fill = false,
 }) => {
   const [expandedChain, setExpandedChain] = useState<string | null>(null);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
@@ -45,8 +41,8 @@ export const CrossChainChainStep: React.FC<CrossChainChainStepProps> = ({
 
   return (
     <div
-      className={`flex flex-col ${fill ? 'flex-1 min-h-0' : ''}`}
-      style={fill ? undefined : { maxHeight: isSheetFull ? '85dvh' : '60dvh' }}
+      className="flex flex-col"
+      style={{ maxHeight: isSheetFull ? '85dvh' : '60dvh' }}
     >
       {error && (
         <div className="mb-4 p-3 bg-spark-warn-surface border border-spark-warn-border rounded-xl text-sm text-spark-warn-text shrink-0">
