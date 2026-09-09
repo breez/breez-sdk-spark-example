@@ -29,5 +29,7 @@ local-regtest/cluster.log
 local-regtest/cluster.pid
 local-regtest/cluster/target/
 
-# Recorded walkthroughs
+# Recorded walkthroughs, and the harness that records them
 /demo/
+/e2e/demo/
+/playwright.demo.config.ts
