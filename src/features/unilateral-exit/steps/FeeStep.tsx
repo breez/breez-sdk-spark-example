@@ -1,9 +1,9 @@
 import React from 'react';
-import { FormInput, PrimaryButton, SecondaryButton, LoadingSpinner } from '@/components/ui';
+import { PrimaryButton, SecondaryButton, LoadingSpinner } from '@/components/ui';
 import { RadioCheckIcon } from '@/components/Icons';
 import type { FeeChoice, FeeFields } from '../hooks/useUnilateralExitFlow';
 
-const choices: { key: Exclude<FeeChoice, 'custom'>; label: string }[] = [
+const choices: { key: FeeChoice; label: string }[] = [
   { key: 'slow', label: 'Slow' },
   { key: 'medium', label: 'Medium' },
   { key: 'fast', label: 'Fast' },
@@ -12,10 +12,8 @@ const choices: { key: Exclude<FeeChoice, 'custom'>; label: string }[] = [
 export const FeeStep: React.FC<FeeFields & { onBack: () => void; onContinue: () => void }> = ({
   feeRates,
   feeChoice,
-  customFeeRate,
   effectiveFeeRate,
   onSelect,
-  onCustomChange,
   onBack,
   onContinue,
 }) => {
@@ -52,34 +50,6 @@ export const FeeStep: React.FC<FeeFields & { onBack: () => void; onContinue: () 
           ))}
         </div>
       </div>
-
-      <div>
-        <button
-          type="button"
-          onClick={() => onSelect('custom')}
-          className={`text-sm font-medium transition-colors ${
-            feeChoice === 'custom' ? 'text-spark-primary' : 'text-spark-text-muted hover:text-spark-text-secondary'
-          }`}
-        >
-          Set a custom rate
-        </button>
-        {feeChoice === 'custom' && (
-          <div className="mt-2">
-            <FormInput
-              id="unilateral-exit-custom-fee"
-              type="number"
-              value={customFeeRate}
-              onChange={event => onCustomChange(event.target.value)}
-              placeholder="sat/vB"
-            />
-          </div>
-        )}
-      </div>
-
-      <p className="text-spark-text-muted text-xs">
-        A higher rate costs more but confirms each of the many steps sooner. A lower rate leaves
-        more of your balance worth exiting.
-      </p>
 
       <div className="flex gap-3">
         <SecondaryButton onClick={onBack} className="flex-1">

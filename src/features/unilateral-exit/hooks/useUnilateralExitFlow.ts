@@ -32,7 +32,7 @@ const BACK: Partial<Record<UnilateralExitPhase, UnilateralExitPhase>> = {
   confirm: 'fund',
 };
 
-export type FeeChoice = 'slow' | 'medium' | 'fast' | 'custom';
+export type FeeChoice = 'slow' | 'medium' | 'fast';
 
 const FUNDING_POLL_MS = 15_000;
 const FALLBACK_FEE_RATES: FeeRates = { slow: 2, medium: 5, fast: 10 };
@@ -55,10 +55,8 @@ export interface DestinationFields {
 export interface FeeFields {
   feeRates: FeeRates | null;
   feeChoice: FeeChoice;
-  customFeeRate: string;
   effectiveFeeRate: number;
   onSelect: (choice: FeeChoice) => void;
-  onCustomChange: (value: string) => void;
 }
 
 export interface QuoteFields {
@@ -122,7 +120,6 @@ export function useUnilateralExitFlow(network: string): UnilateralExitFlow {
   const [destinationError, setDestinationError] = useState<string | null>(null);
   const [feeRates, setFeeRates] = useState<FeeRates | null>(null);
   const [feeChoice, setFeeChoice] = useState<FeeChoice>('medium');
-  const [customFeeRate, setCustomFeeRate] = useState('');
   const [quote, setQuote] = useState<PrepareUnilateralExitResponse | null>(null);
   const [isQuoting, setIsQuoting] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
@@ -172,11 +169,7 @@ export function useUnilateralExitFlow(network: string): UnilateralExitFlow {
     };
   }, [phase, fundingKey, chain]);
 
-  const effectiveFeeRate = useMemo(() => {
-    if (feeChoice !== 'custom') return feeRates?.[feeChoice] ?? 0;
-    const parsed = Number.parseFloat(customFeeRate);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-  }, [feeChoice, customFeeRate, feeRates]);
+  const effectiveFeeRate = feeRates?.[feeChoice] ?? 0;
 
   const submitDestination = useCallback(async () => {
     const trimmed = destination.trim();
@@ -317,10 +310,8 @@ export function useUnilateralExitFlow(network: string): UnilateralExitFlow {
     fee: {
       feeRates,
       feeChoice,
-      customFeeRate,
       effectiveFeeRate,
       onSelect: setFeeChoice,
-      onCustomChange: setCustomFeeRate,
     },
     quote: {
       quote,
