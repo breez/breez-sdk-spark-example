@@ -63,6 +63,15 @@ export const DownloadIcon: React.FC<IconProps> = ({ className = '', size = 'md' 
   </svg>
 );
 
+/** A door with an arrow leaving it: the way out, for the unilateral exit. */
+export const ExitDoorIcon: React.FC<IconProps> = ({ className = '', size = 'md' }) => (
+  <svg className={`${sizeClasses[size]} ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M10 17l5-5-5-5" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H3" />
+  </svg>
+);
+
 // ============================================
 // STATUS ICONS
 // ============================================

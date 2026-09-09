@@ -36,8 +36,11 @@ export const FundStep: React.FC<FundingFields & { error: string | null }> = ({
         The same control the receive sheet gives a bitcoin address, so the
         address copies and shares rather than sitting in a row of its own. */}
     {(!isFunded || isResuming) && (
-      <div className="flex flex-col items-center gap-6">
-        <QRCodeContainer value={qrValue} size={180} />
+      <div className="flex flex-col items-center gap-4">
+        {/* 150, not 180: at 180 the copy and share controls fell below the
+            sheet's fold on a phone, on the one screen that exists to copy an
+            address. Still well above the ~100px a camera needs. */}
+        <QRCodeContainer value={qrValue} size={150} />
         <CopyableText
           text={address}
           truncate
