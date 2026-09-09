@@ -1,6 +1,7 @@
 import { createChainClient, type ChainClient } from '@/services/chain';
 import { logger, LogCategory } from '@/services/logger';
 import { advanceUnilateralExit, clearPlan, loadPlan, savePlan } from './driver';
+import { archiveExit, loadArchive, type ArchivedExit } from './archive';
 import type { ExitSdk, UnilateralExitPlan, WalletKey } from './driver';
 
 const POLL_SECS_MAINNET = 30;
@@ -15,13 +16,15 @@ export function pollIntervalMs(network: string): number {
 
 export interface UnilateralExitEngineState {
   plan: UnilateralExitPlan | null;
+  /** Exits that already finished, newest first. Outlives the plan slot. */
+  archive: ArchivedExit[];
   tipHeight: number | null;
   isAdvancing: boolean;
 }
 
 type Listener = (state: UnilateralExitEngineState) => void;
 
-let state: UnilateralExitEngineState = { plan: null, tipHeight: null, isAdvancing: false };
+let state: UnilateralExitEngineState = { plan: null, archive: [], tipHeight: null, isAdvancing: false };
 let wallet: WalletKey | null = null;
 let chain: ChainClient | null = null;
 let sdk: ExitSdk | null = null;
@@ -68,7 +71,10 @@ export async function advanceNow(): Promise<void> {
       wallet.identityPubkey,
     );
     savePlan(wallet, plan);
-    emit({ plan, tipHeight, isAdvancing: false });
+    // Recorded as soon as the pass sees it finish, so the entry survives the
+    // next exit taking the plan slot.
+    const archive = plan.phase === 'complete' ? archiveExit(wallet, plan) : state.archive;
+    emit({ plan, archive, tipHeight, isAdvancing: false });
     if (plan.phase !== 'active') stopPolling();
   } catch (e) {
     logger.warn(LogCategory.SDK, 'Recovery engine pass failed', {
@@ -90,7 +96,7 @@ export function startUnilateralExitEngine(
   wallet = target;
   chain = client;
   sdk = driver ?? null;
-  emit({ plan: loadPlan(target) });
+  emit({ plan: loadPlan(target), archive: loadArchive(target) });
   if (!state.plan) return;
 
   void advanceNow();
@@ -102,7 +108,7 @@ export function stopUnilateralExitEngine(): void {
   wallet = null;
   chain = null;
   sdk = null;
-  emit({ plan: null, tipHeight: null, isAdvancing: false });
+  emit({ plan: null, archive: [], tipHeight: null, isAdvancing: false });
 }
 
 /** Stores the plan for `target` and, if the engine is running for it, starts driving it. */
