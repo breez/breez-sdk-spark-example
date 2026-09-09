@@ -33,7 +33,7 @@ export const FeeStep: React.FC<FeeFields> = ({ feeRates, feeChoice, onSelect }) 
               className={`relative flex-1 p-3 rounded-lg border text-sm font-medium transition-colors ${
                 feeChoice === choice.key
                   ? 'bg-spark-primary/15 text-spark-text-primary border-spark-primary ring-2 ring-spark-primary'
-                  : 'bg-spark-dark text-spark-text-secondary border-spark-border hover:border-spark-primary'
+                  : 'bg-spark-dark text-spark-text-secondary border-spark-border-light hover:border-spark-primary'
               }`}
             >
               {feeChoice === choice.key && <RadioCheckIcon className="absolute top-2 right-2" />}

@@ -84,9 +84,6 @@ const AppContent: React.FC = () => {
   // `currentScreen` below.
   const [userScreen, setUserScreen] = useState<Screen>('home');
   const [refundAnimationDirection, setRefundAnimationDirection] = useState<'left' | 'up'>('left');
-  // The exit is reachable from the settings row and from the wallet's own list,
-  // and its sheet leaves whichever one opened it showing behind.
-  const [exitOrigin, setExitOrigin] = useState<'wallet' | 'settings'>('settings');
   const [passkeySdkConnected, setPasskeySdkConnected] = useState(false);
   // True when the user entered the passkey screen via the explicit
   // "Create Passkey" CTA in the web two-CTA flow. Skips PasskeyPage's
@@ -236,7 +233,7 @@ const AppContent: React.FC = () => {
       case 'buyProviders':
       case 'passkeySettings':
       case 'unilateralExit':
-        setUserScreen(exitOrigin);
+        setUserScreen('wallet');
         return true;
       case 'passkeyManagement':
       case 'labels':
@@ -260,7 +257,7 @@ const AppContent: React.FC = () => {
         // (same as pressing Home). Matches standard Android UX.
         return false;
     }
-  }, [currentScreen, exitOrigin]), true);
+  }, [currentScreen]), true);
 
   // Render screens
   const renderCurrentScreen = () => {
@@ -337,10 +334,7 @@ const AppContent: React.FC = () => {
             setUserScreen('getRefund');
           }}
           onOpenSettings={() => setUserScreen('settings')}
-          onOpenUnilateralExit={() => {
-            setExitOrigin('wallet');
-            setUserScreen('unilateralExit');
-          }}
+          onOpenUnilateralExit={() => setUserScreen('unilateralExit')}
           onBuyBitcoin={sdk.handleBuyBitcoin}
           network={sdk.config?.network}
           onDepositChanged={sdk.fetchUnclaimedDeposits}
@@ -362,10 +356,7 @@ const AppContent: React.FC = () => {
         onOpenPasskeySettings={() => setUserScreen('passkeySettings')}
         onOpenSecurity={() => setUserScreen('security')}
         onOpenBackup={() => setUserScreen('backup')}
-        onOpenUnilateralExit={() => {
-          setExitOrigin('settings');
-          setUserScreen('unilateralExit');
-        }}
+        onOpenUnilateralExit={() => setUserScreen('unilateralExit')}
       />
     );
 
@@ -479,11 +470,10 @@ const AppContent: React.FC = () => {
         return (
           <>
             {renderWalletPage()}
-            {exitOrigin === 'settings' && renderSettingsPage()}
             <Suspense fallback={null}>
               <UnilateralExitPage
                 network={sdk.config?.network ?? 'mainnet'}
-                onBack={() => setUserScreen(exitOrigin)}
+                onBack={() => setUserScreen('wallet')}
                 onFinished={() => setUserScreen('wallet')}
               />
             </Suspense>

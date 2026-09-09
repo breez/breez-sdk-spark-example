@@ -1,8 +1,8 @@
 import React from 'react';
-import { CopyableRow, ErrorMessageBox, QRCodeContainer } from '@/components/ui';
+import { CopyableText, ErrorMessageBox, QRCodeContainer } from '@/components/ui';
 import { SatAmount } from '@/components/SatAmount';
 import { CheckIcon, ClockIcon } from '@/components/Icons';
-import { truncateAddress } from '@/utils/crossChainFormat';
+import { useToast } from '@/contexts/ToastContext';
 import type { FundingFields } from '../hooks/useUnilateralExitFlow';
 
 export const FundStep: React.FC<FundingFields & { error: string | null }> = ({
@@ -14,6 +14,7 @@ export const FundStep: React.FC<FundingFields & { error: string | null }> = ({
   isResuming,
   error,
 }) => {
+  const { showToast } = useToast();
   // BIP21 so the paying wallet fills the amount in as well as the address:
   // this is money sent from somewhere else, and the figure has to be exact.
   const btc = (requiredSat / 100_000_000).toFixed(8).replace(/0+$/, '').replace(/\.$/, '');
@@ -29,16 +30,21 @@ export const FundStep: React.FC<FundingFields & { error: string | null }> = ({
       />
     </div>
 
-    <div className="flex justify-center">
+    {/* The same control the receive sheet gives a bitcoin address: the
+        address is the thing to act on, so it copies and shares rather than
+        sitting in a row of its own. */}
+    <div className="flex flex-col items-center gap-6">
       <QRCodeContainer value={qrValue} size={180} />
+      <CopyableText
+        text={address}
+        truncate
+        showShare
+        label="Exit fee address"
+        onCopied={() => showToast('success', 'Copied!')}
+        onShareError={() => showToast('error', 'Failed to share')}
+        data-testid="unilateral-exit-funding-address"
+      />
     </div>
-
-    <CopyableRow
-      label="To address"
-      value={address}
-      display={truncateAddress(address, 32)}
-      data-testid="unilateral-exit-funding-address"
-    />
 
     {/* One row either way, so the wait and the arrival read as the same line
         changing rather than two different screens. */}
