@@ -20,7 +20,7 @@ export const IntroStep: React.FC = () => {
         <ul className="space-y-3">
           {requirements.map(item => (
             <li key={item} className="text-spark-text-secondary text-sm flex gap-3">
-              <span className="text-spark-primary shrink-0">•</span>
+              <span className="shrink-0">•</span>
               <span>{item}</span>
             </li>
           ))}
