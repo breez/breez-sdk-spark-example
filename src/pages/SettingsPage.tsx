@@ -251,20 +251,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
               </div>
               <ChevronRightIcon size="md" />
             </button>
-            {isDevMode && (
-              <button
-                className="flex items-center justify-between w-full px-4 py-3 mt-2 text-sm font-medium border border-spark-warn-border rounded-xl text-spark-warn-text hover:bg-white/5 transition-colors"
-                type="button"
-                onClick={onOpenUnilateralExit}
-                data-testid="settings-unilateral-exit"
-              >
-                <div className="flex items-center gap-3">
-                  <LifebuoyIcon size="md" />
-                  <span>Unilateral Exit</span>
-                </div>
-                <ChevronRightIcon size="md" />
-              </button>
-            )}
           </div>
 
           {/* Display */}
@@ -505,6 +491,23 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                   placeholder="example.com"
                 />
               </FormGroup>
+            </div>
+          )}
+
+          {isDevMode && (
+            <div className="bg-spark-dark border border-spark-border rounded-2xl p-4">
+              <button
+                className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium border border-spark-warn-border rounded-xl text-spark-warn-text hover:bg-white/5 transition-colors"
+                type="button"
+                onClick={onOpenUnilateralExit}
+                data-testid="settings-unilateral-exit"
+              >
+                <div className="flex items-center gap-3">
+                  <LifebuoyIcon size="md" />
+                  <span>Unilateral Exit</span>
+                </div>
+                <ChevronRightIcon size="md" />
+              </button>
             </div>
           )}
 
