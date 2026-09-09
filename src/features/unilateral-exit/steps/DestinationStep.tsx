@@ -41,7 +41,7 @@ export const DestinationStep: React.FC<
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4">
       <div>
         <label
           htmlFor="unilateral-exit-destination"
@@ -68,7 +68,7 @@ export const DestinationStep: React.FC<
           autoCorrect="off"
           spellCheck={false}
           placeholder="bc1q..."
-          className="w-full p-4 bg-spark-dark text-spark-text-primary placeholder-spark-text-muted focus:ring-0 resize-none font-mono text-sm border outline-hidden transition-all rounded-xl border-spark-border focus:border-spark-primary"
+          className="block w-full p-4 bg-spark-dark text-spark-text-primary placeholder-spark-text-muted focus:ring-0 resize-none font-mono text-sm border outline-hidden transition-all rounded-xl border-spark-border focus:border-spark-primary"
         />
       </div>
 
