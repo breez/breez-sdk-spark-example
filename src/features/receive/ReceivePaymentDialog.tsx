@@ -215,10 +215,13 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
                 )}
               </TabList>
 
-              <StepContainer>
-                {receive.activeTab === 'usd' ? (
-                  <CrossChainReceiveWorkflow key={`usd-${receive.resetCount}`} />
-                ) : (
+              {/* The USD tab sits outside StepContainer: its steps size to their
+                  own content (matching the cross-chain send flow), so the 280px
+                  floor would pad the short ones out with dead space. */}
+              {receive.activeTab === 'usd' ? (
+                <CrossChainReceiveWorkflow key={`usd-${receive.resetCount}`} />
+              ) : (
+                <StepContainer>
                   <>
                     {receive.currentStep === 'input' && (
                       <div className="pt-6">
@@ -264,8 +267,8 @@ const ReceivePaymentDialog: React.FC<ReceivePaymentDialogProps> = ({ isOpen, onC
                       />
                     )}
                   </>
-                )}
-              </StepContainer>
+                </StepContainer>
+              )}
             </TabContainer>
           ) : lightningAddress ? (
             // Placeholder matched to the Lightning-tab QR view when

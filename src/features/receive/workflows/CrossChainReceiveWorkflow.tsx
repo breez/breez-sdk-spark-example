@@ -287,7 +287,7 @@ const CrossChainReceiveWorkflow: React.FC = () => {
 
       {/* Loading routes / creating order */}
       {(step === 'loading' || step === 'generating') && (
-        <div className="flex flex-col items-center justify-center h-40 space-y-3">
+        <div className="flex flex-col items-center justify-center py-12 space-y-3">
           <SpinnerIcon size="lg" className="text-spark-primary animate-spin" />
           <p className="text-sm text-spark-text-secondary">
             {step === 'loading' ? 'Fetching routes...' : 'Creating request...'}
