@@ -6,6 +6,7 @@ import {
   ErrorMessageBox,
   LoadingSpinner,
   PrimaryButton,
+  SecondaryButton,
 } from '@/components/ui';
 import { PinGate } from '@/components/PinEntry';
 import QrScannerDialog from '@/components/QrScannerDialog';
@@ -130,7 +131,6 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
             // field, and the send sheet titles itself the same way.
             title="Unilateral Exit"
             onClose={onBack}
-            onBack={flow.canGoBack ? flow.back : undefined}
           />
 
           {/* Bounded so the sheet stays content-sized: past 90% of the
@@ -192,7 +192,18 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
 
             </div>
 
-            {stepAction && <div className="shrink-0 pt-6">{stepAction}</div>}
+            {(stepAction || flow.canGoBack) && (
+              <div className="shrink-0 pt-6 flex gap-3">
+                {flow.canGoBack && (
+                  <SecondaryButton onClick={flow.back} className="flex-1">
+                    Back
+                  </SecondaryButton>
+                )}
+                {stepAction && (
+                  <div className={`flex ${flow.canGoBack ? 'flex-[2]' : 'w-full'}`}>{stepAction}</div>
+                )}
+              </div>
+            )}
           </div>
         </BottomSheetCard>
       </BottomSheetContainer>
