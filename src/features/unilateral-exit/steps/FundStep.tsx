@@ -21,7 +21,7 @@ export const FundStep: React.FC<FundingFields & { error: string | null }> = ({
   const qrValue = isResuming ? address : `bitcoin:${address}?amount=${btc}`;
 
   return (
-  <div className="space-y-6">
+  <div className="space-y-4">
     <div className="text-center py-4">
       <p className="text-spark-text-muted text-sm mb-2">Pay exit fee</p>
       <SatAmount
@@ -37,10 +37,11 @@ export const FundStep: React.FC<FundingFields & { error: string | null }> = ({
         address copies and shares rather than sitting in a row of its own. */}
     {(!isFunded || isResuming) && (
       <div className="flex flex-col items-center gap-4">
-        {/* 150, not 180: at 180 the copy and share controls fell below the
-            sheet's fold on a phone, on the one screen that exists to copy an
-            address. Still well above the ~100px a camera needs. */}
-        <QRCodeContainer value={qrValue} size={150} />
+        {/* Sized so the copy and share controls stay on screen with it: this
+            is the one screen that exists to copy an address, and at 180 they
+            fell below the sheet's fold on a phone. Still above what a camera
+            needs at 3x. */}
+        <QRCodeContainer value={qrValue} size={130} />
         <CopyableText
           text={address}
           truncate
@@ -55,13 +56,13 @@ export const FundStep: React.FC<FundingFields & { error: string | null }> = ({
 
     {/* One row either way, so the wait and the arrival read as the same line
         changing rather than two different screens. */}
-    <div className="flex items-center gap-3 p-4 rounded-xl border border-spark-border">
+    <div className="flex items-center justify-center gap-2">
       {isFunded ? (
         <CheckIcon className="shrink-0 text-spark-success" />
       ) : (
         <ClockIcon className="shrink-0 text-spark-primary" />
       )}
-      <p className="text-sm text-spark-text-primary">
+      <p className="text-sm text-spark-text-secondary">
         {isFunded
           ? 'Exit fee received'
           : hasPendingDeposit
@@ -72,17 +73,11 @@ export const FundStep: React.FC<FundingFields & { error: string | null }> = ({
 
     {error && <ErrorMessageBox title="Could not build the exit" error={error} />}
 
-    {(isResuming || !isFunded) && (
+    {isResuming && (
       <p className="text-spark-text-muted text-xs">
-        {isResuming ? (
-          <>
-            This exit is part-way done, and what it has left is paid for by the{' '}
-            <SatAmount sats={fundedSat} /> already at this address. Add more only if a step is later
-            rejected for want of fees.
-          </>
-        ) : (
-          'To start the process you need to pay the exit fee. These are the mining fees required to move the Spark tree on-chain.'
-        )}
+        This exit is part-way done, and what it has left is paid for by the{' '}
+        <SatAmount sats={fundedSat} /> already at this address. Add more only if a step is later
+        rejected for want of fees.
       </p>
     )}
 

@@ -141,8 +141,10 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
               partial snap, and a CTA that scrolls away is one to hunt for.
               The nested scroller needs its own overscroll and touch rules,
               which it does not inherit. */}
-          <div className="flex flex-col max-h-[70dvh]">
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-none touch-pan-y space-y-6">
+          {/* The scroller caps itself rather than stretching inside a capped
+              flex parent: with no definite height to divide, flex-1 grew past
+              the cap and the last card was drawn under the action row. */}
+          <div className="space-y-6 max-h-[62dvh] overflow-y-auto overscroll-y-none touch-pan-y">
             {flow.phase === 'intro' && <IntroStep />}
 
             {flow.phase === 'destination' && (
@@ -190,21 +192,20 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
               />
             )}
 
-            </div>
-
-            {(stepAction || flow.canGoBack) && (
-              <div className="shrink-0 pt-6 flex gap-3">
-                {flow.canGoBack && (
-                  <SecondaryButton onClick={flow.back} className="flex-1">
-                    Back
-                  </SecondaryButton>
-                )}
-                {stepAction && (
-                  <div className={`flex ${flow.canGoBack ? 'flex-[2]' : 'w-full'}`}>{stepAction}</div>
-                )}
-              </div>
-            )}
           </div>
+
+          {(stepAction || flow.canGoBack) && (
+            <div className="pt-6 flex gap-3">
+              {flow.canGoBack && (
+                <SecondaryButton onClick={flow.back} className="flex-1">
+                  Back
+                </SecondaryButton>
+              )}
+              {stepAction && (
+                <div className={`flex ${flow.canGoBack ? 'flex-[2]' : 'w-full'}`}>{stepAction}</div>
+              )}
+            </div>
+          )}
         </BottomSheetCard>
       </BottomSheetContainer>
 
