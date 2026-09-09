@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useWallet } from '../contexts/WalletContext';
 import { useToast } from '../contexts/ToastContext';
 import { logger, LogCategory } from '@/services/logger';
@@ -19,7 +19,8 @@ import SaveContactDialog from '../features/send/components/SaveContactDialog';
 import BuyBitcoinDialog from '../features/buy/BuyBitcoinDialog';
 import { getBuyProviderSettings, filterProvidersByNetwork, filterProvidersByPlatform } from '../services/settings';
 import { useCashAppInstalled } from '../hooks/useCashAppInstalled';
-import { UnilateralExitBanner } from '../features/unilateral-exit/UnilateralExitBanner';
+import { unilateralExitEntries } from '../features/unilateral-exit/listEntries';
+import { useUnilateralExitEngineState } from '../features/unilateral-exit/hooks/useUnilateralExitEngineLifecycle';
 import { useStatusBarColor } from '../hooks/useStatusBarColor';
 import { STATUS_BAR_WALLET_GLASS } from '../utils/statusBarManager';
 import { onDeepLink } from '../utils/deepLink';
@@ -114,6 +115,9 @@ const WalletPage: React.FC<WalletPageProps> = ({
   }, []);
 
   const transactionsContainerRef = useRef<HTMLDivElement>(null);
+
+  const exitState = useUnilateralExitEngineState();
+  const exitEntries = useMemo(() => unilateralExitEntries(exitState), [exitState]);
 
   // Refs for dialog states to use in stable callbacks (advanced-event-handler-refs optimization)
   const dialogStateRef = useLatest({ isSendDialogOpen, isReceiveDialogOpen, selectedPayment, selectedDeposit });
@@ -265,9 +269,6 @@ const WalletPage: React.FC<WalletPageProps> = ({
           hasRejectedDeposits={hasRejectedDeposits}
           onOpenGetRefund={() => onOpenGetRefund('icon')}
         />
-        <div className="px-4 pb-2">
-          <UnilateralExitBanner onOpen={onOpenUnilateralExit} />
-        </div>
       </div>
 
       {/* Scrollable transaction list */}
@@ -280,6 +281,8 @@ const WalletPage: React.FC<WalletPageProps> = ({
           transactions={mergeDepositsWithTransactions(transactions, unclaimedDeposits)}
           onPaymentSelected={handlePaymentSelected}
           isSyncing={isSyncing}
+          exitEntries={exitEntries}
+          onExitSelected={onOpenUnilateralExit}
         />
       </div>
 
