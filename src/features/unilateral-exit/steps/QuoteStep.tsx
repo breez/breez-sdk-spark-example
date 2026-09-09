@@ -57,8 +57,8 @@ export const QuoteStep: React.FC<QuoteFields> = ({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="text-center py-4">
+    <div className="space-y-4">
+      <div className="text-center py-2">
         <p className="text-spark-text-muted text-sm mb-2">You&apos;ll receive</p>
         <SatAmount
           sats={willReceiveSat}
