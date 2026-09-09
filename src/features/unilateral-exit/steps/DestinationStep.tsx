@@ -18,10 +18,6 @@ export const DestinationStep: React.FC<
         onChange={event => onChange(event.target.value)}
         placeholder="bc1q..."
       />
-      <p className="text-spark-text-muted text-xs mt-2">
-        Every exited sat is swept to this address. Use a wallet whose keys you hold, not an
-        exchange deposit address.
-      </p>
     </div>
 
     {error && <SimpleAlert variant="error">{error}</SimpleAlert>}
