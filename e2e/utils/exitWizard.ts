@@ -50,8 +50,8 @@ export const blocksToNextStep = async (page: Page, tip: number): Promise<number>
 
 /** The figure the quote puts in front of the user as what will arrive. */
 const quotedWillReceiveSat = async (page: Page): Promise<number> => {
-  const row = page.getByText('You receive, about').locator('..');
-  return Number((await row.innerText()).replace(/\D/g, ''));
+  const hero = page.getByText("You'll receive").locator('..');
+  return Number((await hero.innerText()).replace(/\D/g, ''));
 };
 
 /**

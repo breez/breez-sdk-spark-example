@@ -149,11 +149,8 @@ test.describe('Unilateral exit', () => {
     await openUnilateralExit(page);
 
     await test.step('intro explains the last-resort framing', async () => {
-      // The screen title is an h1 with the same words; this is the intro card.
-      await expect(
-        page.getByRole('heading', { name: 'Unilateral exit', level: 2 }),
-      ).toBeVisible();
-      await expect(page.getByText('Use this only as a last resort')).toBeVisible();
+      await expect(page.getByText('This is a last-resort action.')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'What you need' })).toBeVisible();
     });
 
     const quoted = await driveWizardToTracker(page, destination, MNEMONIC);
@@ -327,7 +324,7 @@ test.describe('Unilateral exit', () => {
         timeout: TIMEOUTS.PAYMENT,
       });
       // The leaf the watchtower took is settled: nothing is left in error over it.
-      await expect(resumed.getByText('Fees would eat the whole exit')).toHaveCount(0);
+      await expect(resumed.getByText('Nothing is worth exiting right now')).toHaveCount(0);
       await driveToCompletion(resumed);
       expect(await addressBalanceSats(destination)).toBeGreaterThan(0);
     });
