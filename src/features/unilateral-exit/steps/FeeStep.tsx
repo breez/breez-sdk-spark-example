@@ -22,15 +22,15 @@ export const FeeStep: React.FC<FeeFields> = ({ feeRates, feeChoice, onSelect }) 
     <div className="space-y-6">
       <div>
         <span className="block text-sm font-medium text-spark-text-primary mb-2">
-          Fee rate
+          Select Fee Rate
         </span>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="flex gap-2">
           {choices.map(choice => (
             <button
               key={choice.key}
               type="button"
               onClick={() => onSelect(choice.key)}
-              className={`relative p-3 rounded-lg border text-sm font-medium transition-colors ${
+              className={`relative flex-1 p-3 rounded-lg border text-sm font-medium transition-colors ${
                 feeChoice === choice.key
                   ? 'bg-spark-primary/15 text-spark-text-primary border-spark-primary ring-2 ring-spark-primary'
                   : 'bg-spark-dark text-spark-text-secondary border-spark-border hover:border-spark-primary'

@@ -1,8 +1,9 @@
-import { ErrorMessageBox, LoadingSpinner } from '@/components/ui';
+import { CopyableRow, ErrorMessageBox, LoadingSpinner } from '@/components/ui';
 import React from 'react';
 import { AlertCard } from '@/components/AlertCard';
 import { FeeBreakdownCard } from '@/components/FeeBreakdownCard';
 import { SatAmount } from '@/components/SatAmount';
+import { truncateAddress } from '@/utils/crossChainFormat';
 import type { QuoteFields } from '../hooks/useUnilateralExitFlow';
 
 export const QuoteStep: React.FC<QuoteFields> = ({
@@ -64,6 +65,13 @@ export const QuoteStep: React.FC<QuoteFields> = ({
           className="text-4xl font-bold text-spark-text-primary"
         />
       </div>
+
+      <CopyableRow
+        label="To address"
+        value={quote.destination}
+        display={truncateAddress(quote.destination, 32)}
+        data-testid="unilateral-exit-quote-destination"
+      />
 
       <FeeBreakdownCard
         items={[

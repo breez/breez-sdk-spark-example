@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import SlideInPage from '@/components/layout/SlideInPage';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   BottomSheetCard,
   BottomSheetContainer,
@@ -10,6 +9,7 @@ import {
 } from '@/components/ui';
 import { PinGate } from '@/components/PinEntry';
 import QrScannerDialog from '@/components/QrScannerDialog';
+import { useBackButton } from '@/hooks/useBackButton';
 import { isPinEnabled } from '@/services/appLock';
 import { canContinueFromQuote, useUnilateralExitFlow } from '@/features/unilateral-exit/hooks/useUnilateralExitFlow';
 import { IntroStep } from '@/features/unilateral-exit/steps/IntroStep';
@@ -56,14 +56,24 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
 
   // One call to action per step, in the bar the rest of the app puts it in.
   // A step with nothing to press, such as the pin gate or the build, has none.
-  const introFooter = (
-    <PrimaryButton onClick={() => flow.goTo('destination')} className="w-full" data-testid="unilateral-exit-start">
-      Continue
-    </PrimaryButton>
+  const { canGoBack, back } = flow;
+  useBackButton(
+    useCallback(() => {
+      if (!canGoBack) return false;
+      back();
+      return true;
+    }, [canGoBack, back]),
+    true,
   );
 
   const stepAction = (() => {
     switch (flow.phase) {
+      case 'intro':
+        return (
+          <PrimaryButton onClick={() => flow.goTo('destination')} className="w-full" data-testid="unilateral-exit-start">
+            Continue
+          </PrimaryButton>
+        );
       case 'destination':
         return (
           <PrimaryButton
@@ -111,17 +121,9 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
 
   return (
     <>
-      <SlideInPage title="Unilateral Exit" onClose={onBack} slideFrom="left" footer={introFooter}>
-        <div className="p-4">
-          <div className="max-w-xl mx-auto w-full">
-            <IntroStep />
-          </div>
-        </div>
-      </SlideInPage>
-
-      {/* Above SlideInPage's z-60 wrapper: the sheet portals to #root as its
-          sibling, so at the default z-50 it opens behind the page. */}
-      <BottomSheetContainer isOpen={flow.phase !== 'intro'} onClose={onBack} zIndex={70} showBackdrop>
+      {/* Above the settings page's z-60 wrapper: the sheet portals to #root as
+          its sibling, so at the default z-50 it opens behind that page. */}
+      <BottomSheetContainer isOpen onClose={onBack} zIndex={70} showBackdrop>
         <BottomSheetCard>
           <DialogHeader
             // Names the flow, not the step: each step already labels its own
@@ -132,6 +134,8 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
           />
 
           <div className="space-y-6">
+            {flow.phase === 'intro' && <IntroStep />}
+
             {flow.phase === 'destination' && (
               <DestinationStep
                 {...flow.destination}
