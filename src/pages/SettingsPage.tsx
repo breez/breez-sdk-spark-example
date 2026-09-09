@@ -509,7 +509,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 onClick={onOpenUnilateralExit}
                 data-testid="settings-unilateral-exit"
               >
-                <span>Start Exit</span>
+                <span>Start Unilateral Exit</span>
                 <ChevronRightIcon size="md" />
               </button>
             </div>
