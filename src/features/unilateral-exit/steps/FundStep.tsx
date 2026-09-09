@@ -19,57 +19,69 @@ export const FundStep: React.FC<FundingFields & { error: string | null }> = ({
   // this is money sent from somewhere else, and the figure has to be exact.
   const btc = (requiredSat / 100_000_000).toFixed(8).replace(/0+$/, '').replace(/\.$/, '');
   const qrValue = isResuming ? address : `bitcoin:${address}?amount=${btc}`;
+  // A resumed exit can still be asked for more, so it keeps the paying view
+  // even once the original fee is in.
+  const isPaid = isFunded && !isResuming;
 
   return (
   <div className="space-y-4">
-    <div className="text-center py-4">
-      <p className="text-spark-text-muted text-sm mb-2">Pay exit fee</p>
-      <SatAmount
-        sats={isResuming ? fundedSat : requiredSat}
-        className="text-4xl font-bold text-spark-text-primary"
-      />
-    </div>
-
-    {/* Gone once the fee lands: there is nothing left to pay, and the step
-        becomes the confirmation that it arrived. A resumed exit keeps it,
-        since a later step can still be rejected for want of fees.
-        The same control the receive sheet gives a bitcoin address, so the
-        address copies and shares rather than sitting in a row of its own. */}
-    {(!isFunded || isResuming) && (
-      <div className="flex flex-col items-center gap-4">
-        {/* Sized so the copy and share controls stay on screen with it: this
-            is the one screen that exists to copy an address, and at 180 they
-            fell below the sheet's fold on a phone. Still above what a camera
-            needs at 3x. */}
-        <QRCodeContainer value={qrValue} size={130} />
-        <CopyableText
-          text={address}
-          truncate
-          showShare
-          label="Exit fee address"
-          onCopied={() => showToast('success', 'Copied!')}
-          onShareError={() => showToast('error', 'Failed to share')}
-          data-testid="unilateral-exit-funding-address"
-        />
+    {isPaid ? (
+      // The send flow's result shape: an instruction to pay reads as wrong
+      // once it is paid, so the step becomes the receipt instead.
+      <div className="py-6 flex flex-col items-center">
+        <div className="relative mb-4">
+          <div className="absolute inset-0 w-20 h-20 rounded-full blur-xl bg-spark-success/30" />
+          <div className="relative w-20 h-20 rounded-full flex items-center justify-center bg-spark-success/20 border-2 border-spark-success">
+            <CheckIcon className="w-10 h-10 text-spark-success" />
+          </div>
+        </div>
+        <h3 className="font-display text-xl font-bold text-spark-text-primary">Exit fee received</h3>
       </div>
-    )}
+    ) : (
+      <>
+        <div className="text-center py-2">
+          <p className="text-spark-text-muted text-sm mb-2">Pay exit fee</p>
+          <SatAmount
+            sats={isResuming ? fundedSat : requiredSat}
+            className="text-4xl font-bold text-spark-text-primary"
+          />
+        </div>
 
-    {/* One row either way, so the wait and the arrival read as the same line
-        changing rather than two different screens. */}
-    <div className="flex items-center justify-center gap-2">
-      {isFunded ? (
-        <CheckIcon className="shrink-0 text-spark-success" />
-      ) : (
-        <ClockIcon className="shrink-0 text-spark-primary" />
-      )}
-      <p className="text-sm text-spark-text-secondary">
-        {isFunded
-          ? 'Exit fee received'
-          : hasPendingDeposit
-            ? 'Waiting for a confirmation'
-            : 'Waiting for your deposit'}
-      </p>
-    </div>
+        {/* The same control the receive sheet gives a bitcoin address, so the
+            address copies and shares rather than sitting in a row of its own. */}
+        <div className="flex flex-col items-center gap-4">
+          {/* Sized so the copy and share controls stay on screen with it: this
+              is the one screen that exists to copy an address, and at 180 they
+              fell below the sheet's fold on a phone. Still above what a camera
+              needs at 3x. */}
+          <QRCodeContainer value={qrValue} size={130} />
+          <CopyableText
+            text={address}
+            truncate
+            showShare
+            label="Exit fee address"
+            onCopied={() => showToast('success', 'Copied!')}
+            onShareError={() => showToast('error', 'Failed to share')}
+            data-testid="unilateral-exit-funding-address"
+          />
+        </div>
+
+        <div className="flex items-center justify-center gap-2">
+          {isFunded ? (
+            <CheckIcon className="shrink-0 text-spark-success" />
+          ) : (
+            <ClockIcon className="shrink-0 text-spark-primary" />
+          )}
+          <p className="text-sm text-spark-text-secondary">
+            {isFunded
+              ? 'Exit fee received'
+              : hasPendingDeposit
+                ? 'Waiting for a confirmation'
+                : 'Waiting for your deposit'}
+          </p>
+        </div>
+      </>
+    )}
 
     {error && <ErrorMessageBox title="Could not build the exit" error={error} />}
 
