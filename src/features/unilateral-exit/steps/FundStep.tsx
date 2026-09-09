@@ -1,19 +1,17 @@
 import React from 'react';
-import { CopyableRow, PrimaryButton, SecondaryButton } from '@/components/ui';
+import { CopyableRow } from '@/components/ui';
 import { SatAmount } from '@/components/SatAmount';
 import { CheckIcon, ClockIcon } from '@/components/Icons';
 import { truncateAddress } from '@/utils/crossChainFormat';
 import type { FundingFields } from '../hooks/useUnilateralExitFlow';
 
-export const FundStep: React.FC<FundingFields & { onBack: () => void; onContinue: () => void }> = ({
+export const FundStep: React.FC<FundingFields> = ({
   address,
   requiredSat,
   fundedSat,
   isFunded,
   hasPendingDeposit,
   isResuming,
-  onBack,
-  onContinue,
 }) => (
   <div className="space-y-6">
     <div className="text-center py-4">
@@ -62,15 +60,5 @@ export const FundStep: React.FC<FundingFields & { onBack: () => void; onContinue
       </p>
     )}
 
-    <div className="flex flex-col gap-3">
-      <PrimaryButton
-        onClick={onContinue}
-        disabled={!isFunded}
-        data-testid="unilateral-exit-fund-continue"
-      >
-        Exit Spark
-      </PrimaryButton>
-      <SecondaryButton onClick={onBack}>Go Back</SecondaryButton>
-    </div>
   </div>
 );

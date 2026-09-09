@@ -1,6 +1,6 @@
 import React from 'react';
 import type { PrepareUnilateralExitResponse } from '@breeztech/breez-sdk-spark';
-import { ErrorMessageBox, PrimaryButton, SecondaryButton } from '@/components/ui';
+import { ErrorMessageBox } from '@/components/ui';
 import { AlertCard } from '@/components/AlertCard';
 import { FeeBreakdownCard } from '@/components/FeeBreakdownCard';
 import { SatAmount } from '@/components/SatAmount';
@@ -12,9 +12,7 @@ export const ConfirmStep: React.FC<{
   willReceiveSat: number;
   fundedSat: number;
   error: string | null;
-  onBack: () => void;
-  onBuild: () => void;
-}> = ({ quote, sweepFeeSat, willReceiveSat, fundedSat, error, onBack, onBuild }) => (
+}> = ({ quote, sweepFeeSat, willReceiveSat, fundedSat, error }) => (
   <div className="space-y-6">
     <FeeBreakdownCard
       items={[
@@ -45,13 +43,5 @@ export const ConfirmStep: React.FC<{
 
     {error && <ErrorMessageBox title="Could not build the exit" error={error} />}
 
-    <div className="flex gap-3">
-      <SecondaryButton onClick={onBack} className="flex-1">
-        Back
-      </SecondaryButton>
-      <PrimaryButton onClick={onBuild} className="flex-1" data-testid="unilateral-exit-build">
-        Exit Spark
-      </PrimaryButton>
-    </div>
   </div>
 );

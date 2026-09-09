@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import SlideInPage from '@/components/layout/SlideInPage';
-import { ErrorMessageBox, LoadingSpinner, SecondaryButton } from '@/components/ui';
+import { ErrorMessageBox, LoadingSpinner, PrimaryButton } from '@/components/ui';
 import { PinGate } from '@/components/PinEntry';
 import { isPinEnabled } from '@/services/appLock';
-import { useUnilateralExitFlow } from '@/features/unilateral-exit/hooks/useUnilateralExitFlow';
+import { canContinueFromQuote, useUnilateralExitFlow } from '@/features/unilateral-exit/hooks/useUnilateralExitFlow';
 import { IntroStep } from '@/features/unilateral-exit/steps/IntroStep';
 import { DestinationStep } from '@/features/unilateral-exit/steps/DestinationStep';
 import { FeeStep } from '@/features/unilateral-exit/steps/FeeStep';
@@ -46,26 +46,90 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
     if (phase === 'tracker' && !engine.plan) onFinished();
   }, [phase, engine.plan, onFinished]);
 
+  // One call to action per step, in the bar the rest of the app puts it in.
+  // A step with nothing to press, such as the pin gate or the build, has none.
+  const footer = (() => {
+    switch (flow.phase) {
+      case 'intro':
+        return (
+          <PrimaryButton onClick={() => flow.goTo('destination')} className="w-full" data-testid="unilateral-exit-start">
+            Continue
+          </PrimaryButton>
+        );
+      case 'destination':
+        return (
+          <PrimaryButton
+            onClick={() => void flow.submitDestination()}
+            disabled={!flow.destination.destination.trim()}
+            className="w-full"
+            data-testid="unilateral-exit-destination-continue"
+          >
+            Continue
+          </PrimaryButton>
+        );
+      case 'fee':
+        return (
+          <PrimaryButton
+            onClick={() => void flow.submitFee()}
+            disabled={flow.fee.effectiveFeeRate <= 0}
+            className="w-full"
+            data-testid="unilateral-exit-get-quote"
+          >
+            Get Quote
+          </PrimaryButton>
+        );
+      case 'quote':
+        if (!canContinueFromQuote(flow.quote)) return null;
+        return (
+          <PrimaryButton onClick={() => flow.goTo('unlock')} className="w-full" data-testid="unilateral-exit-quote-continue">
+            Continue
+          </PrimaryButton>
+        );
+      case 'fund':
+        return (
+          <PrimaryButton
+            onClick={() => flow.goTo('confirm')}
+            disabled={!flow.funding?.isFunded}
+            className="w-full"
+            data-testid="unilateral-exit-fund-continue"
+          >
+            Exit Spark
+          </PrimaryButton>
+        );
+      case 'confirm':
+        return (
+          <PrimaryButton onClick={() => void flow.build()} className="w-full" data-testid="unilateral-exit-build">
+            Exit Spark
+          </PrimaryButton>
+        );
+      default:
+        return null;
+    }
+  })();
+
   return (
-    <SlideInPage title="Unilateral exit" onClose={onBack} slideFrom="left">
+    <SlideInPage
+      title="Unilateral Exit"
+      closeStyle="back"
+      onClose={onBack}
+      onHeaderBack={flow.canGoBack ? flow.back : undefined}
+      slideFrom="left"
+      footer={footer}
+    >
       <div className="p-4">
         <div className="max-w-xl mx-auto w-full">
-          {flow.phase === 'intro' && <IntroStep onContinue={() => flow.goTo('destination')} />}
+          {flow.phase === 'intro' && <IntroStep />}
 
           {flow.phase === 'destination' && (
-            <DestinationStep
-              {...flow.destination}
-              onBack={flow.back}
-              onContinue={() => void flow.submitDestination()}
-            />
+            <DestinationStep {...flow.destination} />
           )}
 
           {flow.phase === 'fee' && (
-            <FeeStep {...flow.fee} onBack={flow.back} onContinue={() => void flow.submitFee()} />
+            <FeeStep {...flow.fee} />
           )}
 
           {flow.phase === 'quote' && (
-            <QuoteStep {...flow.quote} onBack={flow.back} onContinue={() => flow.goTo('unlock')} />
+            <QuoteStep {...flow.quote} />
           )}
 
           {flow.phase === 'unlock' && (
@@ -76,14 +140,11 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
               {flow.unlockError && (
                 <ErrorMessageBox title="Cannot reach your recovery phrase" error={flow.unlockError} />
               )}
-              <SecondaryButton onClick={flow.back} className="w-full">
-                Back
-              </SecondaryButton>
             </div>
           )}
 
           {flow.phase === 'fund' && flow.funding && (
-            <FundStep {...flow.funding} onBack={flow.back} onContinue={() => flow.goTo('confirm')} />
+            <FundStep {...flow.funding} />
           )}
 
           {flow.phase === 'confirm' && flow.quote.quote && flow.funding && (
@@ -93,8 +154,6 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
               willReceiveSat={flow.quote.willReceiveSat}
               fundedSat={flow.funding.fundedSat}
               error={flow.buildError}
-              onBack={flow.back}
-              onBuild={() => void flow.build()}
             />
           )}
 

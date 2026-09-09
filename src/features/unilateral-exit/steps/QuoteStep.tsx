@@ -1,19 +1,17 @@
-import { ErrorMessageBox, LoadingSpinner, PrimaryButton, SecondaryButton } from '@/components/ui';
+import { ErrorMessageBox, LoadingSpinner } from '@/components/ui';
 import React from 'react';
 import { AlertCard } from '@/components/AlertCard';
 import { FeeBreakdownCard } from '@/components/FeeBreakdownCard';
 import { SatAmount } from '@/components/SatAmount';
 import type { QuoteFields } from '../hooks/useUnilateralExitFlow';
 
-export const QuoteStep: React.FC<QuoteFields & { onBack: () => void; onContinue: () => void }> = ({
+export const QuoteStep: React.FC<QuoteFields> = ({
   quote,
   sweepFeeSat,
   willReceiveSat,
   isQuoting,
   error,
   leftBehindSat,
-  onBack,
-  onContinue,
 }) => {
   if (isQuoting) {
     return (
@@ -27,7 +25,6 @@ export const QuoteStep: React.FC<QuoteFields & { onBack: () => void; onContinue:
     return (
       <div className="space-y-6">
         <ErrorMessageBox title="Could not quote the exit" error={error} />
-        <SecondaryButton onClick={onBack} className="w-full">Go Back</SecondaryButton>
       </div>
     );
   }
@@ -41,7 +38,6 @@ export const QuoteStep: React.FC<QuoteFields & { onBack: () => void; onContinue:
             some, the leaf data this needs may be missing from this device.
           </p>
         </AlertCard>
-        <SecondaryButton onClick={onBack} className="w-full">Go Back</SecondaryButton>
       </div>
     );
   }
@@ -55,9 +51,6 @@ export const QuoteStep: React.FC<QuoteFields & { onBack: () => void; onContinue:
             worth. Try a lower fee rate, or wait for the network to get cheaper.
           </p>
         </AlertCard>
-        <SecondaryButton onClick={onBack} className="w-full">
-          Change fee rate
-        </SecondaryButton>
       </div>
     );
   }
@@ -94,12 +87,6 @@ export const QuoteStep: React.FC<QuoteFields & { onBack: () => void; onContinue:
         </AlertCard>
       )}
 
-      <div className="flex flex-col gap-3">
-        <PrimaryButton onClick={onContinue} data-testid="unilateral-exit-quote-continue">
-          Continue
-        </PrimaryButton>
-        <SecondaryButton onClick={onBack}>Go Back</SecondaryButton>
-      </div>
     </div>
   );
 };

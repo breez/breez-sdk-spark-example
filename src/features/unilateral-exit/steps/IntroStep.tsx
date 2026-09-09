@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CollapsibleSection, PrimaryButton } from '@/components/ui';
+import { CollapsibleSection } from '@/components/ui';
 import { SimpleAlert } from '@/components/AlertCard';
 import { BackupActions } from '../BackupCard';
 
@@ -9,7 +9,7 @@ const requirements = [
   'Days of waiting for the process to complete due to on-chain timelocks',
 ];
 
-export const IntroStep: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
+export const IntroStep: React.FC = () => {
   const [advanced, setAdvanced] = useState(false);
 
   return (
@@ -40,10 +40,6 @@ export const IntroStep: React.FC<{ onContinue: () => void }> = ({ onContinue }) 
       >
         <BackupActions />
       </CollapsibleSection>
-
-      <PrimaryButton onClick={onContinue} className="w-full" data-testid="unilateral-exit-start">
-        Continue
-      </PrimaryButton>
     </div>
   );
 };

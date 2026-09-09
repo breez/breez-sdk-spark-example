@@ -1,5 +1,5 @@
 import React from 'react';
-import { PrimaryButton, SecondaryButton, LoadingSpinner } from '@/components/ui';
+import { LoadingSpinner } from '@/components/ui';
 import { RadioCheckIcon } from '@/components/Icons';
 import type { FeeChoice, FeeFields } from '../hooks/useUnilateralExitFlow';
 
@@ -9,14 +9,7 @@ const choices: { key: FeeChoice; label: string }[] = [
   { key: 'fast', label: 'Fast' },
 ];
 
-export const FeeStep: React.FC<FeeFields & { onBack: () => void; onContinue: () => void }> = ({
-  feeRates,
-  feeChoice,
-  effectiveFeeRate,
-  onSelect,
-  onBack,
-  onContinue,
-}) => {
+export const FeeStep: React.FC<FeeFields> = ({ feeRates, feeChoice, onSelect }) => {
   if (!feeRates) {
     return (
       <div className="py-16 flex justify-center">
@@ -51,19 +44,6 @@ export const FeeStep: React.FC<FeeFields & { onBack: () => void; onContinue: () 
         </div>
       </div>
 
-      <div className="flex gap-3">
-        <SecondaryButton onClick={onBack} className="flex-1">
-          Back
-        </SecondaryButton>
-        <PrimaryButton
-          onClick={onContinue}
-          disabled={effectiveFeeRate <= 0}
-          className="flex-1"
-          data-testid="unilateral-exit-get-quote"
-        >
-          Get Quote
-        </PrimaryButton>
-      </div>
     </div>
   );
 };

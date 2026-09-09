@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import type { PrepareUnilateralExitResponse } from '@breeztech/breez-sdk-spark';
 import { QuoteStep } from './QuoteStep';
+import { canContinueFromQuote } from '../hooks/useUnilateralExitFlow';
 
 const quote = (over: Partial<PrepareUnilateralExitResponse> = {}): PrepareUnilateralExitResponse => ({
   leaves: [{ leafId: 'leaf-1', value: 100_000 }],
@@ -24,20 +25,20 @@ const quote = (over: Partial<PrepareUnilateralExitResponse> = {}): PrepareUnilat
   ...over,
 });
 
+const fields = (
+  over: Partial<React.ComponentProps<typeof QuoteStep>> = {},
+): React.ComponentProps<typeof QuoteStep> => ({
+  quote: quote(),
+  sweepFeeSat: 200,
+  willReceiveSat: 99_800,
+  isQuoting: false,
+  error: null,
+  leftBehindSat: 0,
+  ...over,
+});
+
 const renderStep = (props: Partial<React.ComponentProps<typeof QuoteStep>> = {}) =>
-  render(
-    <QuoteStep
-      quote={quote()}
-      sweepFeeSat={200}
-      willReceiveSat={99_800}
-      isQuoting={false}
-      error={null}
-      leftBehindSat={0}
-      onBack={vi.fn()}
-      onContinue={vi.fn()}
-      {...props}
-    />,
-  );
+  render(<QuoteStep {...fields(props)} />);
 
 describe('QuoteStep', () => {
   it('shows the one fee that comes off the balance, so the shortfall is not a surprise', () => {
@@ -68,8 +69,7 @@ describe('QuoteStep', () => {
   });
 
   it('lets a worthwhile exit continue', () => {
-    renderStep();
-    expect(screen.getByText('Continue')).toBeEnabled();
+    expect(canContinueFromQuote(fields())).toBe(true);
   });
 
   it('will not let an exit start when the fees would eat it', () => {
@@ -79,7 +79,11 @@ describe('QuoteStep', () => {
       willReceiveSat: 800,
     });
     expect(screen.getByText('Nothing is worth exiting right now')).toBeInTheDocument();
-    expect(screen.queryByText('Continue')).not.toBeInTheDocument();
+    expect(canContinueFromQuote(fields({
+      quote: quote({ recoverableValueSat: 1_000, totalFeeSat: 4_000 }),
+      sweepFeeSat: 200,
+      willReceiveSat: 800,
+    }))).toBe(false);
   });
 
   it('distinguishes having no leaves at all from the fees being too high', () => {

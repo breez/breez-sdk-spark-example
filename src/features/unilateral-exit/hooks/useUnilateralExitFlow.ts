@@ -80,9 +80,21 @@ export interface FundingFields {
   isResuming: boolean;
 }
 
+/**
+ * Whether the quote is one an exit can be started from. The step renders a dead
+ * end for each of these, and the page's call to action follows it.
+ */
+export function canContinueFromQuote(fields: QuoteFields): boolean {
+  if (fields.isQuoting || fields.error) return false;
+  if (!fields.quote || fields.quote.leaves.length === 0) return false;
+  return fields.quote.totalFeeSat < fields.quote.recoverableValueSat && fields.willReceiveSat > 0;
+}
+
 export interface UnilateralExitFlow {
   phase: UnilateralExitPhase;
   engine: UnilateralExitEngineState;
+  /** False on the first step and on the tracker, where back leaves the flow. */
+  canGoBack: boolean;
   destination: DestinationFields;
   fee: FeeFields;
   quote: QuoteFields;
@@ -306,6 +318,8 @@ export function useUnilateralExitFlow(network: string): UnilateralExitFlow {
   return {
     phase,
     engine,
+    /** False on the first step and on the tracker, where back leaves the flow. */
+    canGoBack: BACK[phase] !== undefined,
     destination: { destination, onChange: setDestination, error: destinationError },
     fee: {
       feeRates,

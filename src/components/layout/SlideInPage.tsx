@@ -17,6 +17,11 @@ interface SlideInPageProps {
   slideFrom?: SlideDirection;
   /** Optional footer content */
   footer?: ReactNode;
+  /**
+   * Steps back inside the page instead of leaving it, for a wizard whose header
+   * arrow walks its own steps. Closing still runs `onClose`.
+   */
+  onHeaderBack?: () => void;
 }
 
 const slideTransforms: Record<SlideDirection, { from: string; to: string }> = {
@@ -38,6 +43,7 @@ const SlideInPage: React.FC<SlideInPageProps> = ({
   children,
   title,
   closeStyle = 'close',
+  onHeaderBack,
   onClose,
   slideFrom = 'left',
   footer,
@@ -112,7 +118,7 @@ const SlideInPage: React.FC<SlideInPageProps> = ({
 
               {closeStyle === 'back' ? (
                 <button
-                  onClick={handleClose}
+                  onClick={onHeaderBack ?? handleClose}
                   className="absolute left-4 top-1/2 -translate-y-1/2 p-2 text-spark-text-muted hover:text-spark-text-primary rounded-lg hover:bg-white/5 transition-colors"
                   aria-label="Go back"
                 >
