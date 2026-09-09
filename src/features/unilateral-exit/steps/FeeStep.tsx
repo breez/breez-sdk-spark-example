@@ -61,7 +61,7 @@ export const FeeStep: React.FC<FeeFields & { onBack: () => void; onContinue: () 
           className="flex-1"
           data-testid="unilateral-exit-get-quote"
         >
-          Get quote
+          Get Quote
         </PrimaryButton>
       </div>
     </div>

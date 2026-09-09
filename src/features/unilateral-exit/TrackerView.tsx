@@ -169,7 +169,7 @@ export const TrackerView: React.FC<{
           </p>
           <div className="mt-3">
             <PrimaryButton onClick={onRebuild} className="w-full" data-testid="unilateral-exit-rebuild">
-              Rebuild the exit
+              Rebuild the Exit
             </PrimaryButton>
           </div>
         </AlertCard>
