@@ -21,8 +21,8 @@ beforeEach(() => forgetAnnouncedClaims());
 const option = (confirmationsRequired: number, feeSats = 100): ClaimDepositQuote =>
   ({ confirmationsRequired, feeSats, creditAmountSats: 1_000 - feeSats, isEstimate: false }) as ClaimDepositQuote;
 
-const quoteOf = (instant: ClaimDepositQuote | null, mature: ClaimDepositQuote) =>
-  ({ instant: instant ?? undefined, mature, confirmations: 0 }) as FetchClaimDepositQuoteResponse;
+const quoteOf = (instant: ClaimDepositQuote | null, mature: ClaimDepositQuote, confirmations = 0) =>
+  ({ instant: instant ?? undefined, mature, confirmations }) as FetchClaimDepositQuoteResponse;
 
 const deposit = (submitted: boolean): DepositInfo => ({
   txid: 'a'.repeat(64),
@@ -78,18 +78,17 @@ describe('formatWait', () => {
     expect(formatWait(-1)).toBeNull();
   });
 
-  it('stays in minutes below the hour', () => {
-    expect(formatWait(1)).toBe('~10 min');
-    expect(formatWait(5)).toBe('~50 min');
+  it('counts blocks, singular and plural, and glosses each in minutes', () => {
+    expect(formatWait(1)).toBe('1 confirmation (~10 mins)');
+    expect(formatWait(2)).toBe('2 confirmations (~20 mins)');
   });
 
-  it('switches to hours at the hour, dropping the decimal when it is whole', () => {
-    expect(formatWait(6)).toBe('~1 hr');
-    expect(formatWait(12)).toBe('~2 hr');
-  });
-
-  it('keeps one decimal for a part hour', () => {
-    expect(formatWait(7)).toBe('~1.2 hr');
+  // The count leads because it is the exact part. Minutes on their own would
+  // read as a countdown that never counts down: block arrival is memoryless, so
+  // twenty minutes into a two-block wait the expectation is still two blocks.
+  it('leads with the count and keeps the time approximate', () => {
+    expect(formatWait(3)).toMatch(/^3 confirmations \(~/);
+    expect(formatWait(3)).toContain('~30 mins');
   });
 });
 
@@ -109,21 +108,31 @@ describe('earlyOption', () => {
   it('is offered when it genuinely arrives first', () => {
     expect(earlyOption(quoteOf(option(0), option(3)))).toMatchObject({ confirmationsRequired: 0 });
   });
+
+  // Paying the spread at maturity depth buys one sync cycle at many times the
+  // fee the SDK is about to pay on its own.
+  it('is withdrawn once the automatic claim is already due', () => {
+    expect(earlyOption(quoteOf(option(1), option(3), 3))).toBeNull();
+  });
 });
 
 describe('selectOption', () => {
   it('resolves to nothing without a quote', () => {
-    expect(selectOption(null, true)).toBeNull();
+    expect(selectOption(null)).toBeNull();
   });
 
-  it('follows the preference when both routes are real', () => {
-    const q = quoteOf(option(0, 500), option(3, 100));
-    expect(selectOption(q, true)).toMatchObject({ feeSats: 500 });
-    expect(selectOption(q, false)).toMatchObject({ feeSats: 100 });
+  it('prices the early route once it can actually be claimed', () => {
+    expect(selectOption(quoteOf(option(0, 500), option(3, 100)))).toMatchObject({ feeSats: 500 });
   });
 
-  it('falls back to waiting when early is preferred but not on offer', () => {
-    expect(selectOption(quoteOf(null, option(3, 100)), true)).toMatchObject({ feeSats: 100 });
+  // Priced before it unlocks, the early route would headline the proceeds of a
+  // purchase the user cannot make, against a wait that is what will happen.
+  it('prices the wait while the early route is still locked', () => {
+    expect(selectOption(quoteOf(option(2, 500), option(3, 100)))).toMatchObject({ feeSats: 100 });
+  });
+
+  it('prices the wait when no early route is on offer', () => {
+    expect(selectOption(quoteOf(null, option(3, 100)))).toMatchObject({ feeSats: 100 });
   });
 });
 

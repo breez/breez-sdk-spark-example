@@ -22,7 +22,7 @@ import { logger, LogCategory, logSdkMessage } from '../services/logger';
 import { formatError } from '../utils/formatError';
 import { isStandalonePwa, openExternalUrl } from '../utils/externalLink';
 import { INSTANT_CLAIM_SUBMITTED_TOAST, forgetAnnouncedClaims, splitClaimedDeposits, takeUnannouncedClaims } from '../utils/depositClaimQuote';
-import { isDepositRejected, clearRejectedDeposits } from '../services/depositState';
+import { isDepositRejected, clearRejectedDeposits, clearClaimFees } from '../services/depositState';
 import { setCachedStableTicker, clearNetworkOverride, clearStableRestorePrompted, ensureSparkPrivateMode, type BuyBitcoinProvider } from '../services/settings';
 import { wipeAllLocalData } from '../services/accountDeletion';
 import { hideSplash } from '../main';
@@ -639,6 +639,7 @@ export function useBreezSdk(
     setCachedStableTicker(null);
     clearStableRestorePrompted();
     clearRejectedDeposits();
+    clearClaimFees();
     shownPaymentIdsRef.current.clear();
     forgetAnnouncedClaims();
     setIsConnected(false);

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { ComponentProps } from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import type { BreezSdk, DepositInfo, FetchClaimDepositQuoteResponse } from '@breeztech/breez-sdk-spark';
 import { WalletProvider } from '@/contexts/WalletContext';
 import { ToastProvider } from '@/contexts/ToastContext';
@@ -146,6 +146,16 @@ function button(name: string | RegExp): HTMLButtonElement {
   return found;
 }
 
+/** Picking Instant is what arms the claim button, so most tests start here. */
+async function turnOnInstant() {
+  await screen.findByTestId('delivery-speed');
+  fireEvent.click(button(/^Instant delivery/));
+}
+
+/** The delivery speed group, present only when both speeds are on offer. */
+const queryInstantRow = () => screen.queryByTestId('delivery-speed');
+const findInstantRow = () => screen.findByTestId('delivery-speed');
+
 /** The temporary dev setting that gates the priority claim. */
 function setPriorityClaim(enabled: boolean) {
   saveSettings({
@@ -181,44 +191,55 @@ describe('a confirming deposit with both routes on offer', () => {
     await waitFor(() => expect(client.fetchClaimDepositQuote).toHaveBeenCalledWith({
       txid: 'a'.repeat(64), vout: 0,
     }));
-    expect(await screen.findByText('Priority')).toBeInTheDocument();
-    expect(screen.getByText('Standard')).toBeInTheDocument();
+    expect(await findInstantRow()).toBeInTheDocument();
   });
 
-  it('shows what each route costs and how long it takes', async () => {
-    renderSheet(makeDeposit(), withQuote(quote()));
+  it('names both speeds, so waiting is not the unnamed one', async () => {
+    const group = await (async () => { renderSheet(makeDeposit(), withQuote(quote())); return findInstantRow(); })();
 
-    await screen.findByText('Priority');
-    // Early is claimable at the current depth; maturity is 2 blocks out.
-    expect(button(/^Priority/)).toHaveTextContent('Now');
-    expect(button(/^Standard/)).toHaveTextContent('~20 min');
-    expect(button(/^Standard/)).toHaveTextContent('198');
+    expect(group).toHaveTextContent('Standard delivery');
+    expect(group).toHaveTextContent('Instant delivery');
+    expect(group).toHaveTextContent('Arrives in seconds');
+    // Each speed carries its own fee, in one column down the right.
+    expect(group).toHaveTextContent('198');
+    expect(group).toHaveTextContent('3 200');
   });
 
-  it('says nothing about waiting, the options and button speaking for it', async () => {
+  // Waiting is what happens anyway, so it is never armed without being asked for.
+  it('selects standard by default and leaves the button inert', async () => {
     renderSheet(makeDeposit(), withQuote(quote()));
 
-    await screen.findByText('Priority');
-    expect(screen.queryByText(/Waiting for/)).not.toBeInTheDocument();
+    await findInstantRow();
+    expect(button(/^Standard delivery/)).toHaveAttribute('aria-checked', 'true');
+    expect(button(/^Instant delivery/)).toHaveAttribute('aria-checked', 'false');
+    expect(button('Claim Now')).toBeDisabled();
   });
 
   it('marks the estimated fee and leaves the quoted one bare', async () => {
     renderSheet(makeDeposit(), withQuote(quote()));
 
-    await screen.findByText('Priority');
+    await findInstantRow();
     // The provider will not quote maturity before a deposit matures.
-    expect(button(/^Standard/).textContent).toContain('~');
-    expect(button(/^Priority/).textContent).not.toContain('~');
+    expect(button(/^Standard delivery/).textContent).toContain('~');
+    expect(button(/^Instant delivery/).textContent).not.toContain('~');
   });
 
-  it('carries the estimate marker into the breakdown, which reprices too', async () => {
+  // The group names both waits, so a line below repeating one says it twice.
+  it('leaves the wait to the group rather than restating it', async () => {
     renderSheet(makeDeposit(), withQuote(quote()));
 
-    await screen.findByText('Priority');
-    const feeRow = (label: string) => screen.getByText(label).parentElement?.textContent ?? '';
-    expect(feeRow('Priority fee')).not.toContain('~');
-    fireEvent.click(button(/^Standard/));
-    expect(feeRow('Network fee')).toContain('~');
+    await findInstantRow();
+    expect(screen.queryByText(/Waiting for/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Claimed automatically after/)).toBeNull();
+  });
+
+  it('carries the estimate marker into the breakdown when waiting is priced', async () => {
+    // The provider will not quote maturity before a deposit matures.
+    const noEarly = quote();
+    delete noEarly.instant;
+    renderSheet(makeDeposit(), withQuote(noEarly));
+
+    await waitFor(() => expect(screen.getByText('Network fee').parentElement?.textContent).toContain('~'));
   });
 
   it('re-prices when a block lands, so the route unlocks without reopening', async () => {
@@ -226,15 +247,48 @@ describe('a confirming deposit with both routes on offer', () => {
     const stream = eventStream();
     renderSheet(makeDeposit(), client, stream.subscribe);
 
-    // Early unlocks at depth 1, and the deposit is at 0: nothing to claim yet.
-    await screen.findByText('Priority');
-    expect(screen.getByText('Waiting for 1 confirmation.')).toBeInTheDocument();
+    // Early unlocks at depth 1, and the deposit is at 0: priced but not takeable.
+    await findInstantRow();
+    expect(button(/^Instant delivery/)).toHaveAttribute('aria-disabled', 'true');
+    expect(button(/^Instant delivery/)).toHaveTextContent('Unlocks in 1 confirmation');
 
     vi.mocked(client.fetchClaimDepositQuote).mockResolvedValue(quote({ confirmations: 1 }));
     stream.emitSynced();
 
-    await waitFor(() => expect(screen.queryByText('Waiting for 1 confirmation.')).toBeNull());
-    expect(button('Claim now')).toBeEnabled();
+    // The block lands and the route becomes selectable, without reopening.
+    await waitFor(() =>
+      expect(button(/^Instant delivery/)).toHaveAttribute('aria-disabled', 'false'));
+    expect(button('Claim Now')).toBeDisabled();
+    await turnOnInstant();
+    expect(button('Claim Now')).toBeEnabled();
+  });
+
+  // The provider re-quotes on every sync, so the depth it wants can rise after
+  // the paid route was picked. Claiming against a floor above the deposit's
+  // depth throws, so the pick cannot survive the route locking under it.
+  it('falls back to waiting when a re-price locks the route after it was picked', async () => {
+    const client = withQuote(quote({ confirmations: 1 }));
+    const stream = eventStream();
+    renderSheet(makeDeposit(), client, stream.subscribe);
+
+    await turnOnInstant();
+    expect(button('Claim Now')).toBeEnabled();
+    expect(button(/^Instant delivery/)).toHaveAttribute('aria-checked', 'true');
+
+    // Same depth, but the provider now wants two confirmations rather than one.
+    vi.mocked(client.fetchClaimDepositQuote).mockResolvedValue(quote({
+      confirmations: 1,
+      instant: { confirmationsRequired: 2, creditAmountSats: 96_800, feeSats: 3_200,
+        feeRateSatPerVbyte: 4, isEstimate: false },
+    }));
+    stream.emitSynced();
+
+    await waitFor(() => expect(button('Claim Now')).toBeDisabled());
+    expect(button(/^Standard delivery/)).toHaveAttribute('aria-checked', 'true');
+    expect(button(/^Instant delivery/)).toHaveAttribute('aria-checked', 'false');
+    // Priced as waiting, not at the spread it can no longer buy.
+    expect(screen.getByText('Network fee')).toBeInTheDocument();
+    expect(screen.queryByText('Delivery fee')).toBeNull();
   });
 
   it('does not re-price under a claim already sent', async () => {
@@ -244,7 +298,8 @@ describe('a confirming deposit with both routes on offer', () => {
     vi.mocked(client.claimDeposit).mockReturnValue(new Promise(() => {}));
     renderSheet(makeDeposit(), client, stream.subscribe);
 
-    fireEvent.click(await screen.findByText('Claim now'));
+    await turnOnInstant();
+    fireEvent.click(button('Claim Now'));
     await screen.findByText('Processing...');
     const quotesBefore = vi.mocked(client.fetchClaimDepositQuote).mock.calls.length;
 
@@ -257,7 +312,7 @@ describe('a confirming deposit with both routes on offer', () => {
     const client = withQuote(quote());
     const stream = eventStream();
     const { onChanged } = renderSheet(makeDeposit(), client, stream.subscribe);
-    await screen.findByText('Priority');
+    await findInstantRow();
 
     // Claimed elsewhere: it has left the unclaimed set entirely.
     vi.mocked(client.listUnclaimedDeposits).mockResolvedValue({ deposits: [] });
@@ -271,7 +326,7 @@ describe('a confirming deposit with both routes on offer', () => {
     const client = withQuote(quote());
     const stream = eventStream();
     renderSheet(makeDeposit(), client, stream.subscribe);
-    await screen.findByText('Priority');
+    await findInstantRow();
 
     // It matures with the sheet open and the automatic claim trips the ceiling.
     vi.mocked(client.listUnclaimedDeposits).mockResolvedValue({
@@ -289,7 +344,7 @@ describe('a confirming deposit with both routes on offer', () => {
     await waitFor(() => expect(button('Approve')).toBeInTheDocument());
     expect(screen.getByText('Network fee').parentElement).toHaveTextContent('512');
     // The approve panel owns the sheet: no route button still offering a claim.
-    expect(queryButton('Claim now')).toBeNull();
+    expect(queryButton('Claim Now')).toBeNull();
   });
 
   it('does not let a sync re-announce a claim the sheet already toasted', async () => {
@@ -297,7 +352,8 @@ describe('a confirming deposit with both routes on offer', () => {
     vi.mocked(client.claimDeposit).mockResolvedValue({});
     const { onChanged } = renderSheet(makeDeposit(), client);
 
-    fireEvent.click(await screen.findByText('Claim now'));
+    await turnOnInstant();
+    fireEvent.click(button('Claim Now'));
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
 
     // Sync reports the same outpoint as submitted; it is no longer news.
@@ -308,7 +364,7 @@ describe('a confirming deposit with both routes on offer', () => {
     const client = withQuote(quote());
     const stream = eventStream();
     renderSheet(makeDeposit(), client, stream.subscribe);
-    await screen.findByText('Priority');
+    await findInstantRow();
 
     vi.mocked(client.listUnclaimedDeposits).mockResolvedValue({
       deposits: [makeDeposit({
@@ -342,30 +398,33 @@ describe('a confirming deposit with both routes on offer', () => {
       .mockRejectedValue(new Error('quote unavailable'));
     renderSheet(makeDeposit(), client);
 
-    fireEvent.click(await screen.findByText('Claim now'));
+    await turnOnInstant();
+    fireEvent.click(button('Claim Now'));
     await screen.findByText('network unreachable');
-    // The options came from the first quote and still describe the deposit.
-    expect(queryButton(/^Priority/)).not.toBeNull();
-    expect(queryButton(/^Standard/)).not.toBeNull();
+    // The row came from the first quote and still describes the deposit.
+    expect(queryInstantRow()).not.toBeNull();
   });
 
-  it('leaves a deposit at maturity depth to the automatic claim', async () => {
-    // Deep enough for Standard, which is not the user's to commit: the SDK
-    // claims it at maturity, so offering a button would only race that.
+  // Once the automatic claim is due the spread buys one sync cycle at sixteen
+  // times the fee the SDK is about to pay anyway, so it stops being offered.
+  // Otherwise this reads exactly like a deposit the provider never offered to
+  // front, which is a different thing entirely.
+  it('says the claim is happening, not that it will', async () => {
     renderSheet(makeDeposit(), withQuote(quote({ confirmations: 3 })));
 
-    await screen.findByText('Standard');
-    fireEvent.click(button(/^Standard/));
-    expect(screen.getByText('This transfer will be claimed automatically.')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText('This transfer is being claimed.')).toBeInTheDocument());
+  });
+
+  it('withdraws the early route once the automatic claim is already due', async () => {
+    renderSheet(makeDeposit(), withQuote(quote({ confirmations: 3 })));
+
+    await waitFor(() =>
+      expect(screen.getByText('This transfer is being claimed.')).toBeInTheDocument());
+    expect(queryInstantRow()).toBeNull();
     expect(queryButton(/^Claim/)).toBeNull();
-  });
-
-  it('still commits the early route itself', async () => {
-    renderSheet(makeDeposit(), withQuote(quote({ confirmations: 3 })));
-
-    await screen.findByText('Priority');
-    expect(button('Claim now')).toBeEnabled();
-    expect(screen.queryByText('This transfer will be claimed automatically.')).toBeNull();
+    // Waiting is what will happen, so waiting is what the breakdown prices.
+    expect(screen.getByText('Network fee').parentElement).toHaveTextContent('198');
   });
 
   it('reports a claim already in flight as submitted, not as a failure', async () => {
@@ -378,64 +437,99 @@ describe('a confirming deposit with both routes on offer', () => {
     });
     renderSheet(makeDeposit(), client);
 
-    fireEvent.click(await screen.findByText('Claim now'));
+    await turnOnInstant();
+    fireEvent.click(button('Claim Now'));
     await screen.findByText(CLAIM_SUBMITTED_LINE);
     expect(screen.queryByText(/in progress/)).toBeNull();
   });
 
-  it('drops the previous route failure when the other is chosen', async () => {
-    const client = withQuote(quote());
-    vi.mocked(client.claimDeposit).mockRejectedValue(new Error('network unreachable'));
-    renderSheet(makeDeposit(), client);
-
-    fireEvent.click(await screen.findByText('Claim now'));
-    await screen.findByText('network unreachable');
-
-    fireEvent.click(screen.getByText('Standard'));
-    // It priced the route that is no longer selected.
-    expect(screen.queryByText('network unreachable')).not.toBeInTheDocument();
-  });
-
-  it('drops the previous route re-price when the other is chosen', async () => {
-    const client = withQuote(quote());
-    vi.mocked(client.claimDeposit).mockRejectedValue(new Error('Max deposit claim fee exceeded'));
-    vi.mocked(client.fetchClaimDepositQuote)
-      .mockResolvedValueOnce(quote())
-      .mockResolvedValue(quote({
-        instant: { confirmationsRequired: 1, creditAmountSats: 91_000, feeSats: 9_000,
-          feeRateSatPerVbyte: 9, isEstimate: false },
-      }));
-    renderSheet(makeDeposit(), client);
-
-    fireEvent.click(await screen.findByText('Claim now'));
-    await screen.findByText('Fee changed');
-
-    fireEvent.click(button(/^Standard/));
-    expect(screen.queryByText('Fee changed')).not.toBeInTheDocument();
-  });
-
-  it('defaults to the early route and prices the breakdown against it', async () => {
+  // The switch sits above the breakdown because turning it on reprices it.
+  it('prices the wait until the paid route is asked for', async () => {
     renderSheet(makeDeposit(), withQuote(quote()));
 
-    await screen.findByText('Priority');
-    expect(screen.getByText('Priority fee').parentElement).toHaveTextContent('3 200');
+    await findInstantRow();
+    expect(screen.getByText('Network fee').parentElement).toHaveTextContent('198');
+    expect(screen.getByText('You receive').parentElement).toHaveTextContent('99 802');
+
+    await turnOnInstant();
+    expect(screen.getByText('Delivery fee').parentElement).toHaveTextContent('3 200');
     expect(screen.getByText('You receive').parentElement).toHaveTextContent('96 800');
   });
 
-  it('reprices the breakdown when the other route is chosen', async () => {
+  // Priced before it unlocks, the early route would headline the proceeds of a
+  // purchase the user cannot make, against a wait that is what will happen.
+  it('prices the wait while the early route is still locked', async () => {
+    renderSheet(makeDeposit(), withQuote(quote({ confirmations: 0 })));
+
+    await waitFor(() => expect(screen.getByText('Network fee').parentElement).toHaveTextContent('198'));
+    expect(screen.getByText('You receive').parentElement).toHaveTextContent('99 802');
+  });
+
+  // The wait belongs to the group, where it can be weighed against the fee for
+  // skipping it. With no offer on the table there is nothing to weigh, so the
+  // line says what happens and stops.
+  it('quotes no wait on the states with nothing to choose', async () => {
+    const noEarly = quote();
+    delete noEarly.instant;
+    renderSheet(makeDeposit(), withQuote(noEarly));
+
+    await waitFor(() =>
+      expect(screen.getByText('This transfer will be claimed automatically.')).toBeInTheDocument());
+    expect(document.body.textContent).not.toMatch(/confirmations \(~/);
+  });
+
+  // The Standard row is where a wait earns its place: beside the fee for skipping it.
+  it('carries the wait in the group, count first and minutes in parentheses', async () => {
     renderSheet(makeDeposit(), withQuote(quote()));
 
-    fireEvent.click(await screen.findByText('Standard'));
+    expect(await findInstantRow()).toHaveTextContent('2 confirmations (~20 mins)');
+  });
 
+  // Waiting needs no control to happen, but with none on screen the sheet
+  // offered the paid route and nothing beside it.
+  // Picking Standard again is the whole of "no thanks": it disarms the button
+  // and puts the wait back in the breakdown.
+  it('disarms again when standard is picked back', async () => {
+    const client = withQuote(quote());
+    renderSheet(makeDeposit(), client);
+
+    await turnOnInstant();
+    expect(button('Claim Now')).toBeEnabled();
+
+    fireEvent.click(button(/^Standard delivery/));
+    expect(button('Claim Now')).toBeDisabled();
     expect(screen.getByText('Network fee').parentElement).toHaveTextContent('198');
-    expect(screen.getByText('You receive').parentElement).toHaveTextContent('99 802');
+    expect(client.claimDeposit).not.toHaveBeenCalled();
+  });
+
+  it('offers nothing to turn on when the provider will not front it', async () => {
+    const noEarly = quote();
+    delete noEarly.instant;
+    renderSheet(makeDeposit(), withQuote(noEarly));
+
+    await waitFor(() => expect(screen.getByText('This transfer will be claimed automatically.')).toBeInTheDocument());
+    expect(queryInstantRow()).toBeNull();
+  });
+
+  // The reviewer asked for the fee off the label; a screen reader still has to
+  // hear what the button buys, so it is described by the row's fee instead.
+  it('describes the button by the offer without labelling it with a price', async () => {
+    renderSheet(makeDeposit(), withQuote(quote()));
+
+    await turnOnInstant();
+    const cta = button('Claim Now');
+    expect(cta.textContent).not.toMatch(/3 200|3 002/);
+    // Described by the whole offer, so the route and its price are both read out.
+    expect(document.getElementById(cta.getAttribute('aria-describedby') ?? ''))
+      .toHaveTextContent('Instant delivery');
   });
 
   it('claims at a ceiling that covers the chosen route', async () => {
     const client = withQuote(quote());
     renderSheet(makeDeposit(), client);
 
-    fireEvent.click(await screen.findByText('Claim now'));
+    await turnOnInstant();
+    fireEvent.click(button('Claim Now'));
 
     await waitFor(() => expect(client.claimDeposit).toHaveBeenCalled());
     // Below the quoted fee the SDK declines the route and waits for maturity.
@@ -450,10 +544,66 @@ describe('a confirming deposit with both routes on offer', () => {
     vi.mocked(client.claimDeposit).mockResolvedValue({});
     const { onChanged } = renderSheet(makeDeposit(), client);
 
-    fireEvent.click(await screen.findByText('Claim now'));
+    await turnOnInstant();
+    fireEvent.click(button('Claim Now'));
 
     expect(await screen.findByText('Claim Submitted')).toBeInTheDocument();
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
+  });
+});
+
+// The automatic claim runs only while the fee stays under the configured
+// ceiling, so a fee above it means approval, not an automatic claim.
+describe('a wait the fee ceiling will not cover', () => {
+  it('warns before the refusal instead of promising a claim it cannot make', async () => {
+    saveSettings({ depositMaxFee: { type: 'fixed', amount: 400 }, priorityDepositClaimEnabled: true });
+    const dear = quote({
+      mature: { confirmationsRequired: 3, creditAmountSats: 99_400, feeSats: 600,
+        feeRateSatPerVbyte: 5, isEstimate: true },
+    });
+    delete dear.instant;
+    renderSheet(makeDeposit(), withQuote(dear));
+
+    // Future tense, and no buttons: nothing is claimable yet. The panel with
+    // Approve and Reject is the state after the SDK has actually been refused.
+    const line = await screen.findByText(/will be asked to approve/);
+    expect(line).toHaveTextContent('400');
+    expect(screen.queryByText(/claimed automatically/i)).toBeNull();
+  });
+
+  // The SDK refuses on a sync after maturity, not at maturity itself. Dropping
+  // the warning at the boundary would spend that window promising the claim it
+  // is about to refuse, which is the promise the warning exists to avoid.
+  it('keeps warning once the deposit matures, until the claim is actually refused', async () => {
+    saveSettings({ depositMaxFee: { type: 'fixed', amount: 400 }, priorityDepositClaimEnabled: true });
+    const dear = quote({
+      mature: { confirmationsRequired: 3, creditAmountSats: 99_400, feeSats: 600,
+        feeRateSatPerVbyte: 5, isEstimate: true },
+    });
+    delete dear.instant;
+    const client = withQuote(dear);
+    const confirming = makeDeposit();
+
+    const { rerender } = render(
+      <ToastProvider>
+        <WalletProvider client={client} isConnected>
+          <UnclaimedDepositDetailsPage deposit={confirming} onBack={vi.fn()} />
+        </WalletProvider>
+      </ToastProvider>,
+    );
+    await screen.findByText(/will be asked to approve/);
+
+    // Matured, and the SDK has not refused it yet: no claimError on the record.
+    rerender(
+      <ToastProvider>
+        <WalletProvider client={client} isConnected>
+          <UnclaimedDepositDetailsPage deposit={makeDeposit({ isMature: true })} onBack={vi.fn()} />
+        </WalletProvider>
+      </ToastProvider>,
+    );
+
+    expect(screen.getByText(/will be asked to approve/)).toHaveTextContent('400');
+    expect(screen.queryByText(/claimed automatically/i)).toBeNull();
   });
 });
 
@@ -473,14 +623,59 @@ describe('a fee that rises between quoting and claiming', () => {
       .mockResolvedValue(risen());
     renderSheet(makeDeposit(), client);
 
-    fireEvent.click(await screen.findByText('Claim now'));
+    await turnOnInstant();
+    fireEvent.click(button('Claim Now'));
 
-    expect(await screen.findByText('Fee changed')).toBeInTheDocument();
-    expect(screen.getByText('Claim again to accept the new fee.')).toBeInTheDocument();
-    // The card says it better than the SDK's message, so that stays off screen.
+    // A failed tap, reported like any other failed tap, naming the figure it
+    // moved from: the row and the breakdown below already carry the new one.
+    // The amount is one element, so it cannot break across lines mid-figure.
+    const changed = await screen.findByText(/Your claim did not go through/);
+    expect(changed).toHaveTextContent('3 200');
+    expect(changed.querySelector('.font-mono')?.textContent).toContain('3 200');
+    // Whether to pay the new price is the user's call, so the line does not ask.
+    expect(changed.textContent).not.toMatch(/Claim again|accept it/);
+    // The line says it better than the SDK's message, so that stays off screen.
     expect(screen.queryByText(/early claim was declined/)).not.toBeInTheDocument();
-    // The new figure lives in the breakdown, which has repriced.
-    expect(screen.getByText('Priority fee').parentElement).toHaveTextContent('4 600');
+    expect(screen.getByText('Delivery fee').parentElement).toHaveTextContent('4 600');
+  });
+
+  // The container measures content once and holds that snap, so a body that
+  // grew when the failure arrived would carry the footer off the bottom of the
+  // viewport with it. The cap stays put and the message is scrolled to instead.
+  it('keeps the body bounded when the failure appears', async () => {
+    const client = withQuote(quote());
+    vi.mocked(client.claimDeposit).mockRejectedValue(new Error('early claim was declined'));
+    vi.mocked(client.fetchClaimDepositQuote)
+      .mockResolvedValueOnce(quote())
+      .mockResolvedValue(risen());
+    renderSheet(makeDeposit(), client);
+
+    const cap = () => document.querySelector<HTMLElement>('[style*="dvh"]')?.style.maxHeight;
+    await turnOnInstant();
+    expect(cap()).toBe('74dvh');
+
+    fireEvent.click(button('Claim Now'));
+    await screen.findByText(/did not go through/);
+    expect(cap()).toBe('74dvh');
+  });
+
+  // A re-price is not gentler news than any other decline: the tap failed and
+  // nothing was claimed, so it reads the same way.
+  it('reports a re-price as a failure rather than as a note', async () => {
+    const client = withQuote(quote());
+    vi.mocked(client.claimDeposit).mockRejectedValue(new Error('early claim was declined'));
+    vi.mocked(client.fetchClaimDepositQuote)
+      .mockResolvedValueOnce(quote())
+      .mockResolvedValue(risen());
+    renderSheet(makeDeposit(), client);
+
+    await turnOnInstant();
+    fireEvent.click(button('Claim Now'));
+
+    const line = await screen.findByText(/Your claim did not go through/);
+    // The same inline treatment a raw decline gets, and no icon of its own.
+    expect(line.className).toContain('text-spark-primary');
+    expect(line.querySelector('svg')).toBeNull();
   });
 
   it('keeps the raw error when the fee is not what failed', async () => {
@@ -488,10 +683,11 @@ describe('a fee that rises between quoting and claiming', () => {
     vi.mocked(client.claimDeposit).mockRejectedValue(new Error('network unreachable'));
     renderSheet(makeDeposit(), client);
 
-    fireEvent.click(await screen.findByText('Claim now'));
+    await turnOnInstant();
+    fireEvent.click(button('Claim Now'));
 
     expect(await screen.findByText('network unreachable')).toBeInTheDocument();
-    expect(screen.queryByText('Fee changed')).not.toBeInTheDocument();
+    expect(screen.queryByText(/fee changed from/)).toBeNull();
   });
 });
 
@@ -504,33 +700,36 @@ describe('an early route that has not unlocked yet', () => {
     },
   });
 
-  it('says how much longer rather than offering a dead button', async () => {
+  // Shown, so the route is known to be coming and at what price, but not
+  // selectable: claiming below its floor is refused. It is also the only thing
+  // telling this state apart from one the provider will not front at all.
+  it('prices the route while it is still locked, without offering it', async () => {
     renderSheet(makeDeposit(), withQuote(notYet()));
 
-    expect(await screen.findByText('Waiting for 1 confirmation.')).toBeInTheDocument();
-    // Calling claimDeposit before the floor throws, so nothing is pressable.
-    expect(queryButton('Claim now')).not.toBeInTheDocument();
+    await findInstantRow();
+    const locked = button(/^Instant delivery/);
+    expect(locked).toHaveAttribute('aria-disabled', 'true');
+    expect(locked).toHaveTextContent('Unlocks in 1 confirmation');
+
+    fireEvent.click(locked);
+    expect(button('Claim Now')).toBeDisabled();
   });
 });
 
 describe('a deposit the provider will not front', () => {
-  it('keeps the layout but fades the route that is not on offer', async () => {
+  // A faded, unpressable card at the top of the sheet says less than dropping
+  // it and pricing the wait that will actually happen.
+  it('drops the route rather than fading it, and prices the wait', async () => {
     const noEarly = quote();
     delete noEarly.instant;
     renderSheet(makeDeposit(), withQuote(noEarly));
 
-    await screen.findByText('Priority');
-    // aria-disabled rather than disabled, so it still reads as a route that
-    // exists and is unavailable instead of vanishing from the group.
-    expect(button(/^Priority/)).toHaveAttribute('aria-disabled', 'true');
-    expect(button(/^Priority/)).toHaveTextContent('Not available');
-    // Still inert: tapping it must not steal the selection from Standard.
-    fireEvent.click(button(/^Priority/));
-    expect(button(/^Priority/)).toHaveAttribute('aria-checked', 'false');
-    expect(button(/^Standard/)).toHaveAttribute('aria-checked', 'true');
-    // Waiting is still priced, so the screen says what the claim will cost.
-    expect(button(/^Standard/)).toHaveTextContent('198');
-    expect(screen.getByText('Network fee').parentElement).toHaveTextContent('198');
+    await waitFor(() =>
+      expect(screen.getByText('Network fee').parentElement).toHaveTextContent('198'));
+    expect(queryInstantRow()).toBeNull();
+    // The count is what moves between one look and the next, so it is what the
+    // line carries rather than a wall-clock estimate that would not.
+    expect(screen.getByText('This transfer will be claimed automatically.')).toBeInTheDocument();
   });
 
   it('leaves nothing to press, the claim happening at maturity', async () => {
@@ -538,9 +737,8 @@ describe('a deposit the provider will not front', () => {
     delete noEarly.instant;
     renderSheet(makeDeposit(), withQuote(noEarly));
 
-    await screen.findByText('Priority');
-    expect(queryButton('Claim now')).not.toBeInTheDocument();
-    expect(queryButton('Claim')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Network fee')).toBeInTheDocument());
+    expect(queryButton(/^Claim/)).toBeNull();
   });
 
   it('offers nothing when the early route unlocks no sooner than waiting', async () => {
@@ -553,11 +751,33 @@ describe('a deposit the provider will not front', () => {
     });
     renderSheet(makeDeposit(), withQuote(pointless));
 
-    await waitFor(() => expect(screen.queryByText('Priority')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Network fee')).toBeInTheDocument());
+    expect(queryInstantRow()).toBeNull();
   });
 });
 
 describe('a claim already in flight', () => {
+  // The SDK keeps no fee on a submitted claim and a fresh quote would be a
+  // different number, so the sheet remembers what it charged at submit time.
+  it('prices a reopened sheet from what the claim actually cost', async () => {
+    const client = withQuote(quote());
+    vi.mocked(client.claimDeposit).mockResolvedValue({});
+    const submitted = makeDeposit({ instantClaimStatus: { type: 'submitted', claimId: 'c' } });
+
+    const first = renderSheet(makeDeposit(), client);
+    await turnOnInstant();
+    fireEvent.click(button('Claim Now'));
+    await waitFor(() => expect(first.onChanged).toHaveBeenCalled());
+    cleanup();
+
+    // Reopened mid-settlement: no quote is fetched, so this can only come from
+    // the receipt written when the claim was sent.
+    renderSheet(submitted, withQuote(quote()));
+    expect(screen.getByText(CLAIM_SUBMITTED_LINE)).toBeInTheDocument();
+    expect(screen.getByText('Delivery fee').parentElement).toHaveTextContent('3 200');
+    expect(screen.getByText('You receive').parentElement).toHaveTextContent('96 800');
+  });
+
   const inFlight = (isMature = false) =>
     makeDeposit({ isMature, instantClaimStatus: { type: 'submitted', claimId: 'c' } });
 
@@ -566,8 +786,8 @@ describe('a claim already in flight', () => {
     renderSheet(inFlight(), client);
 
     expect(screen.getByText(CLAIM_SUBMITTED_LINE)).toBeInTheDocument();
-    expect(queryButton('Claim now')).not.toBeInTheDocument();
-    expect(screen.queryByText('Priority')).not.toBeInTheDocument();
+    expect(queryButton('Claim Now')).toBeNull();
+    expect(queryInstantRow()).toBeNull();
     // No point pricing a deposit whose claim is already settling.
     expect(client.fetchClaimDepositQuote).not.toHaveBeenCalled();
   });
@@ -576,7 +796,7 @@ describe('a claim already in flight', () => {
     const client = withQuote(quote());
     const stream = eventStream();
     renderSheet(makeDeposit(), client, stream.subscribe);
-    await screen.findByText('Priority');
+    await findInstantRow();
 
     vi.mocked(client.listUnclaimedDeposits).mockResolvedValue({
       deposits: [makeDeposit({ instantClaimStatus: { type: 'submitted', claimId: 'c' } })],
@@ -585,7 +805,7 @@ describe('a claim already in flight', () => {
 
     // The quote is still loaded: only the in-flight status hides the choice.
     await screen.findByText(CLAIM_SUBMITTED_LINE);
-    expect(screen.queryByText('Priority')).not.toBeInTheDocument();
+    expect(queryInstantRow()).toBeNull();
     expect(queryButton(/^Claim/)).toBeNull();
   });
 
@@ -593,6 +813,29 @@ describe('a claim already in flight', () => {
     renderSheet(inFlight(true), withQuote(quote()));
     expect(screen.getByText(CLAIM_SUBMITTED_LINE)).toBeInTheDocument();
     expect(screen.queryByText(/claimed automatically/)).not.toBeInTheDocument();
+  });
+});
+
+// The footer never consulted claimError, and isConfirming reads a record the
+// sync handler has already moved past, so both could be true at once.
+describe('an automatic claim that fails under the sheet', () => {
+  it('offers a refund without still offering to claim', async () => {
+    const client = withQuote(quote());
+    const stream = eventStream();
+    renderSheet(makeDeposit(), client, stream.subscribe);
+    await findInstantRow();
+
+    vi.mocked(client.listUnclaimedDeposits).mockResolvedValue({
+      deposits: [makeDeposit({
+        isMature: true,
+        claimError: { type: 'generic', message: 'operator unavailable' },
+      })],
+    });
+    stream.emitSynced();
+
+    await screen.findByText('operator unavailable');
+    expect(button('Reject')).toBeInTheDocument();
+    expect(queryButton(/^Claim/)).toBeNull();
   });
 });
 
@@ -605,8 +848,9 @@ describe('a route the background sync passed over', () => {
       withQuote(quote()),
     );
 
-    expect(await screen.findByText('Priority')).toBeInTheDocument();
-    expect(button('Claim now')).toBeInTheDocument();
+    expect(await findInstantRow()).toBeInTheDocument();
+    await turnOnInstant();
+    expect(button('Claim Now')).toBeInTheDocument();
     expect(screen.queryByText(/above your limit/)).not.toBeInTheDocument();
   });
 });
@@ -619,11 +863,12 @@ describe('a deposit claimed while the sheet was working', () => {
     vi.mocked(client.listUnclaimedDeposits).mockResolvedValue({ deposits: [] });
     const { onChanged } = renderSheet(makeDeposit(), client);
 
-    fireEvent.click(await screen.findByText('Claim now'));
+    await turnOnInstant();
+    fireEvent.click(button('Claim Now'));
 
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
     expect(screen.queryByText('already claimed')).not.toBeInTheDocument();
-    expect(screen.queryByText('Fee changed')).not.toBeInTheDocument();
+    expect(screen.queryByText(/fee changed from/)).toBeNull();
   });
 });
 
@@ -636,8 +881,8 @@ describe('the dev setting that gates it', () => {
     // Falls back to what the sheet was before the feature.
     await waitFor(() => expect(screen.getByText(/Waiting for 3 confirmations/)).toBeInTheDocument());
     expect(client.fetchClaimDepositQuote).not.toHaveBeenCalled();
-    expect(screen.queryByText('Priority')).not.toBeInTheDocument();
-    expect(queryButton('Claim now')).not.toBeInTheDocument();
+    expect(queryInstantRow()).toBeNull();
+    expect(queryButton('Claim Now')).toBeNull();
   });
 });
 
@@ -646,6 +891,6 @@ describe('when the quote cannot be fetched', () => {
     renderSheet(makeDeposit(), withQuote(new Error('offline')));
 
     await waitFor(() => expect(screen.getByText(/Waiting for 3 confirmations/)).toBeInTheDocument());
-    expect(queryButton('Claim now')).not.toBeInTheDocument();
+    expect(queryButton('Claim Now')).toBeNull();
   });
 });
