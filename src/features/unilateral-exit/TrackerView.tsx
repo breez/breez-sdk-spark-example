@@ -3,6 +3,7 @@ import { BackupActions, ExitActionRow } from './BackupCard';
 import { AlertCard } from '@/components/AlertCard';
 import { SatAmount } from '@/components/SatAmount';
 import { CollapsibleSection, PrimaryButton } from '@/components/ui';
+import { RefreshIcon } from '@/components/Icons';
 import { blocksToFinish, exitStages, nextAction, planProgress } from './driver';
 import type { NextAction, PlanProgress, UnilateralExitPlan } from './driver';
 import { formatDaysLeft } from '@/utils/blockTime';
@@ -182,6 +183,7 @@ export const TrackerView: React.FC<{
           {plan.phase === 'active' && (
             <ExitActionRow
               label="Rebuild at a higher fee"
+              icon={<RefreshIcon size="md" />}
               onClick={onRebuild}
               testId="unilateral-exit-bump-fee"
             />

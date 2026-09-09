@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { ChevronRightIcon } from '@/components/Icons';
+import { DownloadIcon, UploadIcon } from '@/components/Icons';
 import { useWallet } from '@/contexts/WalletContext';
 import { logger, LogCategory } from '@/services/logger';
 import { exportUnilateralExitBackup, importUnilateralExitBackup } from './backup';
@@ -8,18 +8,19 @@ const message = (e: unknown): string => (e instanceof Error ? e.message : String
 
 export const ExitActionRow: React.FC<{
   label: string;
+  icon: React.ReactNode;
   onClick: () => void;
   disabled?: boolean;
   testId: string;
-}> = ({ label, onClick, disabled = false, testId }) => (
+}> = ({ label, icon, onClick, disabled = false, testId }) => (
   <button
     onClick={onClick}
     disabled={disabled}
-    className="flex items-center justify-between w-full px-1 py-3 text-sm font-medium text-spark-text-secondary hover:text-spark-text-primary transition-colors disabled:opacity-50"
+    className="flex items-center gap-3 w-full px-1 py-3 text-sm font-medium text-spark-text-secondary hover:text-spark-text-primary transition-colors disabled:opacity-50"
     data-testid={testId}
   >
+    {icon}
     <span>{label}</span>
-    <ChevronRightIcon size="md" />
   </button>
 );
 
@@ -81,12 +82,14 @@ export const BackupActions: React.FC<{ frozen?: string; children?: React.ReactNo
       <div className="divide-y divide-spark-border">
         <ExitActionRow
           label="Save exit data"
+          icon={<DownloadIcon size="md" />}
           onClick={() => void save()}
           disabled={busy !== null}
           testId="unilateral-exit-backup-save"
         />
         <ExitActionRow
           label="Restore exit data"
+          icon={<UploadIcon size="md" />}
           onClick={() => picker.current?.click()}
           disabled={busy !== null}
           testId="unilateral-exit-backup-restore"

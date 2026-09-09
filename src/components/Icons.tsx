@@ -63,6 +63,14 @@ export const DownloadIcon: React.FC<IconProps> = ({ className = '', size = 'md' 
   </svg>
 );
 
+/** A circular arrow: do the thing again, for a rebuild or a retry. */
+export const RefreshIcon: React.FC<IconProps> = ({ className = '', size = 'md' }) => (
+  <svg className={`${sizeClasses[size]} ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19.4 9a8 8 0 00-14-2.6L4 9m0 6a8 8 0 0014 2.6l1.4-2.6" />
+  </svg>
+);
+
 /** A door with an arrow leaving it: the way out, for the unilateral exit. */
 export const ExitDoorIcon: React.FC<IconProps> = ({ className = '', size = 'md' }) => (
   <svg className={`${sizeClasses[size]} ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
