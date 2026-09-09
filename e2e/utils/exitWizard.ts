@@ -20,6 +20,9 @@ export const openWallet = async (page: Page, mnemonic: string): Promise<void> =>
 export const openUnilateralExit = async (page: Page): Promise<void> => {
   await page.getByRole('button', { name: 'Open menu' }).click();
   await page.getByRole('navigation').getByText('Settings').click();
+  // Asserted on the way past: the last-resort framing sits with the decision
+  // to start, which is here rather than on the flow's first screen.
+  await expect(page.getByText('This is a last-resort action.')).toBeVisible();
   await page.getByTestId('settings-unilateral-exit').click();
 };
 

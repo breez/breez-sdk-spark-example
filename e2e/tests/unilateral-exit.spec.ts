@@ -149,8 +149,7 @@ test.describe('Unilateral exit', () => {
     await openWallet(page, MNEMONIC);
     await openUnilateralExit(page);
 
-    await test.step('intro explains the last-resort framing', async () => {
-      await expect(page.getByText('This is a last-resort action.')).toBeVisible();
+    await test.step('intro says what the exit asks of the user', async () => {
       await expect(page.getByRole('heading', { name: 'What you need' })).toBeVisible();
     });
 

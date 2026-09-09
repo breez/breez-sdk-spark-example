@@ -30,21 +30,25 @@ export const FundStep: React.FC<FundingFields & { error: string | null }> = ({
       />
     </div>
 
-    {/* The same control the receive sheet gives a bitcoin address: the
-        address is the thing to act on, so it copies and shares rather than
-        sitting in a row of its own. */}
-    <div className="flex flex-col items-center gap-6">
-      <QRCodeContainer value={qrValue} size={180} />
-      <CopyableText
-        text={address}
-        truncate
-        showShare
-        label="Exit fee address"
-        onCopied={() => showToast('success', 'Copied!')}
-        onShareError={() => showToast('error', 'Failed to share')}
-        data-testid="unilateral-exit-funding-address"
-      />
-    </div>
+    {/* Gone once the fee lands: there is nothing left to pay, and the step
+        becomes the confirmation that it arrived. A resumed exit keeps it,
+        since a later step can still be rejected for want of fees.
+        The same control the receive sheet gives a bitcoin address, so the
+        address copies and shares rather than sitting in a row of its own. */}
+    {(!isFunded || isResuming) && (
+      <div className="flex flex-col items-center gap-6">
+        <QRCodeContainer value={qrValue} size={180} />
+        <CopyableText
+          text={address}
+          truncate
+          showShare
+          label="Exit fee address"
+          onCopied={() => showToast('success', 'Copied!')}
+          onShareError={() => showToast('error', 'Failed to share')}
+          data-testid="unilateral-exit-funding-address"
+        />
+      </div>
+    )}
 
     {/* One row either way, so the wait and the arrival read as the same line
         changing rather than two different screens. */}

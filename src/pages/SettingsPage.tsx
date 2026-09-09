@@ -4,7 +4,7 @@ import { PinGate } from '../components/PinEntry';
 import { getSettings, saveSettings, UserSettings, hasBuyProviderSettings, isDevMode as isDevModeEnabled, setDevMode, buildDepositMaxFee, depositMaxFeeDrafts, depositMaxFeeValue, DepositMaxFeeType } from '../services/settings';
 import type { Config, Network } from '@breeztech/breez-sdk-spark';
 import { useWallet } from '@/contexts/WalletContext';
-import { CurrencyIcon, ChevronRightIcon, DownloadIcon, KeyIcon, LifebuoyIcon, LockIcon, ShieldCheckIcon, TrashIcon, ExternalLinkIcon } from '../components/Icons';
+import { CurrencyIcon, ChevronRightIcon, DownloadIcon, KeyIcon, LockIcon, ShieldCheckIcon, TrashIcon, ExternalLinkIcon } from '../components/Icons';
 import { ACCOUNT_DELETION_GUIDE_URL } from '@/services/accountDeletion';
 import { openExternalUrl } from '@/utils/externalLink';
 import { isAppLockSupported, isPinEnabled } from '@/services/appLock';
@@ -496,16 +496,20 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
           {isDevMode && (
             <div className="bg-spark-dark border border-spark-border rounded-2xl p-4">
+              <h3 className="font-display font-semibold text-spark-text-primary mb-1">Unilateral Exit</h3>
+              {/* The warning belongs with the decision to start, so it is here
+                  rather than on the first screen of the flow it introduces. */}
+              <p className="text-sm text-spark-text-muted mb-3">
+                Move your balance on-chain without Spark operators. Use this only if Spark stops
+                operating. This is a last-resort action.
+              </p>
               <button
                 className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium border border-spark-warn-border rounded-xl text-spark-warn-text hover:bg-white/5 transition-colors"
                 type="button"
                 onClick={onOpenUnilateralExit}
                 data-testid="settings-unilateral-exit"
               >
-                <div className="flex items-center gap-3">
-                  <LifebuoyIcon size="md" />
-                  <span>Unilateral Exit</span>
-                </div>
+                <span>Start Exit</span>
                 <ChevronRightIcon size="md" />
               </button>
             </div>
