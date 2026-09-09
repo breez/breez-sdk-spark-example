@@ -11,14 +11,15 @@ import { QuoteStep } from '@/features/unilateral-exit/steps/QuoteStep';
 import { FundStep } from '@/features/unilateral-exit/steps/FundStep';
 import { ConfirmStep } from '@/features/unilateral-exit/steps/ConfirmStep';
 import { TrackerView } from '@/features/unilateral-exit/TrackerView';
-import { dismissUnilateralExitPlan } from '@/features/unilateral-exit/engine';
 
 interface UnilateralExitPageProps {
   network: string;
   onBack: () => void;
+  /** Where to go once the exit lands, since the tracker has nothing left to show. */
+  onFinished: () => void;
 }
 
-const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack }) => {
+const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack, onFinished }) => {
   const flow = useUnilateralExitFlow(network);
 
   // Reading the recovery phrase is gated on a PIN where one is set. Where none
@@ -37,6 +38,13 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
       cancelled = true;
     };
   }, [flow.phase, unlock]);
+
+  // The engine releases the plan as soon as the exit lands, which leaves the
+  // tracker with nothing. The wallet list carries it from there.
+  const { phase, engine } = flow;
+  useEffect(() => {
+    if (phase === 'tracker' && !engine.plan) onFinished();
+  }, [phase, engine.plan, onFinished]);
 
   return (
     <SlideInPage title="Unilateral exit" onClose={onBack} slideFrom="left">
@@ -105,10 +113,6 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
               tipHeight={flow.engine.tipHeight}
               isAdvancing={flow.engine.isAdvancing}
               onRebuild={flow.rebuild}
-              onDone={() => {
-                dismissUnilateralExitPlan();
-                onBack();
-              }}
             />
           )}
         </div>

@@ -4,6 +4,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 const wallet = { identityPubkey: 'pubkey-0000000000000000', network: 'regtest' };
 
+// One output of 596 524 sats, so the archive records what landed rather than
+// what the balance was.
+const sweepHex =
+  '0200000001' + '00'.repeat(32) + '00000000' + '00' + 'ffffffff' +
+  '01' + '2c1a090000000000' + '160014' + 'ab'.repeat(20) + '00000000';
+
 const finished = (txid: string, deliveredSat: number) =>
   plan([tx({ txid, kind: 'sweep', txHex: '00', status: confirmed(10) })], {
     phase: 'complete',
@@ -25,6 +31,18 @@ describe('archiveExit', () => {
     expect(loadArchive(wallet)).toMatchObject([
       { id: 'sweep-a', destination: 'bcrt1-sweep-a', deliveredSat: 50_000 },
     ]);
+  });
+
+  it('records what the sweep paid out, not what the balance was', () => {
+    archiveExit(
+      wallet,
+      plan([tx({ txid: 'sweep-real', kind: 'sweep', txHex: sweepHex, status: confirmed(10) })], {
+        phase: 'complete',
+        exit: { recoverableValueSat: 600_000 },
+      }),
+    );
+
+    expect(loadArchive(wallet)[0].deliveredSat).toBe(596_524);
   });
 
   it('records the same exit once, however many passes report it', () => {

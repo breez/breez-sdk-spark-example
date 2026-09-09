@@ -70,11 +70,18 @@ export async function advanceNow(): Promise<void> {
       sdk ?? undefined,
       wallet.identityPubkey,
     );
+    // A finished exit hands its slot back: the record lives in the archive from
+    // here, and the wizard has to be free to quote the next one.
+    if (plan.phase === 'complete') {
+      const archive = archiveExit(wallet, plan);
+      clearPlan(wallet);
+      emit({ plan: null, archive, tipHeight, isAdvancing: false });
+      stopPolling();
+      return;
+    }
+
     savePlan(wallet, plan);
-    // Recorded as soon as the pass sees it finish, so the entry survives the
-    // next exit taking the plan slot.
-    const archive = plan.phase === 'complete' ? archiveExit(wallet, plan) : state.archive;
-    emit({ plan, archive, tipHeight, isAdvancing: false });
+    emit({ plan, tipHeight, isAdvancing: false });
     if (plan.phase !== 'active') stopPolling();
   } catch (e) {
     logger.warn(LogCategory.SDK, 'Recovery engine pass failed', {

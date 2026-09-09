@@ -11,10 +11,6 @@ import type { UnilateralExitPlan } from './driver';
 import { blocked, confirmed, locked, plan, tx } from './testFixtures';
 
 // one input, one 596 524 sat output
-const sweepHex =
-  '0200000001' + '00'.repeat(32) + '00000000' + '00' + 'ffffffff' +
-  '01' + '2c1a090000000000' + '160014' + 'ab'.repeat(20) + '00000000';
-
 const twoLeaves = (transactions: Parameters<typeof plan>[0], over: Parameters<typeof plan>[1] = {}) =>
   plan(transactions, {
     quotedSweepFeeSat: 215,
@@ -33,7 +29,7 @@ const twoLeaves = (transactions: Parameters<typeof plan>[0], over: Parameters<ty
   });
 
 const renderTracker = (p: UnilateralExitPlan, tipHeight: number | null = 1000, onRebuild = vi.fn()) =>
-  render(<TrackerView plan={p} tipHeight={tipHeight} isAdvancing={false} onRebuild={onRebuild} onDone={vi.fn()} />);
+  render(<TrackerView plan={p} tipHeight={tipHeight} isAdvancing={false} onRebuild={onRebuild} />);
 
 describe('what the exit is worth right now', () => {
   it('counts only the sats that reached the destination, against the whole balance', () => {
@@ -88,24 +84,6 @@ describe('what the exit is worth right now', () => {
   it('says it is rebuilding rather than moving when the chain diverged', () => {
     renderTracker(plan([tx({ txid: 'a' })], { phase: 'redo' }));
     expect(screen.getByText('This exit needs rebuilding')).toBeInTheDocument();
-  });
-});
-
-describe('once the exit is complete', () => {
-  it('reports what the sweep actually paid out, not what the balance was', () => {
-    renderTracker(
-      twoLeaves([tx({ txid: 's', kind: 'sweep', txHex: sweepHex, status: confirmed(1000) })], { phase: 'complete' }),
-    );
-    expect(screen.getByTestId('unilateral-exit-complete')).toHaveTextContent('Received');
-    expect(screen.getAllByText(/596 524/).length).toBeGreaterThan(0);
-    expect(screen.queryByText(/600 000/)).not.toBeInTheDocument();
-  });
-
-  it('names the address the money went to', () => {
-    renderTracker(
-      twoLeaves([tx({ txid: 's', kind: 'sweep', txHex: sweepHex, status: confirmed(1000) })], { phase: 'complete' }),
-    );
-    expect(screen.getByTestId('unilateral-exit-complete-destination')).toHaveTextContent('bc1qdest');
   });
 });
 

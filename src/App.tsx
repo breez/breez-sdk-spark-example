@@ -475,6 +475,7 @@ const AppContent: React.FC = () => {
               <UnilateralExitPage
                 network={sdk.config?.network ?? 'mainnet'}
                 onBack={() => setUserScreen('settings')}
+                onFinished={() => setUserScreen('wallet')}
               />
             </Suspense>
           </>

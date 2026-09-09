@@ -1,11 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { BackupActions, ExitActionRow } from './BackupCard';
 import { AlertCard } from '@/components/AlertCard';
-import { CheckIcon } from '@/components/Icons';
 import { SatAmount } from '@/components/SatAmount';
-import { CollapsibleSection, CopyableRow, PrimaryButton } from '@/components/ui';
-import { truncateAddress } from '@/utils/crossChainFormat';
-import { blocksToFinish, exitStages, nextAction, planProgress, willReceiveSat } from './driver';
+import { CollapsibleSection, PrimaryButton } from '@/components/ui';
+import { blocksToFinish, exitStages, nextAction, planProgress } from './driver';
 import type { NextAction, PlanProgress, UnilateralExitPlan } from './driver';
 import { formatDaysLeft } from '@/utils/blockTime';
 import { formatWithSpaces } from '@/utils/formatNumber';
@@ -93,8 +91,7 @@ export const TrackerView: React.FC<{
   tipHeight: number | null;
   isAdvancing: boolean;
   onRebuild: () => void;
-  onDone: () => void;
-}> = ({ plan, tipHeight, isAdvancing, onRebuild, onDone }) => {
+}> = ({ plan, tipHeight, isAdvancing, onRebuild }) => {
   const { transactions } = plan.exit;
   const [advanced, setAdvanced] = useState(false);
   const progress = useMemo(() => planProgress(plan), [plan]);
@@ -107,37 +104,6 @@ export const TrackerView: React.FC<{
     () => (tipHeight === null ? null : blocksToFinish(transactions, tipHeight)),
     [transactions, tipHeight],
   );
-
-  if (progress.isComplete) {
-    const delivered = willReceiveSat(plan);
-    return (
-      <div className="space-y-6">
-        <div className="text-center py-4">
-          <div className="w-16 h-16 rounded-full bg-spark-success/20 flex items-center justify-center mx-auto mb-4">
-            <CheckIcon size="lg" className="text-spark-success" />
-          </div>
-          <p className="text-spark-text-muted text-sm mb-1" data-testid="unilateral-exit-complete">
-            Received
-          </p>
-          <SatAmount
-            sats={delivered}
-            className="text-4xl font-bold text-spark-text-primary"
-          />
-        </div>
-
-        <CopyableRow
-          label="Sent to"
-          value={plan.destination}
-          display={truncateAddress(plan.destination, 32)}
-          data-testid="unilateral-exit-complete-destination"
-        />
-
-        <PrimaryButton onClick={onDone} className="w-full">
-          Done
-        </PrimaryButton>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4" data-testid="unilateral-exit-tracker">
