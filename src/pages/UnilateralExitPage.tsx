@@ -133,7 +133,12 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
             onBack={flow.canGoBack ? flow.back : undefined}
           />
 
-          <div className="space-y-6">
+          {/* Bounded so the sheet stays content-sized: past 90% of the
+              viewport the container drops the content snap and the sheet
+              rests almost closed. dvh, not vh, or the cap overflows once a
+              mobile URL bar is showing. The nested scroller needs its own
+              overscroll and touch rules, which it does not inherit. */}
+          <div className="space-y-6 max-h-[62dvh] overflow-y-auto overscroll-y-none touch-pan-y">
             {flow.phase === 'intro' && <IntroStep />}
 
             {flow.phase === 'destination' && (
