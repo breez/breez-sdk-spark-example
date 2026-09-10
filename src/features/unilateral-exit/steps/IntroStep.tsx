@@ -13,7 +13,7 @@ export const IntroStep: React.FC = () => {
   const [advanced, setAdvanced] = useState(false);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Repeats the warning under the settings button on purpose. */}
       <SimpleAlert variant="warning" hideIcon>
         Move your balance on-chain without Spark operators. Use this only if Spark stops
