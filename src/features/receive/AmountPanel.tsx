@@ -111,7 +111,7 @@ const AmountPanel: React.FC<AmountPanelProps> = ({
   // points of value, held to that value by the rate. A sat request reaches
   // further up than a fiat one.
   const quickAmounts = isTokenMode
-    ? fixedQuickAmounts(quickAmountScale, [1, 5, 10])
+    ? fixedQuickAmounts(quickAmountScale, [5, 10, 20])
     : fixedQuickAmounts(quickAmountScale, [1, 10, 100]);
 
   // Mirrors the guard in `useReceivePayment.generateBolt11Invoice` so
