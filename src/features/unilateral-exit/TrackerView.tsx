@@ -75,7 +75,7 @@ const ExitSummary: React.FC<{
       ? 'Waiting for confirmations'
       : next.blocks > 0
         ? 'Waiting for timelock'
-        : `Sending ${next.transactions === 1 ? 'the next step' : `${next.transactions} steps`}`;
+        : `Sending ${next.transactions === 1 ? 'a transaction' : `${next.transactions} transactions`}`;
 
   return (
     <div className="space-y-6">
@@ -157,8 +157,8 @@ export const TrackerView: React.FC<{
       {plan.phase === 'redo' && (
         <AlertCard variant="warning" title="Your exit needs an update">
           <p className="text-sm">
-            Part of your exit already went through on the network, so the remaining steps need
-            updating. Your money is safe.
+            Part of your exit already went through, so the remaining transactions need an update.
+            Your money is safe.
           </p>
           {continueError && (
             <>

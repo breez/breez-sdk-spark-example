@@ -29,8 +29,9 @@ const activeSubtitle = (state: UnilateralExitEngineState): string | null => {
     state.tipHeight === null
       ? null
       : (nextAction(plan.exit.transactions, state.tipHeight)?.blocks ?? null);
-  const steps = `${confirmed} of ${total} steps confirmed`;
-  return blocks === null ? steps : `${steps}, next ${formatBlockWait(blocks)}`;
+  // The row's title already says these are transactions.
+  const processed = `${confirmed} of ${total} processed`;
+  return blocks === null ? processed : `${processed}, next ${formatBlockWait(blocks)}`;
 };
 
 const archivedEntry = (exit: ArchivedExit): UnilateralExitEntry => ({
