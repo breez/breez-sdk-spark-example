@@ -131,9 +131,9 @@ export const SimpleAlert: React.FC<SimpleAlertProps> = ({
 
   const icons: Record<AlertVariant, ReactNode> = {
     info: <InfoIcon className={`shrink-0 ${iconColors[variant]}`} />,
-    warning: <WarningIcon size="md" className={iconColors[variant]} />,
-    success: <CheckCircleIcon size="md" className={iconColors[variant]} />,
-    error: <ErrorIcon size="md" className={iconColors[variant]} />,
+    warning: <WarningIcon size="md" className={`shrink-0 ${iconColors[variant]}`} />,
+    success: <CheckCircleIcon size="md" className={`shrink-0 ${iconColors[variant]}`} />,
+    error: <ErrorIcon size="md" className={`shrink-0 ${iconColors[variant]}`} />,
   };
 
   return (
