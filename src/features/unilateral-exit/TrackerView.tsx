@@ -183,8 +183,7 @@ export const TrackerView: React.FC<{
       {plan.phase === 'redo' && (
         <AlertCard variant="warning" title="Rebuild to keep going">
           <p className="text-sm">
-            The blockchain no longer matches the transactions saved here. Your money is safe:
-            it is still in the tree, or already in an output you control.
+            Some steps went through another way. Your money is safe.
           </p>
           {continueError && (
             <p className="text-sm mt-2" data-testid="unilateral-exit-continue-error">
