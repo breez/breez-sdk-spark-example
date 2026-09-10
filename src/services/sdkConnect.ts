@@ -6,8 +6,11 @@ import {
   connect,
   defaultConfig,
   type BreezSdk,
+  type RestClient,
+  type RestResponse,
   type Seed,
 } from '@breeztech/breez-sdk-spark';
+import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { getSettings } from './settings';
 import { logger, LogCategory } from './logger';
 import { formatError } from '../utils/formatError';
@@ -90,9 +93,46 @@ export function buildConnectConfig(overrideNetwork?: Network): Config {
   return config;
 }
 
+// The SDK's own HTTP timeout. iOS native HTTP would otherwise wait 10 minutes.
+const TIMEOUT_MS = 60_000;
+
+async function nativeRequest(
+  method: string,
+  url: string,
+  headers?: Record<string, string>,
+  body?: string,
+): Promise<RestResponse> {
+  const res = await CapacitorHttp.request({
+    method,
+    url,
+    headers,
+    data: body,
+    connectTimeout: TIMEOUT_MS,
+    readTimeout: TIMEOUT_MS,
+  });
+  // A JSON response arrives already parsed; the SDK wants the raw text.
+  return { status: res.status, body: typeof res.data === 'string' ? res.data : JSON.stringify(res.data) };
+}
+
+/**
+ * LNURL callbacks (auth, pay, withdraw) over native HTTP, which has no CORS.
+ *
+ * Through the WebView's fetch they need `Access-Control-Allow-Origin` on the
+ * response, which LUD-01 requires only for browser-based clients, so services
+ * built for native apps often leave it out. The callback still reaches the
+ * service (a LNURL-auth login goes through), but the WebView withholds the
+ * response and the SDK reports "Failed to fetch".
+ */
+const nativeLnurlClient: RestClient = {
+  getRequest: (url, headers) => nativeRequest('GET', url, headers),
+  postRequest: (url, headers, body) => nativeRequest('POST', url, headers, body),
+  deleteRequest: (url, headers, body) => nativeRequest('DELETE', url, headers, body),
+};
+
 /**
  * Connects a wallet. A config built for a local cluster is pointed at that
  * cluster's own indexer, since the hosted one knows nothing about its chain.
+ * On iOS / Android, LNURL callbacks go over native HTTP.
  */
 export async function connectSdk(params: {
   config: Config;
@@ -101,9 +141,11 @@ export async function connectSdk(params: {
 }): Promise<BreezSdk> {
   const { config, seed, storageDir } = params;
   const chainApiUrl = import.meta.env.VITE_ESPLORA_BASE_URL;
-  if (chainApiUrl && config.apiKey == null && config.sparkConfig) {
-    const builder = SdkBuilder.new(config, seed).withRestChainService(chainApiUrl, 'esplora');
-    return (await builder.withDefaultStorage(storageDir)).build();
-  }
-  return connect({ config, seed, storageDir });
+  const localChainUrl = chainApiUrl && config.apiKey == null && config.sparkConfig ? chainApiUrl : null;
+  const native = Capacitor.isNativePlatform();
+  if (!localChainUrl && !native) return connect({ config, seed, storageDir });
+  let builder = SdkBuilder.new(config, seed);
+  if (localChainUrl) builder = builder.withRestChainService(localChainUrl, 'esplora');
+  if (native) builder = builder.withLnurlClient(nativeLnurlClient);
+  return (await builder.withDefaultStorage(storageDir)).build();
 }
