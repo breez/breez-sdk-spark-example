@@ -13,8 +13,14 @@ import { formatWithSpaces } from '../utils/formatNumber';
  * tightens via `.balance-display`, and the transaction list's token rows carry
  * a symbol that varies per asset.
  */
-export const SatAmount: React.FC<{ sats: number | bigint; className?: string }> = ({ sats, className = '' }) => (
+export const SatAmount: React.FC<{
+  sats: number | bigint;
+  className?: string;
+  /** Marks an estimate with "~", in the ₿'s colour. */
+  approximate?: boolean;
+}> = ({ sats, className = '', approximate = false }) => (
   <span className={`inline-flex items-center font-mono [word-spacing:-0.4em] ${className}`}>
+    {approximate && <span className="opacity-70">~</span>}
     <span className="text-[0.8em] opacity-70 mr-px">₿</span>
     {formatWithSpaces(sats)}
   </span>

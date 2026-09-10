@@ -62,9 +62,11 @@ export const QuoteStep: React.FC<QuoteFields> = ({
         <p className="text-spark-text-muted text-sm mb-2">You&apos;ll receive</p>
         {/* Approximate: a refund the operators' watchtower lands first pays
             its own fee, which the quote cannot know in advance. */}
-        <span className="text-4xl font-bold text-spark-text-primary">
-          ~<SatAmount sats={willReceiveSat} />
-        </span>
+        <SatAmount
+          sats={willReceiveSat}
+          approximate
+          className="text-4xl font-bold text-spark-text-primary"
+        />
       </div>
 
       <CopyableRow

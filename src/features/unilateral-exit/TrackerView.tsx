@@ -73,9 +73,11 @@ const ExitSummary: React.FC<{
         <p className="text-spark-text-muted text-sm mb-2">
           {plan.phase === 'redo' ? 'This exit needs rebuilding' : 'Processing'}
         </p>
-        <span className="text-4xl font-bold text-spark-text-primary">
-          ~<SatAmount sats={stages.willReceive} />
-        </span>
+        <SatAmount
+          sats={stages.willReceive}
+          approximate
+          className="text-4xl font-bold text-spark-text-primary"
+        />
       </div>
 
       <div
