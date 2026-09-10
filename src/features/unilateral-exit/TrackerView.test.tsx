@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { TrackerView } from './TrackerView';
 
 // The backup card reads the connected wallet; the tracker itself works off the
@@ -143,6 +143,8 @@ describe('TrackerView', () => {
         continueError="Insufficient CPFP funding: need at least 5000 sats"
       />,
     );
+    expect(screen.getByText('Glow could not continue the exit.')).toBeInTheDocument();
+    fireEvent.click(within(screen.getByTestId('unilateral-exit-continue-error')).getByText('Details'));
     expect(screen.getByTestId('unilateral-exit-continue-error')).toHaveTextContent('need at least 5000 sats');
     fireEvent.click(screen.getByTestId('unilateral-exit-rebuild-wizard'));
     expect(onRebuild).toHaveBeenCalled();
@@ -169,6 +171,9 @@ describe('TrackerView', () => {
     expect(screen.getByText('Fee too low')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('unilateral-exit-refusal-rebuild'));
     expect(onRebuild).toHaveBeenCalled();
+    expect(screen.queryByText(/mempool min fee not met/)).not.toBeInTheDocument();
+    fireEvent.click(within(screen.getByTestId('unilateral-exit-fee-refusal')).getByText('Details'));
+    expect(screen.getByTestId('unilateral-exit-fee-refusal')).toHaveTextContent('mempool min fee not met');
   });
 
   it('asks only for patience once the fee coins are fixed, since more money cannot help', () => {
@@ -195,6 +200,9 @@ describe('TrackerView', () => {
   it('shows any other refusal as the node gave it, since nothing else will', () => {
     renderTracker(plan([tx({ txid: 'a' })], { refusals: { a: 'non-BIP68-final' } }));
     expect(screen.getByText('The network refused a step')).toBeInTheDocument();
+    // Folded away until asked for.
+    expect(screen.queryByText('non-BIP68-final')).not.toBeInTheDocument();
+    fireEvent.click(within(screen.getByTestId('unilateral-exit-refusal')).getByText('Details'));
     expect(screen.getByTestId('unilateral-exit-refusal')).toHaveTextContent('non-BIP68-final');
   });
 

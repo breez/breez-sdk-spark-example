@@ -2,12 +2,22 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { BackupActions, ExitActionRow } from './BackupCard';
 import { AlertCard } from '@/components/AlertCard';
 import { SatAmount } from '@/components/SatAmount';
-import { CollapsibleSection, PrimaryButton, SecondaryButton } from '@/components/ui';
+import { CollapsibleCodeField, CollapsibleSection, PrimaryButton, SecondaryButton } from '@/components/ui';
 import { RefreshIcon } from '@/components/Icons';
 import { blocksToFinish, exitStages, hasFixedFeeBudget, nextAction, planProgress, refusalKind } from './driver';
 import type { NextAction, PlanProgress, UnilateralExitPlan } from './driver';
 import { formatDaysLeft } from '@/utils/blockTime';
 import { formatWithSpaces } from '@/utils/formatNumber';
+
+/** The node's or the SDK's own words, folded away: support needs them, the user rarely does. */
+const ErrorDetails: React.FC<{ text: string; testId: string }> = ({ text, testId }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-2" data-testid={testId}>
+      <CollapsibleCodeField label="Details" value={text} isVisible={open} onToggle={() => setOpen(v => !v)} />
+    </div>
+  );
+};
 
 /** One labelled figure. No icon and no marker: the label is the whole story. */
 const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
@@ -126,7 +136,8 @@ export const TrackerView: React.FC<{
   const [advanced, setAdvanced] = useState(false);
   const progress = useMemo(() => planProgress(plan), [plan]);
   const refusals = Object.values(plan.refusals);
-  const feeRefused = refusals.some(reason => refusalKind(reason) === 'fee');
+  const feeRefusal = refusals.find(reason => refusalKind(reason) === 'fee');
+  const feeRefused = feeRefusal !== undefined;
   const otherRefusal = refusals.find(reason => refusalKind(reason) === 'other');
   const next = useMemo(
     () => (tipHeight === null ? null : nextAction(transactions, tipHeight)),
@@ -168,15 +179,14 @@ export const TrackerView: React.FC<{
               </div>
             </>
           )}
+          {feeRefusal && <ErrorDetails text={feeRefusal} testId="unilateral-exit-fee-refusal" />}
         </AlertCard>
       )}
 
       {plan.phase === 'active' && !feeRefused && otherRefusal && (
         <AlertCard variant="warning" title="The network refused a step">
-          <p className="text-xs font-mono break-all" data-testid="unilateral-exit-refusal">
-            {otherRefusal}
-          </p>
-          <p className="text-sm mt-2">Glow keeps retrying.</p>
+          <p className="text-sm">Glow keeps retrying.</p>
+          <ErrorDetails text={otherRefusal} testId="unilateral-exit-refusal" />
         </AlertCard>
       )}
 
@@ -187,9 +197,10 @@ export const TrackerView: React.FC<{
             updating. Your money is safe.
           </p>
           {continueError && (
-            <p className="text-sm mt-2" data-testid="unilateral-exit-continue-error">
-              {continueError}
-            </p>
+            <>
+              <p className="text-sm mt-2">Glow could not continue the exit.</p>
+              <ErrorDetails text={continueError} testId="unilateral-exit-continue-error" />
+            </>
           )}
           <div className="mt-3 space-y-2">
             <PrimaryButton
