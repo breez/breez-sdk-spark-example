@@ -1,6 +1,6 @@
 import { CopyableRow, ErrorMessageBox, LoadingSpinner } from '@/components/ui';
 import React from 'react';
-import { AlertCard } from '@/components/AlertCard';
+import { AlertCard, SimpleAlert } from '@/components/AlertCard';
 import { FeeBreakdownCard } from '@/components/FeeBreakdownCard';
 import { SatAmount } from '@/components/SatAmount';
 import { truncateAddress } from '@/utils/crossChainFormat';
@@ -81,10 +81,10 @@ export const QuoteStep: React.FC<QuoteFields> = ({
         ]}
       />
 
-      <p className="text-spark-text-muted text-xs">
+      <SimpleAlert variant="warning">
         To start the process you need to pay the exit fee. These are the mining fees required to
         move the Spark tree on-chain.
-      </p>
+      </SimpleAlert>
 
       {leftBehindSat > 0 && (
         <AlertCard variant="warning" title="Some of your balance stays behind">
