@@ -19,7 +19,7 @@ const key = ({ identityPubkey, network }: WalletKey): string =>
   `unilateral-exit-archive:${identityPubkey.slice(0, 16)}:${network}`;
 
 /** The sweep's txid, or null for a plan that never built one. */
-const sweepTxid = (plan: UnilateralExitPlan): string | null =>
+export const sweepTxid = (plan: UnilateralExitPlan): string | null =>
   plan.exit.transactions.find(tx => tx.kind === 'sweep')?.txid ?? null;
 
 export function loadArchive(wallet: WalletKey): ArchivedExit[] {

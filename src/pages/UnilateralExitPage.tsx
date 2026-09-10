@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BottomSheetCard,
   BottomSheetContainer,
@@ -18,6 +18,7 @@ import { FeeStep } from '@/features/unilateral-exit/steps/FeeStep';
 import { QuoteStep } from '@/features/unilateral-exit/steps/QuoteStep';
 import { FundStep } from '@/features/unilateral-exit/steps/FundStep';
 import { TrackerView } from '@/features/unilateral-exit/TrackerView';
+import { sweepTxid } from '@/features/unilateral-exit/archive';
 
 interface UnilateralExitPageProps {
   network: string;
@@ -47,12 +48,17 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
     };
   }, [flow.phase, unlock]);
 
-  // The engine releases the plan as soon as the exit lands, which leaves the
-  // tracker with nothing. The wallet list carries it from there.
-  const { phase, engine } = flow;
+  // Once the exit lands the wallet list carries it, so the sheet closes,
+  // whatever the step. The signal is the exit's sweep reaching the archive.
+  // The phase cannot serve: a tracker opened from the list is derived from the
+  // plan, and without one it reads as the intro. Nor can a missing plan, which
+  // is also what a stopped engine reports while the SDK reconnects.
+  const { plan, archive } = flow.engine;
+  const shownSweep = useRef<string | null>(null);
   useEffect(() => {
-    if (phase === 'tracker' && !engine.plan) onFinished();
-  }, [phase, engine.plan, onFinished]);
+    if (plan) shownSweep.current = sweepTxid(plan);
+    if (archive.some(exit => exit.id === shownSweep.current)) onFinished();
+  }, [plan, archive, onFinished]);
 
   // One call to action per step, in the bar the rest of the app puts it in.
   // A step with nothing to press, such as the pin gate or the build, has none.
