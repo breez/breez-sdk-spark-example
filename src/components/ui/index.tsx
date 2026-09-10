@@ -7,7 +7,7 @@ import { openExternalUrl } from '@/utils/externalLink';
 import {
   CloseIcon,
   ChevronDownIcon,
-  CopyFilledIcon,
+  CopyIcon,
   ShareIcon,
   InfoIcon,
   WarningIcon,
@@ -284,7 +284,7 @@ export const CopyableRow: React.FC<{
       >
         {copied
           ? <CheckIcon size="sm" className="text-spark-success" />
-          : <CopyFilledIcon size="sm" className="text-spark-text-secondary" />}
+          : <CopyIcon size="sm" className="text-spark-text-secondary" />}
       </button>
     </div>
   );
@@ -360,7 +360,7 @@ export const CopyableText: React.FC<{
           title={`Copy ${label}`}
           data-testid="copy-button"
         >
-          <CopyFilledIcon />
+          <CopyIcon size="sm" />
           {copied ? 'Copied!' : 'Copy'}
         </button>
 
