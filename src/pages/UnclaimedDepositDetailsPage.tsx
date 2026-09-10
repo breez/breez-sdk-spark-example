@@ -182,7 +182,7 @@ const SpeedOption: React.FC<{
       </span>
     </span>
     <span className="shrink-0 text-sm text-spark-text-secondary whitespace-nowrap">
-      {isEstimate && '~'}<SatAmount sats={feeSats} />
+      <SatAmount sats={feeSats} approximate={isEstimate} />
     </span>
   </button>
 );
@@ -627,7 +627,7 @@ const UnclaimedDepositDetailsPage: React.FC<UnclaimedDepositDetailsPageProps> = 
                       // maturity fee is marked, not presented as firm.
                       // The one row the checkbox above changes, so it is lifted
                       // without taking the accent that marks what lands.
-                      { label: chosenIsEarly ? 'Delivery fee' : 'Network fee', value: chosen.feeSats, prefix: chosen.isEstimate ? '~' : undefined, emphasis: chosenIsEarly },
+                      { label: chosenIsEarly ? 'Delivery fee' : 'Network fee', value: chosen.feeSats, approximate: chosen.isEstimate, emphasis: chosenIsEarly },
                       { label: 'You receive', value: chosen.creditAmountSats, highlight: true },
                     ]
                   : [{ label: 'Amount', value: depositAmount, highlight: true }]}

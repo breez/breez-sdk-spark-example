@@ -17,8 +17,8 @@ export interface FeeBreakdownItem {
    * actually here for. Ignored on a `highlight` row.
    */
   emphasis?: boolean;
-  /** Marker set before the amount, e.g. "~" for a figure that is estimated. */
-  prefix?: string;
+  /** Marks a sat figure that is an estimate. */
+  approximate?: boolean;
 }
 
 export interface FeeBreakdownCardProps {
@@ -56,10 +56,9 @@ export const FeeBreakdownCard: React.FC<FeeBreakdownCardProps> = ({
               {item.label}
             </span>
             <span className={`font-mono text-sm ${item.highlight ? 'font-bold text-spark-primary' : item.emphasis ? 'font-semibold text-spark-text-primary' : 'text-spark-text-primary'}`}>
-              {item.prefix}
               {useRawStrings || typeof item.value === 'string'
                 ? String(item.value)
-                : Number(item.value) === 0 ? '0' : <SatAmount sats={item.value} />
+                : Number(item.value) === 0 ? '0' : <SatAmount sats={item.value} approximate={item.approximate} />
               }
             </span>
           </div>

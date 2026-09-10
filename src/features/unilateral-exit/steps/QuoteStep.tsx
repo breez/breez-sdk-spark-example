@@ -79,7 +79,7 @@ export const QuoteStep: React.FC<QuoteFields> = ({
       <FeeBreakdownCard
         items={[
           { label: 'Balance', value: quote.recoverableValueSat },
-          { label: 'Sweep fee', value: sweepFeeSat },
+          { label: 'Sweep fee', value: sweepFeeSat, approximate: true },
           { label: 'Exit fee', value: quote.singleUtxoFundingSat, highlight: true },
         ]}
       />
