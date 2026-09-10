@@ -149,17 +149,17 @@ export const TrackerView: React.FC<{
 
       {/* A step another copy already settled shows nothing: the next check adopts it. */}
       {plan.phase === 'active' && feeRefused && (
-        <AlertCard variant="warning" title="Fees went up">
+        <AlertCard variant="warning" title="Fee too low">
           {hasFixedFeeBudget(plan) ? (
             <p className="text-sm">
-              A step&apos;s fee is now too low for the network. Glow keeps retrying, and the step
-              goes through once network fees come down.
+              A step&apos;s fee is below the minimum the network accepts right now. Glow keeps
+              retrying, and the step goes through once the network accepts its fee.
             </p>
           ) : (
             <>
               <p className="text-sm">
-                A step&apos;s fee is now too low for the network. Rebuild the exit at a higher fee to
-                keep it moving.
+                A step&apos;s fee is below the minimum the network accepts right now. Rebuild the exit
+                at a higher fee to keep it moving.
               </p>
               <div className="mt-3">
                 <PrimaryButton onClick={onRebuild} className="w-full" data-testid="unilateral-exit-refusal-rebuild">

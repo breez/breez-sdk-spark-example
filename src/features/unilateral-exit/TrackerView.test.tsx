@@ -166,7 +166,7 @@ describe('TrackerView', () => {
   it('offers a rebuild when fees went up and the exit fee address can still pay more', () => {
     const onRebuild = vi.fn();
     renderTracker(plan([tx({ txid: 'a' })], { refusals: { a: 'mempool min fee not met, 120 < 250' } }), 1000, onRebuild);
-    expect(screen.getByText('Fees went up')).toBeInTheDocument();
+    expect(screen.getByText('Fee too low')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('unilateral-exit-refusal-rebuild'));
     expect(onRebuild).toHaveBeenCalled();
   });
@@ -178,7 +178,7 @@ describe('TrackerView', () => {
         { refusals: { a: 'mempool min fee not met, 120 < 250' } },
       ),
     );
-    expect(screen.getByText('Fees went up')).toBeInTheDocument();
+    expect(screen.getByText('Fee too low')).toBeInTheDocument();
     expect(screen.queryByTestId('unilateral-exit-refusal-rebuild')).not.toBeInTheDocument();
   });
 
@@ -188,7 +188,7 @@ describe('TrackerView', () => {
         refusals: { a: 'min relay fee not met, 0 < 13; bad-txns-inputs-missingorspent' },
       }),
     );
-    expect(screen.queryByText('Fees went up')).not.toBeInTheDocument();
+    expect(screen.queryByText('Fee too low')).not.toBeInTheDocument();
     expect(screen.queryByText('The network refused a step')).not.toBeInTheDocument();
   });
 
