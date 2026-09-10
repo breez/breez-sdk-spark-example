@@ -2,6 +2,7 @@ import { expect, type Page } from '@playwright/test';
 import { TIMEOUTS } from '../constants/timeouts';
 import { mineBlocks, sendToAddress } from './bitcoind';
 import { deriveFundingKey } from '../../src/features/unilateral-exit/funding';
+import type { ArchivedExit } from '../../src/features/unilateral-exit/archive';
 import { nextAction, type UnilateralExitPlan } from '../../src/features/unilateral-exit/driver';
 
 export const openWallet = async (page: Page, mnemonic: string): Promise<void> => {
@@ -37,10 +38,10 @@ export const storedPlan = async (page: Page): Promise<UnilateralExitPlan | null>
  * The finished exits the engine recorded. The plan slot is handed back when an
  * exit lands, so what it delivered is read from here afterwards.
  */
-export const storedArchive = async (page: Page): Promise<{ deliveredSat: number }[]> =>
+export const storedArchive = async (page: Page): Promise<ArchivedExit[]> =>
   page.evaluate(() => {
     const key = Object.keys(localStorage).find(k => k.startsWith('unilateral-exit-archive:'));
-    return key ? (JSON.parse(localStorage.getItem(key) as string) as { deliveredSat: number }[]) : [];
+    return key ? (JSON.parse(localStorage.getItem(key) as string) as ArchivedExit[]) : [];
   });
 
 /** Every node transaction is on-chain, which is what starts the refund clocks. */

@@ -13,6 +13,7 @@ import {
 import { outspend, txConfirmed, waitFor } from '../utils/esplora';
 import { freshMnemonic, fundTestWallet, isFundingReachable } from '../utils/fund';
 import { willReceiveSat } from '../../src/features/unilateral-exit/driver';
+import { deriveFundingKey } from '../../src/features/unilateral-exit/funding';
 
 import {
   blocksToNextStep,
@@ -261,6 +262,8 @@ test.describe('Unilateral exit', () => {
       // wallet list then shows.
       const [archived] = await storedArchive(page);
       expect(archived?.deliveredSat).toBe(balance);
+      expect(archived?.exitFeePaidSat).toBe(funded);
+      expect(archived?.exitFeeAddress).toBe(deriveFundingKey(MNEMONIC, 'regtest', 0).address);
 
       // The exit cost something, so it is not silently a no-op. Against balance
       // plus funding, since the funding can arrive too.
@@ -317,8 +320,8 @@ test.describe('Unilateral exit', () => {
       expect(ours).not.toContain(foreign);
     });
 
+    const resumed = await context.newPage();
     await test.step('reopening treats it as done, not as a failure', async () => {
-      const resumed = await context.newPage();
       await openWallet(resumed, MNEMONIC);
       await openUnilateralExit(resumed);
       await expect(resumed.getByTestId('unilateral-exit-tracker')).toBeVisible({
@@ -328,6 +331,17 @@ test.describe('Unilateral exit', () => {
       await expect(resumed.getByText('Nothing is worth exiting right now')).toHaveCount(0);
       await driveToCompletion(resumed);
       expect(await addressBalanceSats(destination)).toBeGreaterThan(0);
+    });
+
+    await test.step("the finished exit's details show what the exit fee address still holds", async () => {
+      // With the watchtower's refund landing first, part of the exit fee goes
+      // unspent and stays at its address rather than reaching the destination.
+      const unspent = await addressBalanceSats(deriveFundingKey(MNEMONIC, 'regtest', 0).address);
+      await resumed.getByTestId('unilateral-exit-complete').click();
+      await expect(resumed.getByTestId('unilateral-exit-details')).toBeVisible();
+      const row = resumed.getByText('Unspent Exit Fee');
+      if (unspent > 0) await expect(row).toBeVisible({ timeout: TIMEOUTS.UI_ACTION });
+      else await expect(row).toHaveCount(0);
     });
   });
 });

@@ -1,5 +1,6 @@
 import { logger, LogCategory } from '@/services/logger';
 import { willReceiveSat } from './driver';
+import { fundingAddressOf } from './funding';
 import type { UnilateralExitPlan, WalletKey } from './driver';
 
 /**
@@ -13,6 +14,17 @@ export interface ArchivedExit {
   destination: string;
   deliveredSat: number;
   completedAt: number;
+  // Absent on exits archived before they were recorded.
+  network?: string;
+  /** What left Spark. */
+  exitedSat?: number;
+  /** What was sent to the exit fee address, from another wallet. */
+  exitFeePaidSat?: number;
+  /**
+   * Where the exit fee was sent. The part the exit did not spend stays there
+   * when a watchtower's refund lands first, rather than reaching the destination.
+   */
+  exitFeeAddress?: string;
 }
 
 const key = ({ identityPubkey, network }: WalletKey): string =>
@@ -44,12 +56,18 @@ export function archiveExit(wallet: WalletKey, plan: UnilateralExitPlan): Archiv
   const existing = loadArchive(wallet);
   if (existing.some(entry => entry.id === id)) return existing;
 
+  const funding = plan.exit.fundingInputs;
+  const keyed = funding.find(input => input.type === 'p2wpkh');
   const next = [
     {
       id,
       destination: plan.destination,
       deliveredSat: willReceiveSat(plan),
       completedAt: Date.now(),
+      network: plan.network,
+      exitedSat: plan.exit.recoverableValueSat,
+      exitFeePaidSat: funding.reduce((sum, input) => sum + input.value, 0),
+      exitFeeAddress: keyed ? fundingAddressOf(keyed.pubkey, plan.network) : undefined,
     },
     ...existing,
   ];

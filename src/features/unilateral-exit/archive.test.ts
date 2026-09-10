@@ -1,4 +1,5 @@
 import { archiveExit, loadArchive } from './archive';
+import { deriveFundingKey } from './funding';
 import { confirmed, plan, tx } from './testFixtures';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -57,6 +58,36 @@ describe('archiveExit', () => {
     archiveExit(wallet, finished('sweep-b', 70_000));
 
     expect(loadArchive(wallet).map(entry => entry.id)).toEqual(['sweep-b', 'sweep-a']);
+  });
+
+  it('keeps what left Spark and the exit fee, with the address it was paid to', () => {
+    const key = deriveFundingKey(
+      'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+      'regtest',
+      0,
+    );
+    const input = { txid: 'fund', vout: 0, value: 12_000, pubkey: key.publicKeyHex };
+    archiveExit(
+      wallet,
+      plan([tx({ txid: 'sweep-a', kind: 'sweep', txHex: '00', status: confirmed(10) })], {
+        phase: 'complete',
+        network: 'regtest',
+        exit: {
+          recoverableValueSat: 600_000,
+          fundingInputs: [
+            { type: 'p2wpkh', ...input },
+            { type: 'p2wpkh', ...input, txid: 'fund-2', value: 8_000 },
+          ],
+        },
+      }),
+    );
+
+    expect(loadArchive(wallet)[0]).toMatchObject({
+      network: 'regtest',
+      exitedSat: 600_000,
+      exitFeePaidSat: 20_000,
+      exitFeeAddress: key.address,
+    });
   });
 
   it('ignores a plan that never built a sweep', () => {

@@ -2,7 +2,7 @@ import { LogCategory, logger } from '@/services/logger';
 import { deviceOnlyStorage, secureStorage } from '@/services/secureStorage';
 import { ripemd160 } from '@noble/hashes/legacy';
 import { sha256 } from '@noble/hashes/sha2';
-import { bech32 } from '@scure/base';
+import { bech32, hex } from '@scure/base';
 import { HDKey } from '@scure/bip32';
 import { mnemonicToSeedSync, validateMnemonic } from 'bip39';
 import type { WalletKey } from './driver';
@@ -34,23 +34,27 @@ const toHex = (bytes: Uint8Array): string =>
     .map(byte => byte.toString(16).padStart(2, '0'))
     .join('');
 
+/** The P2WPKH address of a public key, which is what a funding key receives at. */
+export function fundingAddressOf(publicKey: Uint8Array | string, network: string): string {
+  const bytes = typeof publicKey === 'string' ? hex.decode(publicKey) : publicKey;
+  const witnessProgram = ripemd160(sha256(bytes));
+  return bech32.encode(networkParams(network).hrp, [0, ...bech32.toWords(witnessProgram)]);
+}
+
 export function deriveFundingKey(mnemonic: string, network: string, index: number): FundingKey {
   if (!validateMnemonic(mnemonic)) {
     throw new Error('Recovery phrase is not valid');
   }
 
-  const { hrp, coinType } = networkParams(network);
+  const { coinType } = networkParams(network);
   const seed = mnemonicToSeedSync(mnemonic);
   const node = HDKey.fromMasterSeed(seed).derive(`m/84'/${coinType}'/0'/0/${index}`);
   if (!node.publicKey || !node.privateKey) {
     throw new Error('Failed to derive the funding key');
   }
 
-  const witnessProgram = ripemd160(sha256(node.publicKey));
-  const address = bech32.encode(hrp, [0, ...bech32.toWords(witnessProgram)]);
-
   return {
-    address,
+    address: fundingAddressOf(node.publicKey, network),
     publicKeyHex: toHex(node.publicKey),
     secretKey: node.privateKey,
   };
