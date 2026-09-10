@@ -6,10 +6,12 @@ import {
   checkExit,
   clearPlan,
   exitStages,
+  hasFixedFeeBudget,
   isReady,
   loadPlan,
   nextAction,
   planFromExitResponse,
+  refusalKind,
   planProgress,
   quotedSweepFeeSat,
   savePlan,
@@ -508,5 +510,40 @@ describe('nextAction', () => {
 
   it('ignores a timelock whose starting height could not be read', () => {
     expect(nextAction([tx({ txid: 'c', status: locked() })], 100)).toBeNull();
+  });
+});
+
+describe('refusalKind', () => {
+  it('reads a spent input as another copy having gone through', () => {
+    // What a node answers once the operators' watchtower has published the refund.
+    expect(refusalKind('min relay fee not met, 0 < 13; bad-txns-inputs-missingorspent')).toBe('settled');
+    expect(refusalKind('bad-txns-inputs-missingorspent; bad-txns-inputs-missingorspent')).toBe('settled');
+    expect(refusalKind('txn-mempool-conflict')).toBe('settled');
+  });
+
+  it('reads an underpaid step as a fee problem', () => {
+    expect(refusalKind('mempool min fee not met, 120 < 250')).toBe('fee');
+    expect(refusalKind('min relay fee not met, 100 < 130')).toBe('fee');
+    expect(refusalKind('insufficient fee, rejecting replacement')).toBe('fee');
+  });
+
+  it('blames the fee when the zero-fee parent is all the node reported', () => {
+    expect(refusalKind('min relay fee not met, 0 < 13')).toBe('fee');
+  });
+
+  it('leaves anything else to be shown as the node said it', () => {
+    expect(refusalKind('non-BIP68-final')).toBe('other');
+    expect(refusalKind('broadcast failed with status 502')).toBe('other');
+  });
+});
+
+describe('hasFixedFeeBudget', () => {
+  it('holds once the fan-out that splits the exit fee has confirmed', () => {
+    expect(hasFixedFeeBudget(plan([tx({ txid: 'f', kind: 'fanOut', status: confirmed(10) })]))).toBe(true);
+  });
+
+  it('does not while the fan-out is still to confirm, or there is none', () => {
+    expect(hasFixedFeeBudget(plan([tx({ txid: 'f', kind: 'fanOut' })]))).toBe(false);
+    expect(hasFixedFeeBudget(plan([tx({ txid: 'n', kind: 'node', status: confirmed(10) })]))).toBe(false);
   });
 });

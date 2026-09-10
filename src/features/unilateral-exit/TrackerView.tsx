@@ -4,7 +4,7 @@ import { AlertCard } from '@/components/AlertCard';
 import { SatAmount } from '@/components/SatAmount';
 import { CollapsibleSection, PrimaryButton } from '@/components/ui';
 import { RefreshIcon } from '@/components/Icons';
-import { blocksToFinish, exitStages, nextAction, planProgress } from './driver';
+import { blocksToFinish, exitStages, hasFixedFeeBudget, nextAction, planProgress, refusalKind } from './driver';
 import type { NextAction, PlanProgress, UnilateralExitPlan } from './driver';
 import { formatDaysLeft } from '@/utils/blockTime';
 import { formatWithSpaces } from '@/utils/formatNumber';
@@ -120,7 +120,9 @@ export const TrackerView: React.FC<{
   const { transactions } = plan.exit;
   const [advanced, setAdvanced] = useState(false);
   const progress = useMemo(() => planProgress(plan), [plan]);
-  const refusal = Object.values(plan.refusals)[0];
+  const refusals = Object.values(plan.refusals);
+  const feeRefused = refusals.some(reason => refusalKind(reason) === 'fee');
+  const otherRefusal = refusals.find(reason => refusalKind(reason) === 'other');
   const next = useMemo(
     () => (tipHeight === null ? null : nextAction(transactions, tipHeight)),
     [transactions, tipHeight],
@@ -140,15 +142,36 @@ export const TrackerView: React.FC<{
         isAdvancing={isAdvancing}
       />
 
-      {plan.phase === 'active' && refusal && (
+      {/* A step another copy already settled shows nothing: the next check adopts it. */}
+      {plan.phase === 'active' && feeRefused && (
+        <AlertCard variant="warning" title="Fees went up">
+          {hasFixedFeeBudget(plan) ? (
+            <p className="text-sm">
+              A step&apos;s fee is now too low for the network. Glow keeps retrying, and the step
+              goes through once network fees come down.
+            </p>
+          ) : (
+            <>
+              <p className="text-sm">
+                A step&apos;s fee is now too low for the network. Rebuild the exit at a higher fee to
+                keep it moving.
+              </p>
+              <div className="mt-3">
+                <PrimaryButton onClick={onRebuild} className="w-full" data-testid="unilateral-exit-refusal-rebuild">
+                  Rebuild at a Higher Fee
+                </PrimaryButton>
+              </div>
+            </>
+          )}
+        </AlertCard>
+      )}
+
+      {plan.phase === 'active' && !feeRefused && otherRefusal && (
         <AlertCard variant="warning" title="The network refused a step">
           <p className="text-xs font-mono break-all" data-testid="unilateral-exit-refusal">
-            {refusal}
+            {otherRefusal}
           </p>
-          <p className="text-sm mt-2">
-            Glow keeps retrying, and another copy of the step may confirm instead. If this
-            persists, rebuild the exit at a higher fee.
-          </p>
+          <p className="text-sm mt-2">Glow keeps retrying.</p>
         </AlertCard>
       )}
 

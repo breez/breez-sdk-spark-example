@@ -141,14 +141,43 @@ describe('TrackerView', () => {
     expect(screen.queryByTestId('unilateral-exit-bump-fee')).not.toBeInTheDocument();
   });
 
-  it('shows why the network refused a step, since nothing else will', () => {
-    renderTracker(plan([tx({ txid: 'a' })], { refusals: { a: 'min relay fee not met, 0 < 110' } }));
+  it('offers a rebuild when fees went up and the exit fee address can still pay more', () => {
+    const onRebuild = vi.fn();
+    renderTracker(plan([tx({ txid: 'a' })], { refusals: { a: 'mempool min fee not met, 120 < 250' } }), 1000, onRebuild);
+    expect(screen.getByText('Fees went up')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('unilateral-exit-refusal-rebuild'));
+    expect(onRebuild).toHaveBeenCalled();
+  });
+
+  it('asks only for patience once the fee coins are fixed, since more money cannot help', () => {
+    renderTracker(
+      plan(
+        [tx({ txid: 'f', kind: 'fanOut', status: confirmed(10) }), tx({ txid: 'a' })],
+        { refusals: { a: 'mempool min fee not met, 120 < 250' } },
+      ),
+    );
+    expect(screen.getByText('Fees went up')).toBeInTheDocument();
+    expect(screen.queryByTestId('unilateral-exit-refusal-rebuild')).not.toBeInTheDocument();
+  });
+
+  it('says nothing about a step another copy already settled', () => {
+    renderTracker(
+      plan([tx({ txid: 'a', kind: 'refund' })], {
+        refusals: { a: 'min relay fee not met, 0 < 13; bad-txns-inputs-missingorspent' },
+      }),
+    );
+    expect(screen.queryByText('Fees went up')).not.toBeInTheDocument();
+    expect(screen.queryByText('The network refused a step')).not.toBeInTheDocument();
+  });
+
+  it('shows any other refusal as the node gave it, since nothing else will', () => {
+    renderTracker(plan([tx({ txid: 'a' })], { refusals: { a: 'non-BIP68-final' } }));
     expect(screen.getByText('The network refused a step')).toBeInTheDocument();
-    expect(screen.getByTestId('unilateral-exit-refusal')).toHaveTextContent('min relay fee not met');
+    expect(screen.getByTestId('unilateral-exit-refusal')).toHaveTextContent('non-BIP68-final');
   });
 
   it('drops the refusal once the exit is being rebuilt anyway', () => {
-    renderTracker(plan([tx({ txid: 'a' })], { phase: 'redo', refusals: { a: 'txn-mempool-conflict' } }));
+    renderTracker(plan([tx({ txid: 'a' })], { phase: 'redo', refusals: { a: 'non-BIP68-final' } }));
     expect(screen.queryByText('The network refused a step')).not.toBeInTheDocument();
   });
 

@@ -200,6 +200,31 @@ export type ExitSdk = Pick<
 /** The sdk resolves this against the chain tip, timelock included. */
 export const isReady = (tx: UnilateralExitTransaction): boolean => tx.status.type === 'ready';
 
+/**
+ * What a refusal asks of the user. A zero-fee tree transaction fails the fee
+ * check whenever its fee-paying child is refused, so that part never names the
+ * cause. A spent or conflicting input means another copy of the step already
+ * went through, and the next check adopts it.
+ */
+export type RefusalKind = 'settled' | 'fee' | 'other';
+
+// ponytail: a spent input is read as another copy having gone through. One that
+// never clears stays silent; time how long it has been refused if that shows up.
+export function refusalKind(reason: string): RefusalKind {
+  const causes = reason.split('; ').filter(part => !/^min relay fee not met, 0 </.test(part));
+  if (causes.some(part => /missingorspent|mempool-conflict/.test(part))) return 'settled';
+  if (causes.length === 0 || causes.some(part => /fee/i.test(part))) return 'fee';
+  return 'other';
+}
+
+/**
+ * Whether each branch is down to the fee coin the fan-out gave it. From then on
+ * a rebuild cannot draw on the exit fee address, so more there cannot pay a
+ * higher fee.
+ */
+export const hasFixedFeeBudget = (plan: UnilateralExitPlan): boolean =>
+  plan.exit.transactions.some(tx => tx.kind === 'fanOut' && tx.status.type === 'confirmed');
+
 export interface PlanProgress {
   confirmed: number;
   total: number;
