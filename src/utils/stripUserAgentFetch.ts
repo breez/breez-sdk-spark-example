@@ -1,17 +1,23 @@
 const USER_AGENT = 'user-agent';
 
 /**
- * Strip the SDK's custom User-Agent from outgoing fetch requests.
+ * Strip the SDK's script-set User-Agent ("breez-sdk-spark/<version>") from
+ * outgoing fetch requests.
  *
- * The Breez Spark SDK's shared reqwest client sets a
- * "breez-sdk-spark/<version>" User-Agent. User-Agent is a forbidden fetch
- * header the browser owns: Chromium drops the author value, but Firefox
- * forwards it (failing CORS preflights on strict hosts such as Flashnet)
- * and WebKit/iOS forwards it (blockstream's onchain-claim preflight 404s).
- * Removing it before the request leaves the WebView keeps every
- * cross-origin request CORS-simple on all engines, so the SDK's chain and
- * operator calls work over plain fetch with no native HTTP routing
- * (CapacitorHttp) needed.
+ * A script-set User-Agent is not CORS-safelisted. Chromium drops it, but
+ * WebKit (iOS) and Firefox send it, which forces a preflight, and a host
+ * whose preflight does not allow the header fails the request. That is how
+ * blockstream's onchain-claim lookups broke on iOS.
+ *
+ * The SDK stopped setting it on its plain HTTP client in the browser in
+ * 0.17.0. As of 0.25.0 it still sets it on its gRPC-web calls (Spark
+ * operators, Breez server, realtime sync) and on the Lightning-address
+ * server calls. Those hosts currently allow the header, so this guards
+ * against one of them tightening CORS rather than fixing a live failure.
+ * Delete it once the SDK stops setting User-Agent on those paths.
+ *
+ * The SDK passes Request objects, and Chromium drops the header from those
+ * before this wrapper runs, so only WebKit or Firefox show it firing.
  *
  * Call once, before the SDK issues any request.
  */

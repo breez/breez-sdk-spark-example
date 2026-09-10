@@ -16,11 +16,8 @@ import { logStartupDeviceInfo } from '@/utils/deviceInfo';
 import { startSdkInit } from '@/services/sdkReady';
 import { prfAvailability } from '@/services/passkeyService';
 
-// Strip the SDK's custom User-Agent from outgoing requests before the SDK
-// (or anything else) issues one. User-Agent is a forbidden fetch header
-// that some engines forward (WebKit/iOS, Firefox), tripping CORS
-// preflights on strict third-party hosts (blockstream, LNURL hosts). This
-// replaces the previous native HTTP routing (CapacitorHttp, now disabled).
+// Strip the SDK's script-set User-Agent before the SDK (or anything else)
+// issues a request. stripUserAgentFetch.ts explains why it is still needed.
 installUserAgentStrippingFetch();
 
 // Allow JSON.stringify to handle BigInt values (e.g. payment amounts/fees from SDK)
