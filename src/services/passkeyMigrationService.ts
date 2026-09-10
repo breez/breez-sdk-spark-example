@@ -8,15 +8,14 @@
  * contacts). Keeping it here makes the fund-moving logic reviewable and
  * testable in isolation from the UI.
  */
-import {
-  connect,
-  type BreezSdk,
-  type GetInfoResponse,
-  type PasskeyClient,
-  type RegisterResponse,
-  type Seed,
+import type {
+  BreezSdk,
+  GetInfoResponse,
+  PasskeyClient,
+  RegisterResponse,
+  Seed,
 } from '@breeztech/breez-sdk-spark';
-import { buildConnectConfig } from '@/services/sdkConnect';
+import { buildConnectConfig, connectSdk } from '@/services/sdkConnect';
 import { sdkReady } from './sdkReady';
 import { logger, LogCategory } from './logger';
 import { buildBrowserPasskeyClient, recordMigratedSharedCredential, recordMigrationCredentialPair, getActivePasskeyCredentialIdBytes, adoptSessionPasskeyClient, setMigrationSharedCredentialId, getMigrationSharedCredentialIdBytes, bytesToBase64 } from './passkeyService';
@@ -91,7 +90,7 @@ export function isNoCredentialError(e: unknown): boolean {
 export async function connectForSeed(seed: Seed): Promise<BreezSdk> {
   await sdkReady();
   const cfg = buildConnectConfig();
-  return connect({ config: cfg, seed, storageDir: STORAGE_DIR });
+  return connectSdk({ config: cfg, seed, storageDir: STORAGE_DIR });
 }
 
 
