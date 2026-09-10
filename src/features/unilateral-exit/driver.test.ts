@@ -65,10 +65,9 @@ describe('applyExitCheck', () => {
     expect(next.refusals).toEqual({});
   });
 
-  it('sets the phase and clears a stale check error', () => {
-    const next = applyExitCheck(plan([tx({ txid: 'a' })], { lastCheckError: 'esplora down' }), checked([{ txid: 'a' }]), 'complete');
+  it('sets the phase', () => {
+    const next = applyExitCheck(plan([tx({ txid: 'a' })]), checked([{ txid: 'a' }]), 'complete');
     expect(next.phase).toBe('complete');
-    expect(next.lastCheckError).toBeUndefined();
   });
 });
 
@@ -392,7 +391,6 @@ describe('advanceUnilateralExit', () => {
       '02abc',
     );
     expect(next.phase).toBe('redo');
-    expect(next.lastCheckError).toBeUndefined();
     localStorage.removeItem('passkeyLabel');
   });
 
@@ -405,7 +403,6 @@ describe('advanceUnilateralExit', () => {
     });
     const { plan: next } = await advanceUnilateralExit(plan([tx({ txid: 'a' })]), chain(), driver, '02abc');
     expect(next.phase).toBe('redo');
-    expect(next.lastCheckError).toMatch(/recovery phrase/);
   });
 
   it('keeps going on the set it holds when the check fails', async () => {
@@ -416,7 +413,6 @@ describe('advanceUnilateralExit', () => {
     });
     const { plan: next } = await advanceUnilateralExit(plan([tx({ txid: 'a' })]), chain(), failing);
     expect(next.exit.transactions).toHaveLength(1);
-    expect(next.lastCheckError).toMatch(/unavailable/);
   });
 
   it('sends nothing once the exit is complete', async () => {

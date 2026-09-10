@@ -165,11 +165,6 @@ describe('TrackerView', () => {
     expect(screen.queryByTestId('unilateral-exit-bump-fee')).not.toBeInTheDocument();
   });
 
-  it('says so when it cannot reach the chain to check on the exit', () => {
-    renderTracker(plan([tx({ txid: 'a' })], { lastCheckError: 'esplora down' }));
-    expect(screen.getByText('Cannot read the exit right now')).toBeInTheDocument();
-  });
-
   it('keeps an off-device copy reachable, since only this device holds what an exit needs', () => {
     renderTracker(plan([tx({ txid: 'a' })]));
     expect(screen.queryByTestId('unilateral-exit-backup-save')).not.toBeInTheDocument();

@@ -41,7 +41,6 @@ export interface UnilateralExitPlan {
   phase: ExitPhase;
   /** Frozen when the exit was built: the operators stop reporting the leaves it moves. */
   exitStateSnapshot?: string;
-  lastCheckError?: string;
 }
 
 const PLAN_VERSION = 4;
@@ -78,7 +77,7 @@ export function applyExitCheck(
   const refusals = Object.fromEntries(
     Object.entries(plan.refusals).filter(([txid]) => open.has(txid)),
   );
-  return { ...plan, exit: checked, refusals, phase, lastCheckError: undefined };
+  return { ...plan, exit: checked, refusals, phase };
 }
 
 export function savePlan(wallet: WalletKey, plan: UnilateralExitPlan): void {
@@ -351,11 +350,9 @@ export async function advanceUnilateralExit(
     try {
       next = await checkExit(next, sdk);
     } catch (e) {
-      // Kept on the plan, not only logged: an exit that silently stops reading
-      // the chain looks identical to one that is stuck.
+      // Not shown: the next pass tries again, and the log keeps the reason.
       const error = e instanceof Error ? e.message : String(e);
       logger.warn(LogCategory.SDK, `Failed to read the exit back from the sdk: ${error}`);
-      next = { ...next, lastCheckError: error };
     }
   }
 
@@ -370,7 +367,6 @@ export async function advanceUnilateralExit(
       if (e instanceof MnemonicNeedsPasskeyError) return { plan: next, tipHeight };
       const error = e instanceof Error ? e.message : String(e);
       logger.warn(LogCategory.SDK, `Failed to rebuild the exit: ${error}`);
-      next = { ...next, lastCheckError: error };
     }
   }
 

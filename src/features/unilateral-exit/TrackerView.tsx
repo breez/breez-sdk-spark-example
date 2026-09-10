@@ -185,15 +185,6 @@ export const TrackerView: React.FC<{
         </AlertCard>
       )}
 
-      {plan.lastCheckError && (
-        <AlertCard variant="warning" title="Cannot read the exit right now">
-          <p className="text-sm">
-            Glow could not reach the blockchain to check on this exit, so what you see may be out
-            of date. It keeps trying.
-          </p>
-        </AlertCard>
-      )}
-
       <CollapsibleSection
         label="Advanced"
         isVisible={advanced}
