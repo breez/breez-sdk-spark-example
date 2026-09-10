@@ -61,7 +61,7 @@ interface TransactionListProps {
   isSyncing?: boolean;
   /** Rows for the Unilateral Exit group. An exit is not a payment the sdk reports. */
   exitEntries?: UnilateralExitEntry[];
-  onExitSelected?: () => void;
+  onExitSelected?: (entry: UnilateralExitEntry) => void;
 }
 
 const TransactionList: React.FC<TransactionListProps> = ({
@@ -132,11 +132,9 @@ const TransactionList: React.FC<TransactionListProps> = ({
   const renderExitEntry = (entry: UnilateralExitEntry, index: number) => (
     <li
       key={entry.id}
-      className={`transaction-item flex items-center gap-3 px-3 py-3 rounded-xl animate-list-item ${
-        entry.isActive ? 'cursor-pointer' : ''
-      }`}
+      className="transaction-item flex items-center gap-3 px-3 py-3 rounded-xl animate-list-item cursor-pointer"
       style={{ animationDelay: `${Math.min(index * 30, 240)}ms` }}
-      onClick={entry.isActive ? onExitSelected : undefined}
+      onClick={() => onExitSelected?.(entry)}
       data-testid={entry.isActive ? 'unilateral-exit-entry' : 'unilateral-exit-complete'}
     >
       <div

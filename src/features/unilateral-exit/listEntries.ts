@@ -13,7 +13,7 @@ export interface UnilateralExitEntry {
   title: string;
   subtitle: string | null;
   amountSat: number;
-  /** In flight, so the row pulses and can be opened. A finished one only reads. */
+  /** In flight, so the row pulses and opens the flow. A finished one opens its details. */
   isActive: boolean;
   /** Unix seconds a finished exit landed, so its row dates itself like a payment. */
   timestamp?: number;

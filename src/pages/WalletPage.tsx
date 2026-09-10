@@ -19,7 +19,8 @@ import SaveContactDialog from '../features/send/components/SaveContactDialog';
 import BuyBitcoinDialog from '../features/buy/BuyBitcoinDialog';
 import { getBuyProviderSettings, filterProvidersByNetwork, filterProvidersByPlatform } from '../services/settings';
 import { useCashAppInstalled } from '../hooks/useCashAppInstalled';
-import { unilateralExitEntries } from '../features/unilateral-exit/listEntries';
+import { unilateralExitEntries, type UnilateralExitEntry } from '../features/unilateral-exit/listEntries';
+import { ArchivedExitDialog } from '../features/unilateral-exit/ArchivedExitDialog';
 import { useUnilateralExitEngineState } from '../features/unilateral-exit/hooks/useUnilateralExitEngineLifecycle';
 import { useStatusBarColor } from '../hooks/useStatusBarColor';
 import { STATUS_BAR_WALLET_GLASS } from '../utils/statusBarManager';
@@ -74,6 +75,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
   const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
   const [scannerOpenedFromSend, setScannerOpenedFromSend] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [selectedExitId, setSelectedExitId] = useState<string | null>(null);
   // The outpoint, not the record: held as a copy the deposit's maturity, fee
   // error and claim status all freeze at tap time, and the sheet spends its
   // life offering routes for a state the deposit has already left.
@@ -118,6 +120,11 @@ const WalletPage: React.FC<WalletPageProps> = ({
 
   const exitState = useUnilateralExitEngineState();
   const exitEntries = useMemo(() => unilateralExitEntries(exitState), [exitState]);
+  const selectedExit = exitState.archive.find(exit => exit.id === selectedExitId) ?? null;
+  const handleExitSelected = useCallback((entry: UnilateralExitEntry) => {
+    if (entry.isActive) onOpenUnilateralExit();
+    else setSelectedExitId(entry.id);
+  }, [onOpenUnilateralExit]);
 
   // Refs for dialog states to use in stable callbacks (advanced-event-handler-refs optimization)
   const dialogStateRef = useLatest({ isSendDialogOpen, isReceiveDialogOpen, selectedPayment, selectedDeposit });
@@ -282,7 +289,7 @@ const WalletPage: React.FC<WalletPageProps> = ({
           onPaymentSelected={handlePaymentSelected}
           isSyncing={isSyncing}
           exitEntries={exitEntries}
-          onExitSelected={onOpenUnilateralExit}
+          onExitSelected={handleExitSelected}
         />
       </div>
 
@@ -327,6 +334,10 @@ const WalletPage: React.FC<WalletPageProps> = ({
           optionalPayment={selectedPayment}
           onClose={handlePaymentDetailsClose}
         />
+      )}
+
+      {selectedExit && (
+        <ArchivedExitDialog exit={selectedExit} onClose={() => setSelectedExitId(null)} />
       )}
 
       {/* Keyed on deposit identity so the page remounts on a new
