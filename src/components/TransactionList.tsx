@@ -9,6 +9,7 @@ import { useFiatData } from '../contexts/FiatDataContext';
 import { useContactsContext } from '../contexts/ContactsContext';
 import { formatTokenAmount, buildTokenDisplayConfig, tokenAmountDisplaysAsZero, withAssetDecimals } from '../utils/tokenFormatting';
 import { getPaymentDescription } from '../utils/paymentDescription';
+import type { UnilateralExitEntry } from '../features/unilateral-exit/listEntries';
 
 // Hoisted static JSX elements (rendering-hoist-jsx optimization)
 const ReceiveIcon = <ArrowDownIcon size="sm" />;
@@ -58,9 +59,18 @@ interface TransactionListProps {
   transactions: Payment[];
   onPaymentSelected: (payment: Payment) => void;
   isSyncing?: boolean;
+  /** Rows for the Unilateral Exit group. An exit is not a payment the sdk reports. */
+  exitEntries?: UnilateralExitEntry[];
+  onExitSelected?: (entry: UnilateralExitEntry) => void;
 }
 
-const TransactionList: React.FC<TransactionListProps> = ({ transactions, onPaymentSelected, isSyncing }) => {
+const TransactionList: React.FC<TransactionListProps> = ({
+  transactions,
+  onPaymentSelected,
+  isSyncing,
+  exitEntries = [],
+  onExitSelected,
+}) => {
   const stableBalance = useStableBalance();
   const { fiatCurrencies } = useFiatData();
   const { findContactByAddress } = useContactsContext();
@@ -91,7 +101,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, onPayme
     ];
   }, [transactions]);
 
-  if (!transactions.length) {
+  if (!transactions.length && exitEntries.length === 0) {
     if (isSyncing) {
       return (
         <div className="px-4 py-3 flex-1 overflow-hidden" style={{ maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)' }}>
@@ -116,6 +126,43 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, onPayme
       </div>
     );
   }
+
+  // The exit's own rows. Kept beside the payment renderer rather than folded
+  // into it: an exit carries a plan, not a Payment, and shares only the shape.
+  const renderExitEntry = (entry: UnilateralExitEntry, index: number) => (
+    <li
+      key={entry.id}
+      className="transaction-item flex items-center gap-3 px-3 py-3 rounded-xl animate-list-item cursor-pointer"
+      style={{ animationDelay: `${Math.min(index * 30, 240)}ms` }}
+      onClick={() => onExitSelected?.(entry)}
+      data-testid={entry.isActive ? 'unilateral-exit-entry' : 'unilateral-exit-complete'}
+    >
+      <div
+        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-spark-electric/15 text-spark-electric ${
+          entry.isActive ? 'animate-pulse' : ''
+        }`}
+      >
+        {SendIcon}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <p className="text-[15px] font-medium text-spark-text-primary truncate">{entry.title}</p>
+          {entry.isActive && (
+            <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-spark-warning animate-pulse" />
+          )}
+        </div>
+        <div className="flex items-center gap-1 text-xs text-spark-text-muted mt-0.5 min-h-4">
+          {entry.timestamp !== undefined && <span>{formatTimeAgo(entry.timestamp)}</span>}
+          {entry.subtitle && <span className="truncate">{entry.subtitle}</span>}
+        </div>
+      </div>
+
+      <span className="font-mono font-semibold text-[15px] shrink-0 inline-flex items-center text-spark-electric">
+        <SatAmount sats={entry.amountSat} approximate={entry.isActive} />
+      </span>
+    </li>
+  );
 
   const renderTransactionItem = (tx: Payment, index: number) => {
     const isReceive = tx.paymentType === 'receive';
@@ -234,6 +281,17 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, onPayme
 
   return (
     <div className="px-4 py-3">
+      {exitEntries.length > 0 && (
+        <>
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-sm font-semibold text-spark-text-muted tracking-wide uppercase">
+              Unilateral Exit
+            </h2>
+            <div className="flex-1 h-px bg-linear-to-r from-spark-border to-transparent" />
+          </div>
+          <ul className="space-y-2 mb-6">{exitEntries.map(renderExitEntry)}</ul>
+        </>
+      )}
       {sections.map(({ title, items }) => items.length > 0 && (
         <React.Fragment key={title}>
           <div className="flex items-center gap-2 mb-3">

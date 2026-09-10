@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { CrossChainRoutePair } from '@breeztech/breez-sdk-spark';
 import { PrimaryButton, SecondaryButton } from '../ui';
 import CryptoIcon from '../CryptoIcon';
-import { ChevronDownIcon, CopyFilledIcon, CheckIcon } from '../Icons';
+import { ChevronDownIcon, CopyIcon, CheckIcon } from '../Icons';
 import { crossChainCardClass } from '../../utils/crossChainRoutes';
 import { formatChainName } from '../../utils/crossChainFormat';
 import { copyToClipboard } from '../../utils/clipboard';
@@ -93,7 +93,7 @@ export const CrossChainChainStep: React.FC<CrossChainChainStepProps> = ({
                   >
                     {isCopied
                       ? <CheckIcon size="sm" className="text-spark-success" />
-                      : <CopyFilledIcon size="sm" className="text-spark-text-secondary" />
+                      : <CopyIcon size="sm" className="text-spark-text-secondary" />
                     }
                   </button>
                 </div>

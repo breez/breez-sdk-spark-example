@@ -4,7 +4,7 @@ import { PinGate } from '../components/PinEntry';
 import { getSettings, saveSettings, UserSettings, hasBuyProviderSettings, isDevMode as isDevModeEnabled, setDevMode, buildDepositMaxFee, depositMaxFeeDrafts, depositMaxFeeValue, DepositMaxFeeType } from '../services/settings';
 import type { Config, Network } from '@breeztech/breez-sdk-spark';
 import { useWallet } from '@/contexts/WalletContext';
-import { CurrencyIcon, ChevronRightIcon, DownloadIcon, KeyIcon, LockIcon, ShieldCheckIcon, TrashIcon, ExternalLinkIcon } from '../components/Icons';
+import { CurrencyIcon, ChevronRightIcon, DownloadIcon, KeyIcon, LockIcon, LogoutIcon, ShieldCheckIcon, TrashIcon, ExternalLinkIcon } from '../components/Icons';
 import { ACCOUNT_DELETION_GUIDE_URL } from '@/services/accountDeletion';
 import { openExternalUrl } from '@/utils/externalLink';
 import { isAppLockSupported, isPinEnabled } from '@/services/appLock';
@@ -23,6 +23,7 @@ interface SettingsPageProps {
   onOpenPasskeySettings: () => void;
   onOpenSecurity: () => void;
   onOpenBackup: () => void;
+  onOpenUnilateralExit: () => void;
 }
 
 const SettingsPage: React.FC<SettingsPageProps> = ({
@@ -33,6 +34,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
   onOpenPasskeySettings,
   onOpenSecurity,
   onOpenBackup,
+  onOpenUnilateralExit,
 }) => {
   const wallet = useWallet();
   const [appVersion, setAppVersion] = useState<string | null>(null);
@@ -489,6 +491,34 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                   placeholder="example.com"
                 />
               </FormGroup>
+            </div>
+          )}
+
+          {isDevMode && (
+            <div className="bg-spark-dark border border-spark-border rounded-2xl p-4">
+              <h3 className="font-display font-semibold text-spark-text-primary mb-1">Unilateral Exit</h3>
+              <p className="text-sm text-spark-text-muted mb-3">
+                Move your balance on-chain without Spark operators.
+              </p>
+              <button
+                className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium border border-spark-warn-border rounded-xl text-spark-warn-text hover:bg-white/5 transition-colors"
+                type="button"
+                onClick={onOpenUnilateralExit}
+                data-testid="settings-unilateral-exit"
+              >
+                <div className="flex items-center gap-3">
+                  <LogoutIcon size="md" />
+                  <span>Start Unilateral Exit</span>
+                </div>
+                <ChevronRightIcon size="md" />
+              </button>
+              {/* The warning belongs with the decision to start, so it is here
+                  rather than on the first screen of the flow it introduces.
+                  Under the button, where it reads as the caveat on pressing it
+                  rather than part of the description above. */}
+              <p className="text-xs text-spark-primary mt-2">
+                Use this only if Spark stops operating. This is a last-resort action.
+              </p>
             </div>
           )}
 

@@ -51,15 +51,24 @@ export const SwapVerticalIcon: React.FC<IconProps> = ({ className = '', size = '
 // ACTION ICONS
 // ============================================
 
+// Mirrored, so the back sheet shows at the top right.
 export const CopyIcon: React.FC<IconProps> = ({ className = '', size = 'md' }) => (
   <svg className={`${sizeClasses[size]} ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+    <path transform="matrix(-1 0 0 1 24 0)" strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
   </svg>
 );
 
 export const DownloadIcon: React.FC<IconProps> = ({ className = '', size = 'md' }) => (
   <svg className={`${sizeClasses[size]} ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+  </svg>
+);
+
+/** A circular arrow: do the thing again, for a rebuild or a retry. */
+export const RefreshIcon: React.FC<IconProps> = ({ className = '', size = 'md' }) => (
+  <svg className={`${sizeClasses[size]} ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19.4 9a8 8 0 00-14-2.6L4 9m0 6a8 8 0 0014 2.6l1.4-2.6" />
   </svg>
 );
 
@@ -303,6 +312,19 @@ export const BackupIcon: React.FC<IconProps> = ({ className = '', size = 'md' })
   </svg>
 );
 
+export const LifebuoyIcon: React.FC<IconProps> = ({ className = '', size = 'md' }) => (
+  <svg className={`${sizeClasses[size]} ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18zm0-5a4 4 0 100-8 4 4 0 000 8z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5.6 5.6l3.2 3.2m6.4 6.4l3.2 3.2m0-12.8l-3.2 3.2m-6.4 6.4l-3.2 3.2" />
+  </svg>
+);
+
+export const ClockIcon: React.FC<IconProps> = ({ className = '', size = 'md' }) => (
+  <svg className={`${sizeClasses[size]} ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
 export const SettingsIcon: React.FC<IconProps> = ({ className = '', size = 'md' }) => (
   <svg className={`${sizeClasses[size]} ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -331,12 +353,6 @@ export const EditIcon: React.FC<IconProps> = ({ className = '', size = 'sm' }) =
 export const RadioCheckIcon: React.FC<IconProps> = ({ className = '', size = 'sm' }) => (
   <svg className={`${sizeClasses[size]} ${className}`} viewBox="0 0 20 20" fill="currentColor">
     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414l2.293 2.293 6.543-6.543a1 1 0 011.414 0z" clipRule="evenodd" />
-  </svg>
-);
-
-export const CopyFilledIcon: React.FC<IconProps> = ({ className = '', size = 'sm' }) => (
-  <svg className={`${sizeClasses[size]} ${className}`} fill="currentColor" viewBox="0 0 20 20">
-    <path d="M8 2a2 2 0 00-2 2v1H5a2 2 0 00-2 2v7a2 2 0 002 2h6a2 2 0 002-2v-1h1a2 2 0 002-2V6l-4-4H8zm6 6h-2a2 2 0 01-2-2V4H8v1h3a1 1 0 011 1v2h2v2z" />
   </svg>
 );
 

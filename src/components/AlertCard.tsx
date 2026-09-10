@@ -101,6 +101,11 @@ export interface SimpleAlertProps {
   children: ReactNode;
   className?: string;
   dataTestId?: string;
+  /**
+   * Drop the leading glyph. For copy that already names the condition in its
+   * own words, the icon only restates it and narrows the text column.
+   */
+  hideIcon?: boolean;
 }
 
 export const SimpleAlert: React.FC<SimpleAlertProps> = ({
@@ -108,6 +113,7 @@ export const SimpleAlert: React.FC<SimpleAlertProps> = ({
   children,
   className = '',
   dataTestId,
+  hideIcon = false,
 }) => {
   const iconColors: Record<AlertVariant, string> = {
     info: 'text-spark-electric',
@@ -125,9 +131,9 @@ export const SimpleAlert: React.FC<SimpleAlertProps> = ({
 
   const icons: Record<AlertVariant, ReactNode> = {
     info: <InfoIcon className={`shrink-0 ${iconColors[variant]}`} />,
-    warning: <WarningIcon size="md" className={iconColors[variant]} />,
-    success: <CheckCircleIcon size="md" className={iconColors[variant]} />,
-    error: <ErrorIcon size="md" className={iconColors[variant]} />,
+    warning: <WarningIcon size="md" className={`shrink-0 ${iconColors[variant]}`} />,
+    success: <CheckCircleIcon size="md" className={`shrink-0 ${iconColors[variant]}`} />,
+    error: <ErrorIcon size="md" className={`shrink-0 ${iconColors[variant]}`} />,
   };
 
   return (
@@ -135,7 +141,7 @@ export const SimpleAlert: React.FC<SimpleAlertProps> = ({
       className={`flex items-start gap-3 p-4 rounded-xl border ${bgStyles[variant]} ${className}`}
       data-testid={dataTestId}
     >
-      {icons[variant]}
+      {!hideIcon && icons[variant]}
       <div className="text-sm">{children}</div>
     </div>
   );

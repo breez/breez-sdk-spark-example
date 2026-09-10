@@ -35,10 +35,14 @@ const PasskeySettingsPage = lazy(() => import('./pages/PasskeySettingsPage'));
 const PasskeyManagementPage = lazy(() => import('./pages/PasskeyManagementPage'));
 const LabelsPage = lazy(() => import('./pages/LabelsPage'));
 const PasskeyLocalStatePage = lazy(() => import('./pages/PasskeyLocalStatePage'));
+// Dev-gated recovery flow. Code-split so the BIP32 derivation and the
+// chain-watching engine load only when the flow is first opened.
+const UnilateralExitPage = lazy(() => import('./pages/UnilateralExitPage'));
 // Code-split the rare legacy->shared passkey migration: its modal + service load
 // only after the flow is first triggered (gated by migrationEverOpened below).
 const PasskeyMigrationModal = lazy(() => import('./features/passkey-migration/PasskeyMigrationModal'));
 import { ContactsProvider } from './contexts/ContactsContext';
+import { useUnilateralExitEngineLifecycle } from './features/unilateral-exit/hooks/useUnilateralExitEngineLifecycle';
 
 import { useIOSViewportFix } from './hooks/useIOSViewportFix';
 import { useStatusBarColor } from './hooks/useStatusBarColor';
@@ -48,7 +52,7 @@ import type { Seed, Payment, BreezSdk } from '@breeztech/breez-sdk-spark';
 
 const PASSKEY_MIGRATION_ENABLED = true;
 
-type Screen = 'home' | 'restore' | 'generate' | 'wallet' | 'getRefund' | 'settings' | 'backup' | 'security' | 'fiatCurrencies' | 'buyProviders' | 'passkey' | 'unlock' | 'unlocking' | 'passkeySettings' | 'passkeyManagement' | 'labels' | 'passkeyLocalState';
+type Screen = 'home' | 'restore' | 'generate' | 'wallet' | 'getRefund' | 'settings' | 'backup' | 'security' | 'fiatCurrencies' | 'buyProviders' | 'passkey' | 'unlock' | 'unlocking' | 'passkeySettings' | 'passkeyManagement' | 'labels' | 'passkeyLocalState' | 'unilateralExit';
 
 // Full-screen dim spinner shown while sdk.isLoading is true (logout in
 // progress, SDK reconnect, etc). Wrapped as its own component so the
@@ -104,6 +108,11 @@ const AppContent: React.FC = () => {
   // App lock overlays everything (including the unlock/backup screens)
   // while locked; rendered last in the tree so it stacks on top.
   const appLock = useAppLock();
+
+  // An in-flight recovery has to keep moving even when its page is
+  // closed: each step only becomes broadcastable once the one before it
+  // confirms, and those waits run for days.
+  useUnilateralExitEngineLifecycle(sdk.walletInfo?.identityPubkey, sdk.config?.network, sdk.sdk);
 
   // SDK startup state takes precedence; otherwise the user's screen
   // wins, with one exception: an SDK auto-reconnect (saved mnemonic /
@@ -223,7 +232,8 @@ const AppContent: React.FC = () => {
       case 'fiatCurrencies':
       case 'buyProviders':
       case 'passkeySettings':
-        setUserScreen('settings');
+      case 'unilateralExit':
+        setUserScreen('wallet');
         return true;
       case 'passkeyManagement':
       case 'labels':
@@ -324,6 +334,7 @@ const AppContent: React.FC = () => {
             setUserScreen('getRefund');
           }}
           onOpenSettings={() => setUserScreen('settings')}
+          onOpenUnilateralExit={() => setUserScreen('unilateralExit')}
           onBuyBitcoin={sdk.handleBuyBitcoin}
           network={sdk.config?.network}
           onDepositChanged={sdk.fetchUnclaimedDeposits}
@@ -345,6 +356,7 @@ const AppContent: React.FC = () => {
         onOpenPasskeySettings={() => setUserScreen('passkeySettings')}
         onOpenSecurity={() => setUserScreen('security')}
         onOpenBackup={() => setUserScreen('backup')}
+        onOpenUnilateralExit={() => setUserScreen('unilateralExit')}
       />
     );
 
@@ -450,6 +462,20 @@ const AppContent: React.FC = () => {
             {renderSettingsPage()}
             <Suspense fallback={null}>
               {renderPasskeySettingsPage()}
+            </Suspense>
+          </>
+        );
+
+      case 'unilateralExit':
+        return (
+          <>
+            {renderWalletPage()}
+            <Suspense fallback={null}>
+              <UnilateralExitPage
+                network={sdk.config?.network ?? 'mainnet'}
+                onBack={() => setUserScreen('wallet')}
+                onFinished={() => setUserScreen('wallet')}
+              />
             </Suspense>
           </>
         );

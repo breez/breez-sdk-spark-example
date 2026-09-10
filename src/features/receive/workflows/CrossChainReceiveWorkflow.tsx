@@ -11,7 +11,7 @@ import {
   CopyableText,
   FormError,
 } from '../../../components/ui';
-import { SpinnerIcon, CopyFilledIcon, CheckIcon } from '../../../components/Icons';
+import { SpinnerIcon, CopyIcon, CheckIcon } from '../../../components/Icons';
 import { CrossChainAssetStep } from '../../../components/crossChain/CrossChainAssetStep';
 import { CrossChainChainStep } from '../../../components/crossChain/CrossChainChainStep';
 import { useWallet } from '../../../contexts/WalletContext';
@@ -377,7 +377,7 @@ const CrossChainReceiveWorkflow: React.FC = () => {
               </span>
               {amountCopied
                 ? <CheckIcon size="sm" className="text-spark-success" />
-                : <CopyFilledIcon size="sm" className="text-spark-text-muted group-hover:text-spark-text-secondary transition-colors" />}
+                : <CopyIcon size="sm" className="text-spark-text-muted group-hover:text-spark-text-secondary transition-colors" />}
             </button>
             <p className="text-sm text-spark-text-secondary mt-1">
               {resultAssetName} on {resultChainName} · via {getProviderDisplayName(selectedRoute.provider)}
