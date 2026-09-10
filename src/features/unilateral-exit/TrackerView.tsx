@@ -4,7 +4,7 @@ import { AlertCard } from '@/components/AlertCard';
 import { SatAmount } from '@/components/SatAmount';
 import { CollapsibleCodeField, CollapsibleSection, PrimaryButton, SecondaryButton } from '@/components/ui';
 import { RefreshIcon } from '@/components/Icons';
-import { blocksToFinish, exitStages, hasFixedFeeBudget, nextAction, planProgress, refusalKind } from './driver';
+import { blocksToFinish, exitStages, nextAction, planProgress } from './driver';
 import type { NextAction, PlanProgress, UnilateralExitPlan } from './driver';
 import { formatDaysLeft } from '@/utils/blockTime';
 import { formatWithSpaces } from '@/utils/formatNumber';
@@ -135,10 +135,6 @@ export const TrackerView: React.FC<{
   const { transactions } = plan.exit;
   const [advanced, setAdvanced] = useState(false);
   const progress = useMemo(() => planProgress(plan), [plan]);
-  const refusals = Object.values(plan.refusals);
-  const feeRefusal = refusals.find(reason => refusalKind(reason) === 'fee');
-  const feeRefused = feeRefusal !== undefined;
-  const otherRefusal = refusals.find(reason => refusalKind(reason) === 'other');
   const next = useMemo(
     () => (tipHeight === null ? null : nextAction(transactions, tipHeight)),
     [transactions, tipHeight],
@@ -157,38 +153,6 @@ export const TrackerView: React.FC<{
         progress={progress}
         isAdvancing={isAdvancing}
       />
-
-      {/* A step another copy already settled shows nothing: the next check adopts it. */}
-      {plan.phase === 'active' && feeRefused && (
-        <AlertCard variant="warning" title="Fee too low">
-          {hasFixedFeeBudget(plan) ? (
-            <p className="text-sm">
-              A step&apos;s fee is below the minimum the network accepts right now. Glow keeps
-              retrying, and the step goes through once the network accepts its fee.
-            </p>
-          ) : (
-            <>
-              <p className="text-sm">
-                A step&apos;s fee is below the minimum the network accepts right now. Rebuild the exit
-                at a higher fee to keep it moving.
-              </p>
-              <div className="mt-3">
-                <PrimaryButton onClick={onRebuild} className="w-full" data-testid="unilateral-exit-refusal-rebuild">
-                  Rebuild at a Higher Fee
-                </PrimaryButton>
-              </div>
-            </>
-          )}
-          {feeRefusal && <ErrorDetails text={feeRefusal} testId="unilateral-exit-fee-refusal" />}
-        </AlertCard>
-      )}
-
-      {plan.phase === 'active' && !feeRefused && otherRefusal && (
-        <AlertCard variant="warning" title="The network refused a step">
-          <p className="text-sm">Glow keeps retrying.</p>
-          <ErrorDetails text={otherRefusal} testId="unilateral-exit-refusal" />
-        </AlertCard>
-      )}
 
       {plan.phase === 'redo' && (
         <AlertCard variant="warning" title="Your exit needs an update">
