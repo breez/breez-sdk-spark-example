@@ -332,6 +332,8 @@ export function useUnilateralExitFlow(network: string): UnilateralExitFlow {
     setQuote(null);
     setQuoteError(null);
     setBuildError(null);
+    // The rates read when the page opened can be hours old by now.
+    setFeeRates(null);
     setPhase('fee');
   }, []);
 
