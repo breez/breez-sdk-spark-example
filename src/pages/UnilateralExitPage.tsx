@@ -194,7 +194,11 @@ const UnilateralExitPage: React.FC<UnilateralExitPageProps> = ({ network, onBack
 
           </div>
 
-          {stepAction && <div className="pt-6">{stepAction}</div>}
+          {/* Send's spacing: its input step's quick actions sit 16pt above the
+              CTA, and its confirm step's content 24pt. */}
+          {stepAction && (
+            <div className={flow.phase === 'destination' ? 'pt-4' : 'pt-6'}>{stepAction}</div>
+          )}
         </BottomSheetCard>
       </BottomSheetContainer>
 
