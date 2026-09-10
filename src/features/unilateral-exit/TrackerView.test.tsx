@@ -118,11 +118,33 @@ describe('what the exit is worth right now', () => {
 });
 
 describe('TrackerView', () => {
-  it('offers a rebuild when the chain no longer matches the exit', () => {
+  it('continues a diverged exit in place, without the wizard', () => {
     const onRebuild = vi.fn();
-    renderTracker(plan([tx({ txid: 'a' })], { phase: 'redo' }), 1000, onRebuild);
+    const onContinue = vi.fn();
+    render(
+      <TrackerView plan={plan([tx({ txid: 'a' })], { phase: 'redo' })} tipHeight={1000} isAdvancing={false} onRebuild={onRebuild} onContinue={onContinue} />,
+    );
     expect(screen.getByText('Rebuild to keep going')).toBeInTheDocument();
-    screen.getByTestId('unilateral-exit-rebuild').click();
+    fireEvent.click(screen.getByTestId('unilateral-exit-rebuild'));
+    expect(onContinue).toHaveBeenCalled();
+    expect(onRebuild).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('unilateral-exit-rebuild-wizard')).not.toBeInTheDocument();
+  });
+
+  it('offers the wizard when continuing in place fails', () => {
+    const onRebuild = vi.fn();
+    render(
+      <TrackerView
+        plan={plan([tx({ txid: 'a' })], { phase: 'redo' })}
+        tipHeight={1000}
+        isAdvancing={false}
+        onRebuild={onRebuild}
+        onContinue={vi.fn()}
+        continueError="Insufficient CPFP funding: need at least 5000 sats"
+      />,
+    );
+    expect(screen.getByTestId('unilateral-exit-continue-error')).toHaveTextContent('need at least 5000 sats');
+    fireEvent.click(screen.getByTestId('unilateral-exit-rebuild-wizard'));
     expect(onRebuild).toHaveBeenCalled();
   });
 

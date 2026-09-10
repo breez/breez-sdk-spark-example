@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { BackupActions, ExitActionRow } from './BackupCard';
 import { AlertCard } from '@/components/AlertCard';
 import { SatAmount } from '@/components/SatAmount';
-import { CollapsibleSection, PrimaryButton } from '@/components/ui';
+import { CollapsibleSection, PrimaryButton, SecondaryButton } from '@/components/ui';
 import { RefreshIcon } from '@/components/Icons';
 import { blocksToFinish, exitStages, hasFixedFeeBudget, nextAction, planProgress, refusalKind } from './driver';
 import type { NextAction, PlanProgress, UnilateralExitPlan } from './driver';
@@ -115,8 +115,13 @@ export const TrackerView: React.FC<{
   plan: UnilateralExitPlan;
   tipHeight: number | null;
   isAdvancing: boolean;
+  /** Opens the wizard, for a new fee rate. */
   onRebuild: () => void;
-}> = ({ plan, tipHeight, isAdvancing, onRebuild }) => {
+  /** Rebuilds a diverged exit in place, at its own fee rate. */
+  onContinue?: () => void;
+  isContinuing?: boolean;
+  continueError?: string | null;
+}> = ({ plan, tipHeight, isAdvancing, onRebuild, onContinue, isContinuing = false, continueError = null }) => {
   const { transactions } = plan.exit;
   const [advanced, setAdvanced] = useState(false);
   const progress = useMemo(() => planProgress(plan), [plan]);
@@ -181,10 +186,26 @@ export const TrackerView: React.FC<{
             The blockchain no longer matches the transactions saved here. Your money is safe:
             it is still in the tree, or already in an output you control.
           </p>
-          <div className="mt-3">
-            <PrimaryButton onClick={onRebuild} className="w-full" data-testid="unilateral-exit-rebuild">
-              Rebuild the Exit
+          {continueError && (
+            <p className="text-sm mt-2" data-testid="unilateral-exit-continue-error">
+              {continueError}
+            </p>
+          )}
+          <div className="mt-3 space-y-2">
+            <PrimaryButton
+              onClick={onContinue ?? onRebuild}
+              disabled={isContinuing}
+              className="w-full"
+              data-testid="unilateral-exit-rebuild"
+            >
+              {isContinuing ? 'Rebuilding...' : 'Continue Exit'}
             </PrimaryButton>
+            {/* When the exit's own fee rate no longer works, the wizard can pick another. */}
+            {continueError && (
+              <SecondaryButton onClick={onRebuild} className="w-full" data-testid="unilateral-exit-rebuild-wizard">
+                Choose a Different Fee
+              </SecondaryButton>
+            )}
           </div>
         </AlertCard>
       )}

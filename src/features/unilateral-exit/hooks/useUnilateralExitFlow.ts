@@ -10,6 +10,7 @@ import {
   hasFixedFeeBudget,
   planFromExitResponse,
   quotedSweepFeeSat,
+  rebuildExit,
   requiredFundingOf,
   willReceiveSat,
   type WalletKey,
@@ -116,6 +117,10 @@ export interface UnilateralExitFlow {
   build: () => Promise<void>;
   buildError: string | null;
   rebuild: () => void;
+  /** Rebuilds a diverged exit in place, at its own fee rate, without the wizard. */
+  continueExit: () => Promise<void>;
+  isContinuing: boolean;
+  continueError: string | null;
   goTo: (phase: UnilateralExitPhase) => void;
   back: () => void;
 }
@@ -337,6 +342,27 @@ export function useUnilateralExitFlow(network: string): UnilateralExitFlow {
     setPhase('fee');
   }, []);
 
+  // The redo card's button: the rebuild the engine runs on its own, from a tap.
+  // A diverged exit needs no new fee rate or funding, so the wizard would only
+  // add steps, and the tap is what lets a passkey wallet sign.
+  const [isContinuing, setIsContinuing] = useState(false);
+  const [continueError, setContinueError] = useState<string | null>(null);
+  const continueExit = useCallback(async () => {
+    if (!plan || !walletKey) return;
+    setIsContinuing(true);
+    setContinueError(null);
+    try {
+      const rebuilt = await rebuildExit(plan, wallet, walletKey.identityPubkey, { interactive: true });
+      if (rebuilt) setUnilateralExitPlan(walletKey, rebuilt);
+      else setContinueError('Nothing is left to rebuild. The exit updates on its next check.');
+    } catch (e) {
+      logger.error(LogCategory.SDK, 'Failed to continue unilateral exit', { error: message(e) });
+      setContinueError(message(e));
+    } finally {
+      setIsContinuing(false);
+    }
+  }, [plan, wallet, walletKey]);
+
   const back = useCallback(() => setPhase(current => BACK[current] ?? current), []);
 
   return {
@@ -376,6 +402,9 @@ export function useUnilateralExitFlow(network: string): UnilateralExitFlow {
     build,
     buildError,
     rebuild,
+    continueExit,
+    isContinuing,
+    continueError,
     goTo: setPhase,
     back,
   };

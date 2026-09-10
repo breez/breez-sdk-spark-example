@@ -287,16 +287,22 @@ export async function checkExit(plan: UnilateralExitPlan, sdk: ExitSdk): Promise
  * destination, fee rate and funding. Null when there is nothing left to build,
  * which leaves the stored exit as it was.
  *
- * Runs from a background pass, so it never asks for the recovery phrase: a
- * wallet that keeps none on the device throws, and the tracker offers the
- * rebuild as a button the user presses.
+ * A background pass never asks for the recovery phrase: a wallet that keeps
+ * none on the device throws, and the tracker offers the rebuild as a button.
+ * The button passes `interactive`, since its tap is what lets a passkey
+ * prompt run. The phrase is read first, while that tap is still fresh.
  */
 export async function rebuildExit(
   plan: UnilateralExitPlan,
   sdk: ExitSdk,
   identityPubkey: string,
+  { interactive = false }: { interactive?: boolean } = {},
 ): Promise<UnilateralExitPlan | null> {
-  const key = deriveFundingKey(await readWalletMnemonic(), plan.network, plan.fundingAddressIndex);
+  const key = deriveFundingKey(
+    await readWalletMnemonic({ interactive }),
+    plan.network,
+    plan.fundingAddressIndex,
+  );
   await restoreExitState(sdk, plan, await loadExitState(identityPubkey).catch(() => null));
 
   // Named, not reselected: `auto` can drop a leaf that is part-way out.
