@@ -71,7 +71,7 @@ const ExitSummary: React.FC<{
     <div className="space-y-6">
       <div className="text-center py-4">
         <p className="text-spark-text-muted text-sm mb-2">
-          {plan.phase === 'redo' ? 'This exit needs rebuilding' : 'Processing'}
+          {plan.phase === 'redo' ? 'Paused' : 'Processing'}
         </p>
         <SatAmount
           sats={stages.willReceive}
@@ -181,9 +181,10 @@ export const TrackerView: React.FC<{
       )}
 
       {plan.phase === 'redo' && (
-        <AlertCard variant="warning" title="Rebuild to keep going">
+        <AlertCard variant="warning" title="Your exit needs an update">
           <p className="text-sm">
-            Some steps went through another way. Your money is safe.
+            Part of your exit already went through on the network, so the remaining steps need
+            updating. Your money is safe.
           </p>
           {continueError && (
             <p className="text-sm mt-2" data-testid="unilateral-exit-continue-error">

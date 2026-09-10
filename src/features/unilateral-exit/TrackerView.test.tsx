@@ -113,7 +113,7 @@ describe('what the exit is worth right now', () => {
 
   it('says it is rebuilding rather than moving when the chain diverged', () => {
     renderTracker(plan([tx({ txid: 'a' })], { phase: 'redo' }));
-    expect(screen.getByText('This exit needs rebuilding')).toBeInTheDocument();
+    expect(screen.getByText('Paused')).toBeInTheDocument();
   });
 });
 
@@ -124,7 +124,7 @@ describe('TrackerView', () => {
     render(
       <TrackerView plan={plan([tx({ txid: 'a' })], { phase: 'redo' })} tipHeight={1000} isAdvancing={false} onRebuild={onRebuild} onContinue={onContinue} />,
     );
-    expect(screen.getByText('Rebuild to keep going')).toBeInTheDocument();
+    expect(screen.getByText('Your exit needs an update')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('unilateral-exit-rebuild'));
     expect(onContinue).toHaveBeenCalled();
     expect(onRebuild).not.toHaveBeenCalled();

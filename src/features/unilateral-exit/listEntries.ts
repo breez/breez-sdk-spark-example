@@ -22,7 +22,7 @@ export interface UnilateralExitEntry {
 const activeSubtitle = (state: UnilateralExitEngineState): string | null => {
   const plan = state.plan;
   if (!plan) return null;
-  if (plan.phase === 'redo') return 'The blockchain moved on. Open to rebuild it.';
+  if (plan.phase === 'redo') return 'Open to continue it.';
 
   const { confirmed, total } = planProgress(plan);
   const blocks =
@@ -55,7 +55,7 @@ export function unilateralExitEntries(state: UnilateralExitEngineState): Unilate
   return [
     {
       id: 'active',
-      title: plan.phase === 'redo' ? 'Rebuild needed' : 'Transactions in progress',
+      title: plan.phase === 'redo' ? 'Update needed' : 'Transactions in progress',
       subtitle: activeSubtitle(state),
       amountSat: willReceiveSat(plan),
       isActive: true,
