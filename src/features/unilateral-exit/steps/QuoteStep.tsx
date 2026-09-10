@@ -81,7 +81,7 @@ export const QuoteStep: React.FC<QuoteFields> = ({
         ]}
       />
 
-      <SimpleAlert variant="warning">
+      <SimpleAlert variant="warning" hideIcon>
         To start the process you need to pay the exit fee. These are the mining fees required to
         move the Spark tree on-chain.
       </SimpleAlert>

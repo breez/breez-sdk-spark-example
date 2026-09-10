@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CollapsibleSection } from '@/components/ui';
+import { SimpleAlert } from '@/components/AlertCard';
 import { BackupActions } from '../BackupCard';
 
 const requirements = [
@@ -14,12 +15,10 @@ export const IntroStep: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Repeats the warning under the settings button on purpose. */}
-      <p className="text-sm text-spark-text-muted">
-        Move your balance on-chain without Spark operators.{' '}
-        <span className="text-spark-primary">
-          Use this only if Spark stops operating. This is a last-resort action.
-        </span>
-      </p>
+      <SimpleAlert variant="warning" hideIcon>
+        Move your balance on-chain without Spark operators. Use this only if Spark stops
+        operating. This is a last-resort action.
+      </SimpleAlert>
 
       <div className="bg-spark-dark border border-spark-border rounded-2xl p-4">
         <h3 className="font-display font-semibold text-spark-text-primary text-sm mb-3">
