@@ -225,6 +225,12 @@ export function refusalKind(reason: string): RefusalKind {
 export const hasFixedFeeBudget = (plan: UnilateralExitPlan): boolean =>
   plan.exit.transactions.some(tx => tx.kind === 'fanOut' && tx.status.type === 'confirmed');
 
+/** What a build said it needs: the sdk's error reaches the page only as its message. */
+export function requiredFundingOf(error: string): number | null {
+  const match = /need at least (\d+) sats/i.exec(error);
+  return match ? Number(match[1]) : null;
+}
+
 export interface PlanProgress {
   confirmed: number;
   total: number;

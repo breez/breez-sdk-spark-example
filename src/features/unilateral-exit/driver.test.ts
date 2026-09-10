@@ -12,6 +12,7 @@ import {
   nextAction,
   planFromExitResponse,
   refusalKind,
+  requiredFundingOf,
   planProgress,
   quotedSweepFeeSat,
   savePlan,
@@ -534,6 +535,16 @@ describe('refusalKind', () => {
   it('leaves anything else to be shown as the node said it', () => {
     expect(refusalKind('non-BIP68-final')).toBe('other');
     expect(refusalKind('broadcast failed with status 502')).toBe('other');
+  });
+});
+
+describe('requiredFundingOf', () => {
+  it("reads the amount out of the sdk's shortfall error", () => {
+    expect(requiredFundingOf('Insufficient CPFP funding: need at least 5898 sats')).toBe(5898);
+  });
+
+  it('is null for any other failure', () => {
+    expect(requiredFundingOf('signing failed')).toBeNull();
   });
 });
 
